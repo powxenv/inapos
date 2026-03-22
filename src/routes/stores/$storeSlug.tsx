@@ -508,6 +508,14 @@ function RouteComponent() {
                         return <SuppliersModule storeId={organization.id} />;
                       }
 
+                      if (module.id === "cash") {
+                        return <CashModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "expenses") {
+                        return <ExpensesModule storeId={organization.id} />;
+                      }
+
                       const ModuleComponent = moduleComponents[module.id];
                       return <ModuleComponent />;
                     })()}

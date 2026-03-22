@@ -2,6 +2,11 @@ config:
   edition: 3
 
 streams:
+  cash_entries:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM cash_entries
+
   customers:
     auto_subscribe: true
     queries:

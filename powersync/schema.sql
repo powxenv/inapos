@@ -1,5 +1,17 @@
 create extension if not exists pgcrypto;
 
+create table if not exists public.cash_entries (
+  id text primary key default gen_random_uuid()::text,
+  store_id text not null,
+  title text not null,
+  entry_type text not null default 'in',
+  amount numeric(14, 2) not null default 0,
+  happened_at timestamptz not null default now(),
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.customers (
   id text primary key default gen_random_uuid()::text,
   store_id text not null,
@@ -102,6 +114,8 @@ alter table if exists public.purchases drop constraint if exists purchases_store
 alter table if exists public.sales drop constraint if exists sales_store_id_fkey;
 alter table if exists public.expenses drop constraint if exists expenses_store_id_fkey;
 
+create index if not exists idx_cash_entries_store_id on public.cash_entries(store_id);
+create index if not exists idx_cash_entries_happened_at on public.cash_entries(happened_at);
 create index if not exists idx_customers_store_id on public.customers(store_id);
 create index if not exists idx_suppliers_store_id on public.suppliers(store_id);
 create index if not exists idx_products_store_id on public.products(store_id);
@@ -122,6 +136,12 @@ begin
   return new;
 end;
 $$;
+
+drop trigger if exists cash_entries_set_updated_at on public.cash_entries;
+create trigger cash_entries_set_updated_at
+before update on public.cash_entries
+for each row
+execute function public.set_updated_at();
 
 drop trigger if exists customers_set_updated_at on public.customers;
 create trigger customers_set_updated_at

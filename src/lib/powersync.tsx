@@ -18,6 +18,15 @@ const POWERSYNC_DB_FILENAME = "warungku.sqlite";
 const POWERSYNC_ASSET_BASE = "/@powersync/@powersync";
 
 const appSchema = new Schema({
+  cash_entries: new Table({
+    store_id: column.text,
+    title: column.text,
+    entry_type: column.text,
+    amount: column.real,
+    happened_at: column.text,
+    note: column.text,
+    updated_at: column.text,
+  }),
   customers: new Table({
     store_id: column.text,
     name: column.text,
@@ -104,6 +113,7 @@ const queryClient = new QueryClient({
 const FATAL_RESPONSE_CODES = [/^22...$/, /^23...$/, /^42501$/];
 
 const MUTABLE_TABLES = new Set([
+  "cash_entries",
   "customers",
   "expenses",
   "inventory_items",
