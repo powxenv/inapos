@@ -53,10 +53,6 @@ const initialMessages: UIMessage[] = [
   },
 ];
 
-function shouldShowStarterPrompts(messageCount: number): boolean {
-  return messageCount <= initialMessages.length;
-}
-
 function describeUnavailableAssistant(
   provider: AiProvider,
   hasSelectedModel: boolean,
@@ -149,6 +145,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     sendMessage,
     status: chatStatus,
   } = useChat({
+    experimental_throttle: 50,
     id: chatId,
     messages: initialMessages,
     transport: createAssistantTransport(selectedProvider, activeModel, storeId),
@@ -167,7 +164,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     isInitializingAssistant ||
     (isSendingMessage &&
       (messages[messages.length - 1]?.role !== "assistant" || latestAssistantBody.length === 0));
-  const showStarterPromptSection = minimal || shouldShowStarterPrompts(messages.length);
+  const showStarterPromptSection = true;
 
   async function loadOllamaStatus(): Promise<void> {
     setIsLoadingStatus(true);
