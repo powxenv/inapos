@@ -7,11 +7,15 @@ type DashboardMetricRow = {
 };
 
 type RecentSaleRow = {
+  created_at: string | null;
   id: string;
   payment_method: string | null;
   receipt_number: string | null;
-  status: string | null;
   total_amount: number | null;
+};
+
+type DashboardModuleProps = {
+  storeId: string;
 };
 
 function getSyncMessage(status: ReturnType<typeof useStatus>) {
@@ -30,6 +34,17 @@ function getSyncMessage(status: ReturnType<typeof useStatus>) {
   }
 
   return "PowerSync belum tersambung.";
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function formatRupiah(value: number | null | undefined) {
@@ -56,59 +71,81 @@ function getSyncChipColor(connected: boolean, hasSynced: boolean | undefined, ha
   return "default";
 }
 
-export function DashboardModule() {
+export function DashboardModule({ storeId }: DashboardModuleProps) {
   const status = useStatus();
   const hasSyncError = Boolean(
     status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError,
   );
-  const [salesTodayQuery, transactionCountQuery, lowStockQuery, recentSalesQuery] = useQueries<
-    [DashboardMetricRow, DashboardMetricRow, DashboardMetricRow, RecentSaleRow]
-  >({
-    queries: [
-      {
-        query: `
-          SELECT COALESCE(SUM(total_amount), 0) AS nilai
-          FROM sales
-          WHERE date(created_at) = date('now', 'localtime')
-        `,
-        queryKey: ["dashboard", "sales-today"],
-      },
-      {
-        query: `
-          SELECT COUNT(*) AS nilai
-          FROM sales
-          WHERE date(created_at) = date('now', 'localtime')
-        `,
-        queryKey: ["dashboard", "transactions-today"],
-      },
-      {
-        query: `
-          SELECT COUNT(*) AS nilai
-          FROM inventory_items
-          WHERE COALESCE(on_hand, 0) <= COALESCE(reorder_point, 0)
-        `,
-        queryKey: ["dashboard", "low-stock"],
-      },
-      {
-        query: `
-          SELECT
-            id,
-            receipt_number,
-            payment_method,
-            status,
-            total_amount
-          FROM sales
-          ORDER BY COALESCE(created_at, updated_at) DESC
-          LIMIT 5
-        `,
-        queryKey: ["dashboard", "recent-sales"],
-      },
-    ],
-  });
+  const [salesTodayQuery, transactionCountQuery, lowStockQuery, cashBalanceQuery, recentSalesQuery] =
+    useQueries<[DashboardMetricRow, DashboardMetricRow, DashboardMetricRow, DashboardMetricRow, RecentSaleRow]>({
+      queries: [
+        {
+          parameters: [storeId],
+          query: `
+            SELECT COALESCE(SUM(total_amount), 0) AS nilai
+            FROM sales
+            WHERE store_id = ?
+              AND date(created_at) = date('now', 'localtime')
+              AND status != 'cancelled'
+          `,
+          queryKey: ["dashboard", storeId, "sales-today"],
+        },
+        {
+          parameters: [storeId],
+          query: `
+            SELECT COUNT(*) AS nilai
+            FROM sales
+            WHERE store_id = ?
+              AND date(created_at) = date('now', 'localtime')
+              AND status != 'cancelled'
+          `,
+          queryKey: ["dashboard", storeId, "transactions-today"],
+        },
+        {
+          parameters: [storeId, storeId],
+          query: `
+            SELECT COUNT(products.id) AS nilai
+            FROM products
+            LEFT JOIN inventory_items
+              ON inventory_items.product_id = products.id
+             AND inventory_items.store_id = ?
+            WHERE products.store_id = ?
+              AND COALESCE(inventory_items.on_hand, 0) <= COALESCE(inventory_items.reorder_point, 0)
+          `,
+          queryKey: ["dashboard", storeId, "low-stock"],
+        },
+        {
+          parameters: [storeId],
+          query: `
+            SELECT COALESCE(SUM(CASE WHEN entry_type = 'in' THEN amount ELSE -amount END), 0) AS nilai
+            FROM cash_entries
+            WHERE store_id = ?
+          `,
+          queryKey: ["dashboard", storeId, "cash-balance"],
+        },
+        {
+          parameters: [storeId],
+          query: `
+            SELECT
+              id,
+              receipt_number,
+              payment_method,
+              total_amount,
+              created_at
+            FROM sales
+            WHERE store_id = ?
+            ORDER BY COALESCE(created_at, updated_at) DESC
+            LIMIT 5
+          `,
+          queryKey: ["dashboard", storeId, "recent-sales"],
+        },
+      ],
+    });
 
   const totalSalesToday = salesTodayQuery.data?.[0]?.nilai ?? 0;
   const transactionCount = transactionCountQuery.data?.[0]?.nilai ?? 0;
   const lowStockCount = lowStockQuery.data?.[0]?.nilai ?? 0;
+  const cashBalance = cashBalanceQuery.data?.[0]?.nilai ?? 0;
   const recentSales = recentSalesQuery.data ?? [];
   const syncLabel = hasSyncError
     ? "Butuh perhatian"
@@ -120,9 +157,14 @@ export function DashboardModule() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Dasbor</h3>
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold">Dasbor</h3>
+        <p className="text-sm text-stone-500">
+          Ringkasan cepat kondisi toko hari ini, mulai dari penjualan sampai stok dan sinkronisasi.
+        </p>
+      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
             <Card.Title className="text-sm font-medium text-stone-600">
@@ -148,6 +190,14 @@ export function DashboardModule() {
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
+          <Card.Header>
+            <Card.Title className="text-sm font-medium text-stone-600">Saldo kas</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <p className="text-xl font-semibold text-stone-950">{formatRupiah(cashBalance)}</p>
+          </Card.Content>
+        </Card>
+        <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
             <Card.Title className="text-sm font-medium text-stone-600">Sinkronisasi</Card.Title>
             <Chip color={getSyncChipColor(status.connected, status.hasSynced, hasSyncError)}>
@@ -162,11 +212,11 @@ export function DashboardModule() {
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel dasbor">
+          <Table.Content aria-label="Transaksi terbaru">
             <Table.Header>
-              <Table.Column>Struk</Table.Column>
+              <Table.Column isRowHeader>Struk</Table.Column>
+              <Table.Column>Waktu</Table.Column>
               <Table.Column>Pembayaran</Table.Column>
-              <Table.Column>Status</Table.Column>
               <Table.Column>Nilai</Table.Column>
             </Table.Header>
             <Table.Body>
@@ -174,14 +224,14 @@ export function DashboardModule() {
                 recentSales.map((sale) => (
                   <Table.Row key={sale.id}>
                     <Table.Cell>{sale.receipt_number ?? "-"}</Table.Cell>
+                    <Table.Cell>{formatDate(sale.created_at)}</Table.Cell>
                     <Table.Cell>{sale.payment_method ?? "-"}</Table.Cell>
-                    <Table.Cell>{sale.status ?? "-"}</Table.Cell>
                     <Table.Cell>{formatRupiah(sale.total_amount)}</Table.Cell>
                   </Table.Row>
                 ))
               ) : (
                 <Table.Row>
-                  <Table.Cell colSpan={4}>Belum ada data transaksi di SQLite PowerSync.</Table.Cell>
+                  <Table.Cell colSpan={4}>Belum ada transaksi untuk toko ini.</Table.Cell>
                 </Table.Row>
               )}
             </Table.Body>

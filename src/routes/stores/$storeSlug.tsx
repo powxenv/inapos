@@ -492,6 +492,18 @@ function RouteComponent() {
                         );
                       }
 
+                      if (module.id === "dashboard") {
+                        return <DashboardModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "alerts") {
+                        return <AlertsModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "today-activity") {
+                        return <TodayActivityModule storeId={organization.id} />;
+                      }
+
                       if (module.id === "cashier") {
                         return <CashierModule storeId={organization.id} />;
                       }
