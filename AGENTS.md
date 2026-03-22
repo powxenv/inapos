@@ -85,6 +85,16 @@ All generated code must follow these rules:
 - Do not use comments.
 - Intent must be expressed through naming, structure, and composition only.
 
+## UI & Form Conventions
+
+- Use **HeroUI** for UI.
+- Keep UI minimal.
+- Do **NOT** create custom UI components when an equivalent HeroUI component already exists.
+- Before using HeroUI components, fetch and follow the official HeroUI documentation examples.
+- Use **React Hook Form** for all form handling.
+- Use **Zod** for all form validation.
+- Form implementations must keep React Hook Form, Zod, and HeroUI aligned in a single flow.
+
 Strict consistency is required across:
 
 - File structure
