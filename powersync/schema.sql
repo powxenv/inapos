@@ -60,6 +60,20 @@ create table if not exists public.inventory_items (
   unique (store_id, product_id)
 );
 
+create table if not exists public.promotions (
+  id text primary key default gen_random_uuid()::text,
+  store_id text not null,
+  title text not null,
+  status text not null default 'active',
+  discount_type text not null default 'nominal',
+  discount_value numeric(14, 2) not null default 0,
+  start_at timestamptz,
+  end_at timestamptz,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.purchases (
   id text primary key default gen_random_uuid()::text,
   store_id text not null,
@@ -121,6 +135,7 @@ create index if not exists idx_suppliers_store_id on public.suppliers(store_id);
 create index if not exists idx_products_store_id on public.products(store_id);
 create index if not exists idx_inventory_items_store_id on public.inventory_items(store_id);
 create index if not exists idx_inventory_items_product_id on public.inventory_items(product_id);
+create index if not exists idx_promotions_store_id on public.promotions(store_id);
 create index if not exists idx_purchases_store_id on public.purchases(store_id);
 create index if not exists idx_sales_store_id on public.sales(store_id);
 create index if not exists idx_sales_customer_id on public.sales(customer_id);
@@ -164,6 +179,12 @@ execute function public.set_updated_at();
 drop trigger if exists inventory_items_set_updated_at on public.inventory_items;
 create trigger inventory_items_set_updated_at
 before update on public.inventory_items
+for each row
+execute function public.set_updated_at();
+
+drop trigger if exists promotions_set_updated_at on public.promotions;
+create trigger promotions_set_updated_at
+before update on public.promotions
 for each row
 execute function public.set_updated_at();
 

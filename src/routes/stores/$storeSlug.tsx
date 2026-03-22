@@ -492,6 +492,18 @@ function RouteComponent() {
                         );
                       }
 
+                      if (module.id === "orders") {
+                        return <OrdersModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "customers") {
+                        return <CustomersModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "promo") {
+                        return <PromoModule storeId={organization.id} />;
+                      }
+
                       if (module.id === "product-list") {
                         return <ProductListModule storeId={organization.id} />;
                       }

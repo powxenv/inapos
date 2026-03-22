@@ -27,6 +27,11 @@ streams:
     queries:
       - SELECT * FROM inventory_items
 
+  promotions:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM promotions
+
   purchases:
     auto_subscribe: true
     queries:
