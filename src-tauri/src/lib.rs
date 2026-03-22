@@ -1,4 +1,5 @@
 mod ai;
+mod ai_data;
 
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader, Read, Write};

@@ -211,7 +211,11 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         throw new Error("Sesi login tidak ditemukan untuk menyiapkan AI.");
       }
 
-      const runtimeStatus = await initializeAiRuntime(sessionToken, env.VITE_POWERSYNC_URL);
+      const runtimeStatus = await initializeAiRuntime(
+        sessionToken,
+        env.VITE_POWERSYNC_URL,
+        env.VITE_NEON_DATA_API_URL,
+      );
 
       if (selectedProvider === "ollama" && !runtimeStatus.ready) {
         throw new Error(runtimeStatus.reason ?? "Runtime AI belum siap.");

@@ -11,7 +11,11 @@ const aiRuntimeStatusSchema = z.object({
 
 export type AiRuntimeStatus = z.infer<typeof aiRuntimeStatusSchema>;
 
-export async function initializeAiRuntime(sessionToken: string, powersyncUrl: string) {
+export async function initializeAiRuntime(
+  sessionToken: string,
+  powersyncUrl: string,
+  neonDataApiUrl: string,
+) {
   if (!isTauriRuntime()) {
     return aiRuntimeStatusSchema.parse({
       ready: false,
@@ -21,6 +25,7 @@ export async function initializeAiRuntime(sessionToken: string, powersyncUrl: st
 
   const response = await aiHttpFetch("/runtime/initialize", {
     body: JSON.stringify({
+      neonDataApiUrl,
       powersyncUrl,
       sessionToken,
     }),

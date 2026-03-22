@@ -1,9 +1,11 @@
+use crate::ai_data;
 use aes_gcm_siv::aead::{Aead, KeyInit};
 use aes_gcm_siv::{Aes256GcmSiv, Nonce};
 use aisdk::core::{
     DynamicModel, LanguageModelRequest, LanguageModelStreamChunkType, Messages,
     StreamTextResponse,
 };
+use aisdk::core::utils::step_count_is;
 use aisdk::integrations::vercel_aisdk_ui::VercelUIRequest;
 use aisdk::providers::OpenAICompatible;
 use aisdk::providers::openrouter::Openrouter;
@@ -30,7 +32,7 @@ use tower_http::cors::{Any, CorsLayer};
 pub const AI_HTTP_SERVER_PORT: u16 = 32456;
 const OPENROUTER_SECRET_KEY: &str = "openrouter_api_key";
 const SECRETS_DB_NAME: &str = "ai-secrets.sqlite";
-const AI_SYSTEM_PROMPT: &str = "Anda adalah asisten operasional toko untuk aplikasi POS desktop. Bantu pengguna memahami aplikasi, memberi saran operasional, dan menjawab pertanyaan umum tentang toko dengan bahasa yang sederhana.";
+const AI_SYSTEM_PROMPT: &str = "Anda adalah asisten operasional toko untuk aplikasi POS desktop. Jawab dalam bahasa Indonesia yang sederhana. Jika pengguna meminta membaca data nyata toko atau mengubah data toko, wajib gunakan tool POS yang tersedia lebih dulu sebelum menyimpulkan jawaban. Jangan mengarang angka, stok, transaksi, atau perubahan data.";
 
 static AI_RUNTIME: OnceLock<Arc<AiRuntime>> = OnceLock::new();
 
@@ -90,6 +92,7 @@ pub struct AiProviderStatus {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct InitializeAiRuntimeRequest {
+    neon_data_api_url: String,
     powersync_url: String,
     session_token: String,
 }
@@ -388,9 +391,10 @@ async fn chat_response(
     request: AiChatRequest,
 ) -> Result<AiChatResponse, String> {
     let _guard = runtime().chat_lock.lock().await;
+    let tools = ai_data::build_tools(&request.store_id);
 
     let prompt = format!(
-        "Konteks toko aktif: {}.\n{}\n\nJawab ringkas, jelas, dan dalam bahasa Indonesia. Jika pertanyaan butuh akses data toko atau perubahan data, jelaskan bahwa integrasi data AI backend sedang dipersiapkan dan belum aktif.",
+        "Konteks toko aktif: {}.\n{}\n\nJawab ringkas, jelas, dan dalam bahasa Indonesia.",
         request.store_id,
         build_transcript(&request.messages)
     );
@@ -406,10 +410,17 @@ async fn chat_response(
                 .build()
                 .map_err(|error| error.to_string())?;
 
-            LanguageModelRequest::builder()
+            let mut builder = LanguageModelRequest::builder()
                 .model(provider)
                 .system(build_ai_system_prompt(&request.store_id))
                 .prompt(prompt)
+                .stop_when(step_count_is(6));
+
+            for tool in tools.clone() {
+                builder = builder.with_tool(tool);
+            }
+
+            builder
                 .build()
                 .generate_text()
                 .await
@@ -426,10 +437,17 @@ async fn chat_response(
                 .build()
                 .map_err(|error| error.to_string())?;
 
-            LanguageModelRequest::builder()
+            let mut builder = LanguageModelRequest::builder()
                 .model(provider)
                 .system(build_ai_system_prompt(&request.store_id))
                 .prompt(prompt)
+                .stop_when(step_count_is(6));
+
+            for tool in tools {
+                builder = builder.with_tool(tool);
+            }
+
+            builder
                 .build()
                 .generate_text()
                 .await
@@ -452,6 +470,7 @@ async fn chat_stream(
     let _guard = runtime().chat_lock.lock().await;
     let messages: Messages = request.into();
     let system_prompt = build_ai_system_prompt(&query.store_id);
+    let tools = ai_data::build_tools(&query.store_id);
 
     match query.provider.as_str() {
         "openrouter" => {
@@ -464,10 +483,17 @@ async fn chat_stream(
                 .build()
                 .map_err(|error| error.to_string())?;
 
-            LanguageModelRequest::builder()
+            let mut builder = LanguageModelRequest::builder()
                 .model(provider)
                 .system(system_prompt)
                 .messages(messages)
+                .stop_when(step_count_is(6));
+
+            for tool in tools.clone() {
+                builder = builder.with_tool(tool);
+            }
+
+            builder
                 .build()
                 .stream_text()
                 .await
@@ -484,10 +510,17 @@ async fn chat_stream(
                 .build()
                 .map_err(|error| error.to_string())?;
 
-            LanguageModelRequest::builder()
+            let mut builder = LanguageModelRequest::builder()
                 .model(provider)
                 .system(system_prompt)
                 .messages(messages)
+                .stop_when(step_count_is(6));
+
+            for tool in tools {
+                builder = builder.with_tool(tool);
+            }
+
+            builder
                 .build()
                 .stream_text()
                 .await
@@ -606,8 +639,13 @@ async fn initialize_runtime_handler(
     State(state): State<AiHttpState>,
     Json(payload): Json<InitializeAiRuntimeRequest>,
 ) -> AiHttpJsonResult<AiRuntimeStatus> {
-    let _ = payload.powersync_url;
-    let _ = payload.session_token;
+    ai_data::initialize_runtime(
+        &state.app_handle,
+        &payload.session_token,
+        &payload.powersync_url,
+        &payload.neon_data_api_url,
+    )
+    .map_err(into_http_error)?;
 
     current_runtime_status(&state.app_handle)
         .map(Json)
