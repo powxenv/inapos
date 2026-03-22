@@ -30,6 +30,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   AlertsModule,
+  AiModelsModule,
   AssistantModule,
   CashierModule,
   CashModule,
@@ -142,6 +143,7 @@ const moduleGroups: readonly ModuleGroupDefinition[] = [
         title: "Pengaturan Toko",
         adminOnly: true,
       },
+      { id: "ai-models", label: "Model AI", title: "Model AI" },
       { id: "assistant", label: "Asisten", title: "Asisten" },
     ],
   },
@@ -165,6 +167,7 @@ const moduleComponents = {
   users: UsersModule,
   "devices-sync": DevicesSyncModule,
   "store-settings": StoreSettingsModule,
+  "ai-models": AiModelsModule,
   assistant: AssistantModule,
 };
 
@@ -1057,6 +1060,10 @@ function RouteComponent() {
 
                       if (module.id === "reports") {
                         return <ReportsModule storeId={organization.id} />;
+                      }
+
+                      if (module.id === "ai-models") {
+                        return <AiModelsModule />;
                       }
 
                       const ModuleComponent = moduleComponents[module.id];

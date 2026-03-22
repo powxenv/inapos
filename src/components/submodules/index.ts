@@ -16,3 +16,4 @@ export { UsersModule } from "./users-module";
 export { DevicesSyncModule } from "./devices-sync-module";
 export { StoreSettingsModule } from "./store-settings-module";
 export { AssistantModule } from "./assistant-module";
+export { AiModelsModule } from "./ai-models-module";

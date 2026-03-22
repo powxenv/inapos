@@ -1,8 +1,18 @@
-import { useState } from "react";
-import { Button, Card, ScrollShadow } from "@heroui/react";
+import { useEffect, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Alert, Button, Card, ScrollShadow } from "@heroui/react";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
 import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import TextareaAutosize from "react-textarea-autosize";
+import {
+  getOllamaStatus,
+  isTauriRuntime,
+  readPreferredOllamaModel,
+  savePreferredOllamaModel,
+  type OllamaStatus,
+} from "../../lib/ollama";
 
 type AssistantMessage = {
   body: string;
@@ -29,36 +39,67 @@ const initialMessages: AssistantMessage[] = [
   },
 ];
 
-function createAssistantReply(prompt: string) {
-  const normalizedPrompt = prompt.toLowerCase();
-
-  if (normalizedPrompt.includes("restok")) {
-    return "Cek tab Stok untuk melihat barang yang menipis. Fokus utama biasanya barang dengan stok di bawah batas restok dan barang yang paling sering terjual.";
-  }
-
-  if (normalizedPrompt.includes("penjualan")) {
-    return "Buka Ringkasan untuk melihat omzet hari ini, lalu lanjut ke Laporan jika ingin melihat laba sederhana, pengeluaran, dan metode pembayaran yang paling dominan.";
-  }
-
-  if (normalizedPrompt.includes("kasir")) {
-    return "Mode kasir disederhanakan menjadi dua tab: Kasir untuk transaksi baru dan Transaksi untuk melihat riwayat terbaru tanpa membuka seluruh dashboard.";
-  }
-
-  if (normalizedPrompt.includes("pengeluaran")) {
-    return "Cek modul Laporan untuk breakdown pengeluaran per kategori. Dari sana Anda bisa melihat kategori biaya yang paling besar pada periode yang dipilih.";
-  }
-
-  return "Saya belum terhubung ke AI backend, tetapi saya bisa membantu mengarahkan Anda ke modul yang tepat berdasarkan kebutuhan operasional toko.";
+function findDefaultModel(status: OllamaStatus) {
+  return status.availableModels[0]?.name ?? "";
 }
 
 export function AssistantModule({ minimal = false }: AssistantModuleProps) {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AssistantMessage[]>(initialMessages);
+  const [status, setStatus] = useState<OllamaStatus | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [selectedModel, setSelectedModel] = useState(readPreferredOllamaModel);
   const trimmedInput = inputValue.trim();
+
+  async function loadOllamaStatus() {
+    setIsLoadingStatus(true);
+    setStatusError(null);
+
+    try {
+      const nextStatus = await getOllamaStatus();
+      setStatus(nextStatus);
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa Ollama.");
+      setStatus(null);
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadOllamaStatus();
+  }, []);
+
+  async function handleInstallOllama() {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await openUrl("https://ollama.com/download");
+  }
+
+  useEffect(() => {
+    if (!status?.availableModels.length) {
+      return;
+    }
+
+    const preferredModel = readPreferredOllamaModel();
+    const installed = new Set(status.availableModels.map((model) => model.name));
+    const nextModel = installed.has(preferredModel) ? preferredModel : findDefaultModel(status);
+
+    if (!nextModel || nextModel === selectedModel) {
+      return;
+    }
+
+    setSelectedModel(nextModel);
+    savePreferredOllamaModel(nextModel);
+  }, [selectedModel, status]);
+
   function sendMessage(rawValue: string) {
     const value = rawValue.trim();
 
-    if (!value) {
+    if (!value || !status?.canUse) {
       return;
     }
 
@@ -67,14 +108,67 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
       id: `user-${crypto.randomUUID()}`,
       role: "user",
     };
-    const assistantMessage: AssistantMessage = {
-      body: createAssistantReply(value),
+    const assistantPlaceholderMessage: AssistantMessage = {
+      body: selectedModel
+        ? `Model ${selectedModel} sudah dipilih, tetapi chat Ollama asli belum disambungkan.`
+        : "Chat Ollama asli belum disambungkan.",
       id: `assistant-${crypto.randomUUID()}`,
       role: "assistant",
     };
 
-    setMessages((currentMessages) => [...currentMessages, userMessage, assistantMessage]);
+    setMessages((currentMessages) => [...currentMessages, userMessage, assistantPlaceholderMessage]);
     setInputValue("");
+  }
+
+  if (isLoadingStatus) {
+    return (
+      <div className={`flex min-h-[320px] items-center justify-center ${minimal ? "px-4" : ""}`}>
+        <p className="text-sm text-stone-500">Memeriksa ketersediaan Ollama...</p>
+      </div>
+    );
+  }
+
+  if (statusError) {
+    return (
+      <div className="space-y-4">
+        <Alert status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Asisten AI belum siap</Alert.Title>
+            <Alert.Description>{statusError}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+        <Button onPress={() => void loadOllamaStatus()} variant="outline">
+          <ArrowClockwiseIcon aria-hidden size={16} />
+          Coba lagi
+        </Button>
+      </div>
+    );
+  }
+
+  if (!status || !status.canUse) {
+    return (
+      <div className={`${minimal ? "flex min-h-[320px] items-center justify-center px-4" : "space-y-4"}`}>
+        <div className="space-y-4">
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Asisten AI belum bisa dipakai</Alert.Title>
+              <Alert.Description>
+                {status?.reason ??
+                  "Modul ini hanya bisa dipakai di desktop app dengan Ollama yang terpasang, aktif, dan memiliki model terinstal."}
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+          {status?.isDesktop && !status.ollamaInstalled ? (
+            <Button onPress={() => void handleInstallOllama()}>
+              <DownloadSimpleIcon aria-hidden size={16} />
+              Install Ollama
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   const content = (
@@ -83,8 +177,22 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">Asisten</h3>
           <p className="text-sm text-stone-500">
-            Tanyakan apa pun tentang toko, lalu lanjutkan percakapan tanpa berpindah modul.
+            Chat memakai Ollama lokal. Pengaturan model dipindahkan ke menu Model AI.
           </p>
+        </div>
+      )}
+
+      {minimal ? null : (
+        <div className="grid gap-3">
+          <Alert status="success">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Ollama siap dipakai</Alert.Title>
+              <Alert.Description>
+                Service aktif di desktop ini. Model default saat ini: {selectedModel || "belum dipilih"}.
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
         </div>
       )}
 
@@ -136,7 +244,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
           <div className="rounded-[28px] border border-stone-200 bg-stone-50 p-2 shadow-sm">
             <div className="flex items-end gap-3">
               <TextareaAutosize
-                className="max-h-56 min-h-[28px] w-full resize-none border-0 bg-transparent px-0 py-2 text-sm leading-7 text-stone-900 outline-none placeholder:text-stone-400"
+                className="max-h-56 min-h-[28px] w-full resize-none border-0 bg-transparent px-3 py-2 text-sm leading-7 text-stone-900 outline-none placeholder:text-stone-400"
                 maxRows={8}
                 minRows={1}
                 onChange={(event) => setInputValue(event.target.value)}
@@ -146,7 +254,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
                     sendMessage(inputValue);
                   }
                 }}
-                placeholder="Tanyakan apa yang ingin Anda ketahui tentang toko ini"
+                placeholder={`Tanyakan sesuatu dengan ${selectedModel}`}
                 value={inputValue}
               />
               <Button
@@ -165,7 +273,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
               <p>Tekan Enter untuk kirim, Shift + Enter untuk baris baru.</p>
               <div className="flex items-center gap-2">
                 <ClockCounterClockwiseIcon aria-hidden size={14} />
-                <span>Respons saat ini masih simulasi lokal.</span>
+                <span>Chat saat ini masih simulasi lokal, tetapi preferensi model sudah tersimpan.</span>
               </div>
             </div>
           )}
