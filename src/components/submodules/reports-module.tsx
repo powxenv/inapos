@@ -7,9 +7,7 @@ export function ReportsModule() {
         <h3 className="text-lg font-semibold">Laporan</h3>
         <div className="flex flex-wrap gap-3">
           <Button className="bg-stone-950 text-stone-50">Buat laporan</Button>
-          <Button className="border border-stone-200 bg-white text-stone-900">
-            Cetak
-          </Button>
+          <Button className="border border-stone-200 bg-white text-stone-900">Cetak</Button>
         </div>
       </div>
 
@@ -19,9 +17,7 @@ export function ReportsModule() {
             <Card.Title className="text-base">Laporan penjualan</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Rekap penjualan per hari, minggu, atau bulan.
-            </p>
+            <p className="text-sm text-stone-600">Rekap penjualan per hari, minggu, atau bulan.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -29,9 +25,7 @@ export function ReportsModule() {
             <Card.Title className="text-base">Laporan stok</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Melihat stok masuk, keluar, dan stok menipis.
-            </p>
+            <p className="text-sm text-stone-600">Melihat stok masuk, keluar, dan stok menipis.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -39,9 +33,7 @@ export function ReportsModule() {
             <Card.Title className="text-base">Laporan pengeluaran</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Melihat pengeluaran operasional toko.
-            </p>
+            <p className="text-sm text-stone-600">Melihat pengeluaran operasional toko.</p>
           </Card.Content>
         </Card>
       </div>

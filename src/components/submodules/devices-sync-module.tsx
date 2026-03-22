@@ -41,8 +41,7 @@ export function DevicesSyncModule() {
           </Card.Header>
           <Card.Content>
             <p className="text-sm text-stone-600">
-              Sinkronisasi berjalan otomatis lewat PowerSync saat sesi Neon
-              Auth tersedia.
+              Sinkronisasi berjalan otomatis lewat PowerSync saat sesi Neon Auth tersedia.
             </p>
           </Card.Content>
         </Card>
@@ -52,8 +51,7 @@ export function DevicesSyncModule() {
           </Card.Header>
           <Card.Content>
             <p className="text-sm text-stone-600">
-              Pengiriman perubahan lokal ke backend belum diaktifkan di app
-              ini.
+              Pengiriman perubahan lokal ke backend belum diaktifkan di app ini.
             </p>
           </Card.Content>
         </Card>

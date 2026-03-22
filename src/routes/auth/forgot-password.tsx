@@ -57,16 +57,11 @@ function RouteComponent() {
         return;
       }
 
-      setNoticeMessage(
-        "Tautan reset kata sandi sudah dikirim ke email tersebut.",
-      );
+      setNoticeMessage("Tautan reset kata sandi sudah dikirim ke email tersebut.");
     } catch (error) {
       setError("root", {
         type: "server",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal mengirim tautan reset.",
+        message: error instanceof Error ? error.message : "Gagal mengirim tautan reset.",
       });
     }
   });
@@ -75,9 +70,7 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">
-            Lupa kata sandi
-          </h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Lupa kata sandi</h1>
           <p className="text-sm text-stone-500">
             Masukkan email akun untuk menerima tautan reset kata sandi.
           </p>

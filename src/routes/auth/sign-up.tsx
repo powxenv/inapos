@@ -33,8 +33,7 @@ function RouteComponent() {
   const navigate = Route.useNavigate();
   const session = neon.auth.useSession();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
-    useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const {
     control,
     handleSubmit,
@@ -79,8 +78,7 @@ function RouteComponent() {
     } catch (error) {
       setError("root", {
         type: "server",
-        message:
-          error instanceof Error ? error.message : "Gagal membuat akun.",
+        message: error instanceof Error ? error.message : "Gagal membuat akun.",
       });
     }
   });
@@ -90,17 +88,12 @@ function RouteComponent() {
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-stone-900">Daftar</h1>
-          <p className="text-sm text-stone-500">
-            Buat akun baru untuk mengakses aplikasi.
-          </p>
+          <p className="text-sm text-stone-500">Buat akun baru untuk mengakses aplikasi.</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="sign-up-name"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-name">
               Nama
             </label>
             <Controller
@@ -131,10 +124,7 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="sign-up-email"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-email">
               Email
             </label>
             <Controller
@@ -166,10 +156,7 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="sign-up-password"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-password">
               Kata sandi
             </label>
             <Controller
@@ -195,9 +182,7 @@ function RouteComponent() {
                   <InputGroup.Suffix className="pr-0">
                     <Button
                       aria-label={
-                        isPasswordVisible
-                          ? "Sembunyikan kata sandi"
-                          : "Tampilkan kata sandi"
+                        isPasswordVisible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
                       }
                       onPress={() => setIsPasswordVisible((value) => !value)}
                       size="sm"
@@ -254,9 +239,7 @@ function RouteComponent() {
                           ? "Sembunyikan konfirmasi kata sandi"
                           : "Tampilkan konfirmasi kata sandi"
                       }
-                      onPress={() =>
-                        setIsConfirmPasswordVisible((value) => !value)
-                      }
+                      onPress={() => setIsConfirmPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
                       variant="ghost"
@@ -273,9 +256,7 @@ function RouteComponent() {
               )}
             />
             {errors.confirmPassword?.message ? (
-              <p className="text-sm text-red-600">
-                {errors.confirmPassword.message}
-              </p>
+              <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
             ) : null}
           </div>
 

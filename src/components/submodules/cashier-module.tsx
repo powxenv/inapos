@@ -13,9 +13,7 @@ export function CashierModule() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Subtotal
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Subtotal</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">Rp 129.500</p>
@@ -23,9 +21,7 @@ export function CashierModule() {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Diskon
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Diskon</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">Rp 5.000</p>
@@ -33,9 +29,7 @@ export function CashierModule() {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Total bayar
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Total bayar</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">Rp 124.500</p>

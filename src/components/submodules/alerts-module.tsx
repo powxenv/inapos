@@ -14,9 +14,7 @@ export function AlertsModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Stok tinggal 4 botol dan perlu dibeli ulang.
-            </p>
+            <p className="text-sm text-stone-600">Stok tinggal 4 botol dan perlu dibeli ulang.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -27,9 +25,7 @@ export function AlertsModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Cek koneksi printer struk di meja kasir.
-            </p>
+            <p className="text-sm text-stone-600">Cek koneksi printer struk di meja kasir.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -40,9 +36,7 @@ export function AlertsModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Satu transaksi belum selesai diproses.
-            </p>
+            <p className="text-sm text-stone-600">Satu transaksi belum selesai diproses.</p>
           </Card.Content>
         </Card>
       </div>

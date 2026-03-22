@@ -13,9 +13,7 @@ export function StockModule() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Total barang
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Total barang</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">186</p>
@@ -23,25 +21,19 @@ export function StockModule() {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Stok menipis
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Stok menipis</Card.Title>
             <Chip color="warning">6</Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Habis
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Habis</Card.Title>
             <Chip color="danger">2</Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Aman
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Aman</Card.Title>
             <Chip color="success">178</Chip>
           </Card.Header>
         </Card>

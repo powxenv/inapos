@@ -1,11 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./main.css";
-import {
-  createBrowserHistory,
-  RouterProvider,
-  createRouter,
-} from "@tanstack/react-router";
+import { createBrowserHistory, RouterProvider, createRouter } from "@tanstack/react-router";
 
 import { AppProviders } from "./lib/powersync";
 import { routeTree } from "./routeTree.gen";

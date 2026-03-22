@@ -32,9 +32,7 @@ export function CustomersModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Sering beli grosir untuk warung kecil.
-            </p>
+            <p className="text-sm text-stone-600">Sering beli grosir untuk warung kecil.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">

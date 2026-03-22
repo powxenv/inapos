@@ -12,9 +12,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">
-          {gate.message ?? "Memuat sesi pengguna..."}
-        </p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Memuat sesi pengguna..."}</p>
       </main>
     );
   }
@@ -51,10 +49,6 @@ function RouteComponent() {
   }
 
   return (
-    <Navigate
-      replace
-      to="/stores/$storeSlug"
-      params={{ storeSlug: gate.organization.slug }}
-    />
+    <Navigate replace to="/stores/$storeSlug" params={{ storeSlug: gate.organization.slug }} />
   );
 }

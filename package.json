@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "bun run typecheck && vite build",
+    "check": "bun run lint && bun run format && bun run typecheck",
+    "format": "oxfmt --check src",
+    "format:fix": "oxfmt --write src",
+    "lint": "oxlint src",
+    "lint:fix": "oxlint --fix src",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "typecheck": "tsgo --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@heroui/react": "^3.0.1",
@@ -37,7 +43,10 @@
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@typescript/native-preview": "^7.0.0-dev.20260322.1",
     "@vitejs/plugin-react": "^4.6.0",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   }

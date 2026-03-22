@@ -1,15 +1,7 @@
 import type { ComponentType } from "react";
 import { useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import {
-  Alert,
-  AlertDialog,
-  Button,
-  Dropdown,
-  InputGroup,
-  Modal,
-  Tabs,
-} from "@heroui/react";
+import { Alert, AlertDialog, Button, Dropdown, InputGroup, Modal, Tabs } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
@@ -38,10 +30,7 @@ import {
   TodayActivityModule,
   UsersModule,
 } from "../../components/submodules";
-import {
-  createRandomOrganizationSlug,
-  useOrganizationGate,
-} from "../../lib/organization";
+import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
 import { neon } from "../../lib/powersync";
 
 const moduleGroups = [
@@ -190,9 +179,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">
-          {gate.message ?? "Memuat sesi pengguna..."}
-        </p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Memuat sesi pengguna..."}</p>
       </main>
     );
   }
@@ -296,11 +283,7 @@ function RouteComponent() {
               <Dropdown.Trigger>
                 <div className="flex min-w-[240px] items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-sm font-medium text-stone-900 shadow-sm">
                   <span className="truncate">{organization.name}</span>
-                  <CaretDownIcon
-                    aria-hidden
-                    className="text-stone-500"
-                    size={16}
-                  />
+                  <CaretDownIcon aria-hidden className="text-stone-500" size={16} />
                 </div>
               </Dropdown.Trigger>
               <Dropdown.Popover>
@@ -309,29 +292,19 @@ function RouteComponent() {
                   onAction={(key) => void handleStoreAction(key)}
                 >
                   <Dropdown.Section>
-                    {organizations.map(
-                      (store: (typeof organizations)[number]) => (
-                        <Dropdown.Item id={store.slug} key={store.slug}>
-                          <div className="flex min-w-[220px] items-center justify-between gap-3">
-                            <div className="text-left">
-                              <p className="text-sm font-medium text-stone-900">
-                                {store.name}
-                              </p>
-                              <p className="text-xs text-stone-500">
-                                {store.slug}
-                              </p>
-                            </div>
-                            {store.slug === organization.slug ? (
-                              <CheckIcon
-                                aria-hidden
-                                className="text-stone-500"
-                                size={16}
-                              />
-                            ) : null}
+                    {organizations.map((store: (typeof organizations)[number]) => (
+                      <Dropdown.Item id={store.slug} key={store.slug}>
+                        <div className="flex min-w-[220px] items-center justify-between gap-3">
+                          <div className="text-left">
+                            <p className="text-sm font-medium text-stone-900">{store.name}</p>
+                            <p className="text-xs text-stone-500">{store.slug}</p>
                           </div>
-                        </Dropdown.Item>
-                      ),
-                    )}
+                          {store.slug === organization.slug ? (
+                            <CheckIcon aria-hidden className="text-stone-500" size={16} />
+                          ) : null}
+                        </div>
+                      </Dropdown.Item>
+                    ))}
                   </Dropdown.Section>
                 </Dropdown.Menu>
               </Dropdown.Popover>
@@ -376,10 +349,7 @@ function RouteComponent() {
                                 control={control}
                                 name="name"
                                 render={({ field, fieldState }) => (
-                                  <InputGroup
-                                    className="w-full"
-                                    isInvalid={fieldState.invalid}
-                                  >
+                                  <InputGroup className="w-full" isInvalid={fieldState.invalid}>
                                     <InputGroup.Prefix className="text-stone-400">
                                       <StorefrontIcon aria-hidden size={18} />
                                     </InputGroup.Prefix>
@@ -397,9 +367,7 @@ function RouteComponent() {
                                 )}
                               />
                               {errors.name?.message ? (
-                                <p className="text-sm text-red-600">
-                                  {errors.name.message}
-                                </p>
+                                <p className="text-sm text-red-600">{errors.name.message}</p>
                               ) : null}
                             </div>
 
@@ -408,9 +376,7 @@ function RouteComponent() {
                                 <Alert.Indicator />
                                 <Alert.Content>
                                   <Alert.Title>Pembuatan toko gagal</Alert.Title>
-                                  <Alert.Description>
-                                    {createStoreError}
-                                  </Alert.Description>
+                                  <Alert.Description>{createStoreError}</Alert.Description>
                                 </Alert.Content>
                               </Alert>
                             ) : null}
@@ -442,9 +408,7 @@ function RouteComponent() {
                 <AlertDialog.Container placement="center" size="sm">
                   <AlertDialog.Dialog>
                     <AlertDialog.Header>
-                      <AlertDialog.Heading>
-                        Keluar dari aplikasi?
-                      </AlertDialog.Heading>
+                      <AlertDialog.Heading>Keluar dari aplikasi?</AlertDialog.Heading>
                     </AlertDialog.Header>
                     <AlertDialog.Body>
                       Sesi akun {user.email} akan diakhiri di perangkat ini.
@@ -453,10 +417,7 @@ function RouteComponent() {
                       <Button slot="close" variant="tertiary">
                         Batal
                       </Button>
-                      <Button
-                        isPending={isSigningOut}
-                        onPress={() => void handleSignOut()}
-                      >
+                      <Button isPending={isSigningOut} onPress={() => void handleSignOut()}>
                         Keluar
                       </Button>
                     </AlertDialog.Footer>
@@ -492,16 +453,9 @@ function RouteComponent() {
                 variant="secondary"
               >
                 <Tabs.ListContainer>
-                  <Tabs.List
-                    aria-label={`Sub-modul ${group.label}`}
-                    className="min-w-[250px]"
-                  >
+                  <Tabs.List aria-label={`Sub-modul ${group.label}`} className="min-w-[250px]">
                     {group.modules.map((module) => (
-                      <Tabs.Tab
-                        className="justify-start"
-                        key={module.id}
-                        id={module.id}
-                      >
+                      <Tabs.Tab className="justify-start" key={module.id} id={module.id}>
                         {module.label}
                         <Tabs.Indicator />
                       </Tabs.Tab>

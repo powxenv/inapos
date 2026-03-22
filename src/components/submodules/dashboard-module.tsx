@@ -22,11 +22,7 @@ function formatRupiah(value: number | null | undefined) {
   }).format(value ?? 0);
 }
 
-function getSyncChipColor(
-  connected: boolean,
-  hasSynced: boolean | undefined,
-  hasError: boolean,
-) {
+function getSyncChipColor(connected: boolean, hasSynced: boolean | undefined, hasError: boolean) {
   if (hasError) {
     return "danger";
   }
@@ -47,12 +43,7 @@ export function DashboardModule() {
   const hasSyncError = Boolean(
     status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError,
   );
-  const [
-    salesTodayQuery,
-    transactionCountQuery,
-    lowStockQuery,
-    recentSalesQuery,
-  ] = useQueries<
+  const [salesTodayQuery, transactionCountQuery, lowStockQuery, recentSalesQuery] = useQueries<
     [DashboardMetricRow, DashboardMetricRow, DashboardMetricRow, RecentSaleRow]
   >({
     queries: [
@@ -121,45 +112,27 @@ export function DashboardModule() {
             </Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(totalSalesToday)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatRupiah(totalSalesToday)}</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Transaksi
-            </Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Transaksi</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {transactionCount}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{transactionCount}</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Stok menipis
-            </Card.Title>
-            <Chip color={lowStockCount > 0 ? "warning" : "success"}>
-              {lowStockCount} barang
-            </Chip>
+            <Card.Title className="text-sm font-medium text-stone-600">Stok menipis</Card.Title>
+            <Chip color={lowStockCount > 0 ? "warning" : "success"}>{lowStockCount} barang</Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">
-              Sinkronisasi
-            </Card.Title>
-            <Chip
-              color={getSyncChipColor(
-                status.connected,
-                status.hasSynced,
-                hasSyncError,
-              )}
-            >
+            <Card.Title className="text-sm font-medium text-stone-600">Sinkronisasi</Card.Title>
+            <Chip color={getSyncChipColor(status.connected, status.hasSynced, hasSyncError)}>
               {syncLabel}
             </Chip>
           </Card.Header>
@@ -190,9 +163,7 @@ export function DashboardModule() {
                 ))
               ) : (
                 <Table.Row>
-                  <Table.Cell colSpan={4}>
-                    Belum ada data transaksi di SQLite PowerSync.
-                  </Table.Cell>
+                  <Table.Cell colSpan={4}>Belum ada data transaksi di SQLite PowerSync.</Table.Cell>
                 </Table.Row>
               )}
             </Table.Body>

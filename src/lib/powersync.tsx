@@ -1,13 +1,7 @@
 import { createClient } from "@neondatabase/neon-js";
 import { BetterAuthReactAdapter } from "@neondatabase/neon-js/auth/react/adapters";
 import { PowerSyncContext } from "@powersync/react";
-import {
-  PowerSyncDatabase,
-  Schema,
-  Table,
-  WASQLiteOpenFactory,
-  column,
-} from "@powersync/web";
+import { PowerSyncDatabase, Schema, Table, WASQLiteOpenFactory, column } from "@powersync/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useEffect, useRef } from "react";
 import { env } from "../env";
@@ -117,16 +111,15 @@ const queryClient = new QueryClient({
   },
 });
 
-export const neon =
-  createClient({
-    auth: {
-      adapter: BetterAuthReactAdapter(),
-      url: env.VITE_NEON_AUTH_URL,
-    },
-    dataApi: {
-      url: env.VITE_NEON_DATA_API_URL,
-    },
-  });
+export const neon = createClient({
+  auth: {
+    adapter: BetterAuthReactAdapter(),
+    url: env.VITE_NEON_AUTH_URL,
+  },
+  dataApi: {
+    url: env.VITE_NEON_DATA_API_URL,
+  },
+});
 
 const connector = {
   async fetchCredentials() {
@@ -215,9 +208,7 @@ export { PowerSyncSessionBridge };
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
-      <PowerSyncContext.Provider value={powerSync}>
-        {children}
-      </PowerSyncContext.Provider>
+      <PowerSyncContext.Provider value={powerSync}>{children}</PowerSyncContext.Provider>
     </QueryClientProvider>
   );
 }

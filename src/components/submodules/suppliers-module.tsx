@@ -41,9 +41,7 @@ export function SuppliersModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Pemasok kebutuhan harian toko.
-            </p>
+            <p className="text-sm text-stone-600">Pemasok kebutuhan harian toko.</p>
           </Card.Content>
         </Card>
       </div>

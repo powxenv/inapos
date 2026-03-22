@@ -22,9 +22,7 @@ export function AssistantModule() {
             <Card.Title className="text-base">Ringkasan harian</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Merangkum penjualan dan pengeluaran hari ini.
-            </p>
+            <p className="text-sm text-stone-600">Merangkum penjualan dan pengeluaran hari ini.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -32,9 +30,7 @@ export function AssistantModule() {
             <Card.Title className="text-base">Saran restok</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Memberi saran barang yang perlu dibeli ulang.
-            </p>
+            <p className="text-sm text-stone-600">Memberi saran barang yang perlu dibeli ulang.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -42,9 +38,7 @@ export function AssistantModule() {
             <Card.Title className="text-base">Bantuan penggunaan</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Membantu memahami menu-menu utama aplikasi.
-            </p>
+            <p className="text-sm text-stone-600">Membantu memahami menu-menu utama aplikasi.</p>
           </Card.Content>
         </Card>
       </div>

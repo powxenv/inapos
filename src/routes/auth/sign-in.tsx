@@ -66,8 +66,7 @@ function RouteComponent() {
     } catch (error) {
       setError("root", {
         type: "server",
-        message:
-          error instanceof Error ? error.message : "Gagal masuk ke aplikasi.",
+        message: error instanceof Error ? error.message : "Gagal masuk ke aplikasi.",
       });
     }
   });
@@ -82,10 +81,7 @@ function RouteComponent() {
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="sign-in-email"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="sign-in-email">
               Email
             </label>
             <Controller
@@ -117,10 +113,7 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="sign-in-password"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="sign-in-password">
               Kata sandi
             </label>
             <Controller
@@ -146,9 +139,7 @@ function RouteComponent() {
                   <InputGroup.Suffix className="pr-0">
                     <Button
                       aria-label={
-                        isPasswordVisible
-                          ? "Sembunyikan kata sandi"
-                          : "Tampilkan kata sandi"
+                        isPasswordVisible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
                       }
                       onPress={() => setIsPasswordVisible((value) => !value)}
                       size="sm"

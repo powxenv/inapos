@@ -50,17 +50,11 @@ type OrganizationCapableAuth = typeof neon.auth & {
   useActiveOrganization: () => QueryHookResult<OrganizationDetail>;
   useListOrganizations: () => QueryHookResult<OrganizationSummary[]>;
   organization: {
-    create: (input: {
-      name: string;
-      slug: string;
-    }) => Promise<{
+    create: (input: { name: string; slug: string }) => Promise<{
       data?: OrganizationSummary | null;
       error?: { message?: string } | null;
     }>;
-    setActive: (input: {
-      organizationId?: string | null;
-      organizationSlug?: string;
-    }) => Promise<{
+    setActive: (input: { organizationId?: string | null; organizationSlug?: string }) => Promise<{
       data?: OrganizationDetail | null;
       error?: { message?: string } | null;
     }>;
@@ -111,16 +105,12 @@ export function createRandomOrganizationSlug(name: string) {
   return `${base}-${randomPart}`.slice(0, 48);
 }
 
-export function useOrganizationGate(
-  requestedOrganizationSlug?: string,
-): OrganizationGateState {
+export function useOrganizationGate(requestedOrganizationSlug?: string): OrganizationGateState {
   const session = neon.auth.useSession();
   const activeOrganization = organizationAuth.useActiveOrganization();
   const organizations = organizationAuth.useListOrganizations();
   const activationAttemptRef = useRef<string | null>(null);
-  const [activationErrorMessage, setActivationErrorMessage] = useState<
-    string | null
-  >(null);
+  const [activationErrorMessage, setActivationErrorMessage] = useState<string | null>(null);
   const [isActivating, setIsActivating] = useState(false);
 
   useEffect(() => {
@@ -134,8 +124,7 @@ export function useOrganizationGate(
 
     if (
       activeOrganization.data &&
-      (!requestedOrganizationSlug ||
-        activeOrganization.data.slug === requestedOrganizationSlug)
+      (!requestedOrganizationSlug || activeOrganization.data.slug === requestedOrganizationSlug)
     ) {
       activationAttemptRef.current = null;
       setActivationErrorMessage(null);
@@ -144,9 +133,7 @@ export function useOrganizationGate(
     }
 
     const targetOrganization = requestedOrganizationSlug
-      ? organizations.data?.find(
-          (organization) => organization.slug === requestedOrganizationSlug,
-        )
+      ? organizations.data?.find((organization) => organization.slug === requestedOrganizationSlug)
       : organizations.data?.[0];
 
     if (!targetOrganization) {
@@ -169,9 +156,7 @@ export function useOrganizationGate(
       .then(async ({ error }: { error?: { message?: string } | null }) => {
         if (error) {
           activationAttemptRef.current = null;
-          setActivationErrorMessage(
-            error.message ?? "Gagal memilih toko aktif.",
-          );
+          setActivationErrorMessage(error.message ?? "Gagal memilih toko aktif.");
           setIsActivating(false);
           return;
         }
@@ -207,11 +192,7 @@ export function useOrganizationGate(
   const retry = async () => {
     activationAttemptRef.current = null;
     setActivationErrorMessage(null);
-    await Promise.all([
-      session.refetch(),
-      activeOrganization.refetch(),
-      organizations.refetch(),
-    ]);
+    await Promise.all([session.refetch(), activeOrganization.refetch(), organizations.refetch()]);
   };
 
   if (session.isPending || organizations.isPending || activeOrganization.isPending) {

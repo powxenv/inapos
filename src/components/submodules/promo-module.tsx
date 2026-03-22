@@ -17,9 +17,7 @@ export function PromoModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Harga promo berlaku 1-7 April.
-            </p>
+            <p className="text-sm text-stone-600">Harga promo berlaku 1-7 April.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -30,9 +28,7 @@ export function PromoModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Berlaku setiap pagi untuk roti dan kopi.
-            </p>
+            <p className="text-sm text-stone-600">Berlaku setiap pagi untuk roti dan kopi.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -43,9 +39,7 @@ export function PromoModule() {
             </Card.Description>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Khusus pembelian dalam jumlah banyak.
-            </p>
+            <p className="text-sm text-stone-600">Khusus pembelian dalam jumlah banyak.</p>
           </Card.Content>
         </Card>
       </div>

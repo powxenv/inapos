@@ -5,10 +5,7 @@ import { StorefrontIcon } from "@phosphor-icons/react/dist/csr/Storefront";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  createRandomOrganizationSlug,
-  useOrganizationGate,
-} from "../../lib/organization";
+import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
 import { neon } from "../../lib/powersync";
 
 const setupStoreSchema = z.object({
@@ -21,10 +18,7 @@ const setupStoreSchema = z.object({
 type SetupStoreFormValues = z.infer<typeof setupStoreSchema>;
 type OrganizationCreateAuth = typeof neon.auth & {
   organization: {
-    create: (input: {
-      name: string;
-      slug: string;
-    }) => Promise<{
+    create: (input: { name: string; slug: string }) => Promise<{
       data?: {
         id: string;
         name: string;
@@ -85,9 +79,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">
-          {gate.message ?? "Menyiapkan toko..."}
-        </p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Menyiapkan toko..."}</p>
       </main>
     );
   }
@@ -118,9 +110,7 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">
-            Buat toko
-          </h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Buat toko</h1>
           <p className="text-sm text-stone-500">
             Masukkan nama toko untuk mulai menggunakan aplikasi.
           </p>
@@ -138,10 +128,7 @@ function RouteComponent() {
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-stone-700"
-              htmlFor="setup-store-name"
-            >
+            <label className="block text-sm font-medium text-stone-700" htmlFor="setup-store-name">
               Nama toko
             </label>
             <Controller
