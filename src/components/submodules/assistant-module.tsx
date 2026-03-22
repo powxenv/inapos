@@ -34,6 +34,10 @@ const starterPrompts = [
   "Barang apa yang perlu direstok besok?",
   "Jelaskan cara pakai mode kasir",
   "Pengeluaran mana yang paling besar bulan ini?",
+  "Tampilkan 5 produk terlaris minggu ini",
+  "Siapa pelanggan paling sering belanja bulan ini?",
+  "Cek stok yang paling kritis saat ini",
+  "Buat saran promo untuk barang yang lambat terjual",
 ] as const;
 
 const initialMessages: UIMessage[] = [
@@ -48,6 +52,32 @@ const initialMessages: UIMessage[] = [
     role: "assistant",
   },
 ];
+
+function shouldShowStarterPrompts(messageCount: number): boolean {
+  return messageCount <= initialMessages.length;
+}
+
+function describeUnavailableAssistant(
+  provider: AiProvider,
+  hasSelectedModel: boolean,
+  providerStatus: AiProviderStatus | null,
+  status: OllamaStatus | null,
+): string {
+  if (provider === "openrouter" && !providerStatus?.openrouterConfigured) {
+    return "OpenRouter belum disiapkan. Buka Toko > Model AI untuk menambahkan API key dan memilih model.";
+  }
+
+  if (!hasSelectedModel) {
+    return "Model AI belum dipilih. Buka Toko > Model AI untuk memilih model yang akan dipakai chat.";
+  }
+
+  if (provider === "ollama") {
+    return status?.reason ??
+      "Ollama belum siap dipakai. Buka Toko > Model AI lalu pastikan Ollama aktif dan model sudah terpasang.";
+  }
+
+  return "Asisten AI belum bisa dipakai saat ini. Periksa lagi pengaturan di Toko > Model AI.";
+}
 
 function findDefaultModel(status: OllamaStatus): string {
   return status.availableModels[0]?.name ?? "";
@@ -137,6 +167,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     isInitializingAssistant ||
     (isSendingMessage &&
       (messages[messages.length - 1]?.role !== "assistant" || latestAssistantBody.length === 0));
+  const showStarterPromptSection = minimal || shouldShowStarterPrompts(messages.length);
 
   async function loadOllamaStatus(): Promise<void> {
     setIsLoadingStatus(true);
@@ -294,7 +325,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     );
   }
 
-  if (!status || !providerStatus || !canUseAssistant) {
+  if (!status || !providerStatus || !canUseAssistant || !hasSelectedModel) {
     return (
       <div className={`${minimal ? "flex min-h-[320px] items-center justify-center px-4" : "space-y-4"}`}>
         <div className="space-y-4">
@@ -303,10 +334,12 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
             <Alert.Content>
               <Alert.Title>Asisten AI belum bisa dipakai</Alert.Title>
               <Alert.Description>
-                {selectedProvider === "openrouter"
-                  ? "Simpan API key OpenRouter di menu Model AI terlebih dahulu."
-                  : status?.reason ??
-                    "Modul ini hanya bisa dipakai di desktop app dengan Ollama yang terpasang, aktif, dan memiliki model terinstal."}
+                {describeUnavailableAssistant(
+                  selectedProvider,
+                  hasSelectedModel,
+                  providerStatus,
+                  status,
+                )}
               </Alert.Description>
             </Alert.Content>
           </Alert>
@@ -323,57 +356,42 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
 
   const content = (
     <div className="space-y-4">
-      {minimal ? null : (
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Asisten</h3>
-          <p className="text-sm text-stone-500">
-            Chat memakai provider dan model aktif dari menu Model AI.
-          </p>
-        </div>
-      )}
+      {!minimal && resolvedAssistantError ? (
+        <Alert status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>AI belum bisa menjawab</Alert.Title>
+            <Alert.Description>{resolvedAssistantError}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
 
-      {minimal ? null : (
-        <div className="grid gap-3">
-          <Alert status="success">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>
-                {selectedProvider === "openrouter" ? "OpenRouter siap dipakai" : "Ollama siap dipakai"}
-              </Alert.Title>
-              <Alert.Description>
-                {hasSelectedModel
-                  ? `Model aktif: ${selectedModel}.`
-                  : "Pilih model aktif di menu Model AI sebelum mulai chat."}
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
-          {resolvedAssistantError ? (
-            <Alert status="danger">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>AI belum bisa menjawab</Alert.Title>
-                <Alert.Description>{resolvedAssistantError}</Alert.Description>
-              </Alert.Content>
-            </Alert>
-          ) : null}
+      {showStarterPromptSection ? (
+        <div className={`mx-auto flex w-full max-w-3xl flex-col items-center ${minimal ? "space-y-3" : "space-y-2"}`}>
+          <div className="space-y-1 text-center">
+            <p className="text-sm font-medium text-stone-700">Mulai dengan saran cepat</p>
+            <p className="text-sm text-stone-500">
+              {minimal
+                ? "Pilih pertanyaan yang paling dekat dengan kebutuhan Anda."
+                : "Gunakan salah satu prompt untuk mulai chat lebih cepat."}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {starterPrompts.map((prompt) => (
+              <Button
+                className={`${minimal ? "rounded-full px-4" : "rounded-full"}`}
+                isDisabled={!canSendMessage || isInitializingAssistant || isSendingMessage}
+                key={prompt}
+                onPress={() => void submitMessage(prompt)}
+                size={minimal ? "md" : "sm"}
+                variant="outline"
+              >
+                {prompt}
+              </Button>
+            ))}
+          </div>
         </div>
-      )}
-
-      {minimal ? null : (
-        <div className="flex flex-wrap gap-2">
-          {starterPrompts.map((prompt) => (
-            <Button
-              className="rounded-full"
-              isDisabled={!canSendMessage || isInitializingAssistant || isSendingMessage}
-              key={prompt}
-              onPress={() => void submitMessage(prompt)}
-              variant="outline"
-            >
-              {prompt}
-            </Button>
-          ))}
-        </div>
-      )}
+      ) : null}
 
       {minimal && resolvedAssistantError ? (
         <Alert status="danger">
@@ -386,7 +404,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
       ) : null}
 
       <ScrollShadow
-        className={`${minimal ? "h-[calc(100vh-220px)]" : "h-[min(68vh,720px)]"} px-4 py-4`}
+        className={`${minimal ? "h-[calc(100vh-290px)]" : "h-[min(68vh,720px)]"} px-4 py-4`}
         hideScrollBar
       >
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">

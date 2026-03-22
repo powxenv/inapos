@@ -144,7 +144,6 @@ const moduleGroups: readonly ModuleGroupDefinition[] = [
         adminOnly: true,
       },
       { id: "ai-models", label: "Model AI", title: "Model AI" },
-      { id: "assistant", label: "Asisten", title: "Asisten" },
     ],
   },
 ];
@@ -966,6 +965,10 @@ function RouteComponent() {
                   <Tabs.Indicator />
                 </Tabs.Tab>
               ))}
+              <Tabs.Tab id="assistant" key="assistant">
+                Asisten
+                <Tabs.Indicator />
+              </Tabs.Tab>
             </Tabs.List>
           </Tabs.ListContainer>
 
@@ -1078,6 +1081,13 @@ function RouteComponent() {
               </Tabs>
             </Tabs.Panel>
           ))}
+
+          <Tabs.Panel className="w-full pt-4" id="assistant">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Asisten</h2>
+            </div>
+            <AssistantModule storeId={organization.id} />
+          </Tabs.Panel>
           </Tabs>
         ) : null}
       </div>
