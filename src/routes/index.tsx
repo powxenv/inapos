@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { Tabs } from "@heroui/react";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { Avatar, Button, Tabs } from "@heroui/react";
 import {
   AlertsModule,
   AssistantModule,
@@ -21,6 +21,7 @@ import {
   TodayActivityModule,
   UsersModule,
 } from "../components/submodules";
+import { neon } from "../lib/powersync";
 
 const moduleGroups = [
   {
@@ -176,8 +177,66 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
+  const navigate = Route.useNavigate();
+  const session = neon.auth.useSession();
+  const user = session.data?.user;
+  const displayName = user?.name ?? user?.email ?? "Pengguna";
+
+  if (session.isPending) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <p className="text-sm text-stone-500">Memuat sesi pengguna...</p>
+      </main>
+    );
+  }
+
+  if (!session.data?.session) {
+    return <Navigate replace to="/auth/sign-in" />;
+  }
+
+  async function handleSignOut() {
+    const { error } = await neon.auth.signOut();
+
+    if (error) {
+      console.error("Gagal keluar dari aplikasi.", error);
+      return;
+    }
+
+    void navigate({
+      replace: true,
+      to: "/auth/sign-in",
+    });
+  }
+
   return (
     <div className="p-8">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-stone-500">Masuk sebagai</p>
+          <h1 className="text-2xl font-semibold">
+            {displayName}
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3 rounded-full border border-stone-200 bg-white px-3 py-2">
+            <Avatar className="size-9">
+              <Avatar.Fallback>
+                {displayName.slice(0, 1).toUpperCase()}
+              </Avatar.Fallback>
+            </Avatar>
+            <div className="text-left">
+              <p className="text-sm font-medium text-stone-900">
+                {displayName}
+              </p>
+              <p className="text-xs text-stone-500">{user?.email}</p>
+            </div>
+          </div>
+          <Button onPress={handleSignOut} variant="tertiary">
+            Keluar
+          </Button>
+        </div>
+      </div>
+
       <Tabs className="w-full" defaultSelectedKey="overview">
         <Tabs.ListContainer>
           <Tabs.List aria-label="Modul utama" className="w-fit">

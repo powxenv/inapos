@@ -2,16 +2,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./main.css";
 import {
+  createBrowserHistory,
   RouterProvider,
-  createHashHistory,
   createRouter,
 } from "@tanstack/react-router";
 
+import { AppProviders } from "./lib/powersync";
 import { routeTree } from "./routeTree.gen";
 
-const hashHistory = createHashHistory();
-
-const router = createRouter({ routeTree, history: hashHistory });
+const router = createRouter({ routeTree, history: createBrowserHistory() });
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -21,6 +20,8 @@ declare module "@tanstack/react-router" {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
   </React.StrictMode>,
 );

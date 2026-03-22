@@ -1,5 +1,5 @@
-import * as React from "react";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { PowerSyncSessionBridge } from "../lib/powersync";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -7,8 +7,9 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <React.Fragment>
+    <>
+      <PowerSyncSessionBridge />
       <Outlet />
-    </React.Fragment>
+    </>
   );
 }
