@@ -1,8 +1,17 @@
 import { PowerSyncContext } from "@powersync/react";
-import { PowerSyncDatabase, Schema, Table, WASQLiteOpenFactory, column } from "@powersync/web";
+import {
+  type AbstractPowerSyncDatabase,
+  type CrudEntry,
+  PowerSyncDatabase,
+  Schema,
+  Table,
+  UpdateType,
+  WASQLiteOpenFactory,
+  column,
+} from "@powersync/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useEffect, useRef } from "react";
-import { authClient } from "../auth";
+import { authClient, neonClient } from "../auth";
 import { env } from "../env";
 
 const POWERSYNC_DB_FILENAME = "warungku.sqlite";
@@ -110,6 +119,57 @@ const queryClient = new QueryClient({
   },
 });
 
+const FATAL_RESPONSE_CODES = [
+  /^22...$/,
+  /^23...$/,
+  /^42501$/,
+];
+
+const MUTABLE_TABLES = new Set([
+  "customers",
+  "expenses",
+  "inventory_items",
+  "products",
+  "purchases",
+  "sale_items",
+  "sales",
+  "stores",
+  "suppliers",
+  "users",
+]);
+
+type UploadError = {
+  code?: string;
+  message?: string;
+};
+
+function isFatalUploadError(error: unknown): error is UploadError {
+  if (!(typeof error === "object" && error !== null && "code" in error)) {
+    return false;
+  }
+
+  const { code } = error as UploadError;
+  return typeof code === "string" && FATAL_RESPONSE_CODES.some((pattern) => pattern.test(code));
+}
+
+async function applyCrudEntry(entry: CrudEntry) {
+  if (!MUTABLE_TABLES.has(entry.table)) {
+    throw new Error(`Tabel ${entry.table} tidak didukung untuk uploadData.`);
+  }
+
+  const table = neonClient.from(entry.table);
+
+  if (entry.op === UpdateType.PUT) {
+    return table.upsert({ ...entry.opData, id: entry.id });
+  }
+
+  if (entry.op === UpdateType.PATCH) {
+    return table.update(entry.opData ?? {}).eq("id", entry.id);
+  }
+
+  return table.delete().eq("id", entry.id);
+}
+
 const connector = {
   async fetchCredentials() {
     const response = await authClient.getSession();
@@ -124,9 +184,35 @@ const connector = {
       token,
     };
   },
-  async uploadData() {
-    // Write-back ke app backend / Neon Data API belum dipasang di app ini.
-    // Untuk tahap UI dan read-sync, PowerSync tetap bisa dipakai dengan uploadData no-op.
+  async uploadData(database: AbstractPowerSyncDatabase) {
+    const transaction = await database.getNextCrudTransaction();
+
+    if (!transaction) {
+      return;
+    }
+
+    let lastEntry: CrudEntry | null = null;
+
+    try {
+      for (const entry of transaction.crud) {
+        lastEntry = entry;
+        const result = await applyCrudEntry(entry);
+
+        if (result.error) {
+          throw result.error;
+        }
+      }
+
+      await transaction.complete();
+    } catch (error) {
+      if (isFatalUploadError(error)) {
+        console.error("Gagal upload data dan transaksi dibuang.", lastEntry, error);
+        await transaction.complete();
+        return;
+      }
+
+      throw error;
+    }
   },
 };
 

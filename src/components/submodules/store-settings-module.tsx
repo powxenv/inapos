@@ -11,7 +11,7 @@ export function StoreSettingsModule() {
       <div className="space-y-3">
         <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
           <p className="text-sm font-medium text-stone-700">Nama toko</p>
-          <Input defaultValue="INAPOS Mart" />
+          <Input defaultValue="INAPOS" />
         </div>
         <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
           <p className="text-sm font-medium text-stone-700">Alamat</p>

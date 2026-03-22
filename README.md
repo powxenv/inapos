@@ -1,6 +1,6 @@
-# Tauri + React + Typescript
+# INAPOS
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+INAPOS is a local-first POS and operations app for small neighborhood shops and warungs, built with Tauri, React, TypeScript, and Vite.
 
 ## Recommended IDE Setup
 
