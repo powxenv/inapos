@@ -492,6 +492,10 @@ function RouteComponent() {
                         );
                       }
 
+                      if (module.id === "cashier") {
+                        return <CashierModule storeId={organization.id} />;
+                      }
+
                       if (module.id === "orders") {
                         return <OrdersModule storeId={organization.id} />;
                       }
