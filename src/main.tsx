@@ -7,6 +7,11 @@ import { AppProviders } from "./lib/powersync";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({ routeTree, history: createBrowserHistory() });
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element tidak ditemukan.");
+}
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -14,7 +19,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <AppProviders>
       <RouterProvider router={router} />

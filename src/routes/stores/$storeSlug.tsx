@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { authClient } from "../../auth";
 import { useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Alert, AlertDialog, Button, Dropdown, InputGroup, Modal, Tabs } from "@heroui/react";
@@ -36,7 +36,6 @@ import {
   isOrganizationAdmin,
   useOrganizationGate,
 } from "../../lib/organization";
-import { neon } from "../../lib/powersync";
 
 type ModuleDefinition = {
   id: keyof typeof moduleComponents;
@@ -149,7 +148,7 @@ const moduleComponents = {
   "devices-sync": DevicesSyncModule,
   "store-settings": StoreSettingsModule,
   assistant: AssistantModule,
-} satisfies Record<string, ComponentType<any>>;
+};
 
 const createStoreSchema = z.object({
   name: z
@@ -159,20 +158,6 @@ const createStoreSchema = z.object({
 });
 
 type CreateStoreFormValues = z.infer<typeof createStoreSchema>;
-type OrganizationCreateAuth = typeof neon.auth & {
-  organization: {
-    create: (input: { name: string; slug: string }) => Promise<{
-      data?: {
-        id: string;
-        name: string;
-        slug: string;
-      } | null;
-      error?: { message?: string } | null;
-    }>;
-  };
-};
-
-const organizationAuth = neon.auth as OrganizationCreateAuth;
 
 export const Route = createFileRoute("/stores/$storeSlug")({
   component: RouteComponent,
@@ -249,7 +234,7 @@ function RouteComponent() {
 
   async function handleSignOut() {
     setIsSigningOut(true);
-    const { error } = await neon.auth.signOut();
+    const { error } = await authClient.signOut();
     setIsSigningOut(false);
 
     if (error) {
@@ -282,7 +267,7 @@ function RouteComponent() {
     setCreateStoreError(null);
     setIsCreatingStore(true);
 
-    const { data, error } = await organizationAuth.organization.create({
+    const { data, error } = await authClient.organization.create({
       name,
       slug: createRandomOrganizationSlug(name),
     });

@@ -1,3 +1,4 @@
+import { authClient } from "../../auth";
 import { useMemo, useState } from "react";
 import { Alert, Button, InputGroup, Modal, Table } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +12,6 @@ import {
   type OrganizationRole,
   isOrganizationAdmin,
 } from "../../lib/organization";
-import { neon } from "../../lib/powersync";
 
 type UsersModuleProps = {
   currentUserId: string;
@@ -19,38 +19,6 @@ type UsersModuleProps = {
   organization: OrganizationDetail;
   userRole: OrganizationRole;
 };
-
-type OrganizationMembersAuth = typeof neon.auth & {
-  organization: {
-    cancelInvitation: (input: { invitationId: string }) => Promise<{
-      error?: { message?: string } | null;
-    }>;
-    inviteMember: (input: {
-      email: string;
-      role: OrganizationRole;
-      organizationId?: string;
-      resend?: boolean;
-    }) => Promise<{
-      data?: { id?: string | null } | null;
-      error?: { message?: string } | null;
-    }>;
-    removeMember: (input: {
-      memberIdOrEmail: string;
-      organizationId?: string;
-    }) => Promise<{
-      error?: { message?: string } | null;
-    }>;
-    updateMemberRole: (input: {
-      memberId: string;
-      role: OrganizationRole;
-      organizationId?: string;
-    }) => Promise<{
-      error?: { message?: string } | null;
-    }>;
-  };
-};
-
-const organizationAuth = neon.auth as OrganizationMembersAuth;
 
 const inviteUserSchema = z.object({
   email: z.string().trim().min(1, "Email wajib diisi.").email("Format email tidak valid."),
@@ -118,7 +86,7 @@ export function UsersModule({
     setSuccessMessage(null);
 
     setPendingActionKey("invite");
-    const { error } = await organizationAuth.organization.inviteMember({
+    const { error } = await authClient.organization.inviteMember({
       email: values.email.trim().toLowerCase(),
       organizationId: organization.id,
       resend: true,
@@ -144,7 +112,7 @@ export function UsersModule({
     setSuccessMessage(null);
     setPendingActionKey(`role:${memberId}:${role}`);
 
-    const { error } = await organizationAuth.organization.updateMemberRole({
+    const { error } = await authClient.organization.updateMemberRole({
       memberId,
       organizationId: organization.id,
       role,
@@ -164,7 +132,7 @@ export function UsersModule({
     setSuccessMessage(null);
     setPendingActionKey(`remove:${memberIdOrEmail}`);
 
-    const { error } = await organizationAuth.organization.removeMember({
+    const { error } = await authClient.organization.removeMember({
       memberIdOrEmail,
       organizationId: organization.id,
     });
@@ -183,7 +151,7 @@ export function UsersModule({
     setSuccessMessage(null);
     setPendingActionKey(`invitation:${invitationId}`);
 
-    const { error } = await organizationAuth.organization.cancelInvitation({
+    const { error } = await authClient.organization.cancelInvitation({
       invitationId,
     });
 

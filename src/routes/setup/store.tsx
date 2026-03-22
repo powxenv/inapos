@@ -1,3 +1,4 @@
+import { authClient } from "../../auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Alert, Button, InputGroup } from "@heroui/react";
@@ -6,7 +7,6 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
-import { neon } from "../../lib/powersync";
 
 const setupStoreSchema = z.object({
   name: z
@@ -16,20 +16,6 @@ const setupStoreSchema = z.object({
 });
 
 type SetupStoreFormValues = z.infer<typeof setupStoreSchema>;
-type OrganizationCreateAuth = typeof neon.auth & {
-  organization: {
-    create: (input: { name: string; slug: string }) => Promise<{
-      data?: {
-        id: string;
-        name: string;
-        slug: string;
-      } | null;
-      error?: { message?: string } | null;
-    }>;
-  };
-};
-
-const organizationAuth = neon.auth as OrganizationCreateAuth;
 
 export const Route = createFileRoute("/setup/store")({
   component: RouteComponent,
@@ -87,7 +73,7 @@ function RouteComponent() {
   const onSubmit = handleSubmit(async ({ name }) => {
     clearErrors("root");
 
-    const { error } = await organizationAuth.organization.create({
+    const { error } = await authClient.organization.create({
       name,
       slug: createRandomOrganizationSlug(name),
     });

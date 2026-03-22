@@ -1,3 +1,4 @@
+import { authClient } from "../../auth";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -5,7 +6,6 @@ import { z } from "zod";
 import { Alert, Button, InputGroup } from "@heroui/react";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
-import { neon } from "../../lib/powersync";
 
 const forgotPasswordSchema = z.object({
   email: z.email("Format email tidak valid."),
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/auth/forgot-password")({
 });
 
 function RouteComponent() {
-  const session = neon.auth.useSession();
+  const session = authClient.useSession();
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const {
     control,
@@ -44,7 +44,7 @@ function RouteComponent() {
     setNoticeMessage(null);
 
     try {
-      const { error } = await neon.auth.requestPasswordReset({
+      const { error } = await authClient.requestPasswordReset({
         email,
         redirectTo: `${window.location.origin}/auth/sign-in`,
       });

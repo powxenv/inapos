@@ -1,3 +1,4 @@
+import { authClient } from "../../auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -9,7 +10,6 @@ import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
 import { LockKeyIcon } from "@phosphor-icons/react/dist/csr/LockKey";
 import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
-import { neon } from "../../lib/powersync";
 
 const signUpSchema = z
   .object({
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/auth/sign-up")({
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
-  const session = neon.auth.useSession();
+  const session = authClient.useSession();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const {
@@ -60,7 +60,7 @@ function RouteComponent() {
     clearErrors("root");
 
     try {
-      const { error } = await neon.auth.signUp.email({
+      const { error } = await authClient.signUp.email({
         email,
         password,
         name,

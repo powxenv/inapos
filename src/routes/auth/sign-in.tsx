@@ -1,3 +1,4 @@
+import { authClient } from "../../auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -8,7 +9,6 @@ import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimpl
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
 import { LockKeyIcon } from "@phosphor-icons/react/dist/csr/LockKey";
-import { neon } from "../../lib/powersync";
 
 const signInSchema = z.object({
   email: z.email("Format email tidak valid."),
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/auth/sign-in")({
 
 function RouteComponent() {
   const navigate = Route.useNavigate();
-  const session = neon.auth.useSession();
+  const session = authClient.useSession();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const {
     control,
@@ -49,7 +49,7 @@ function RouteComponent() {
     clearErrors("root");
 
     try {
-      const { error } = await neon.auth.signIn.email({
+      const { error } = await authClient.signIn.email({
         email,
         password,
       });

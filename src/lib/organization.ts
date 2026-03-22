@@ -1,7 +1,7 @@
+import { authClient } from "../auth";
 import { useEffect, useRef, useState } from "react";
-import { neon } from "./powersync";
 
-type SessionHookResult = ReturnType<typeof neon.auth.useSession>;
+type SessionHookResult = ReturnType<typeof authClient.useSession>;
 type AuthUser = NonNullable<SessionHookResult["data"]>["user"];
 export type OrganizationRole = "admin" | "member" | "owner";
 type OrganizationSummary = {
@@ -38,31 +38,6 @@ export type OrganizationDetail = OrganizationSummary & {
     createdAt: Date;
   }>;
 };
-
-type QueryHookResult<TData> = {
-  data: TData | null;
-  error: { message?: string } | null;
-  isPending: boolean;
-  isRefetching: boolean;
-  refetch: () => Promise<void>;
-};
-
-type OrganizationCapableAuth = typeof neon.auth & {
-  useActiveOrganization: () => QueryHookResult<OrganizationDetail>;
-  useListOrganizations: () => QueryHookResult<OrganizationSummary[]>;
-  organization: {
-    create: (input: { name: string; slug: string }) => Promise<{
-      data?: OrganizationSummary | null;
-      error?: { message?: string } | null;
-    }>;
-    setActive: (input: { organizationId?: string | null; organizationSlug?: string }) => Promise<{
-      data?: OrganizationDetail | null;
-      error?: { message?: string } | null;
-    }>;
-  };
-};
-
-const organizationAuth = neon.auth as OrganizationCapableAuth;
 
 type OrganizationGateState =
   | {
@@ -116,9 +91,9 @@ export function createRandomOrganizationSlug(name: string) {
 }
 
 export function useOrganizationGate(requestedOrganizationSlug?: string): OrganizationGateState {
-  const session = neon.auth.useSession();
-  const activeOrganization = organizationAuth.useActiveOrganization();
-  const organizations = organizationAuth.useListOrganizations();
+  const session = authClient.useSession();
+  const activeOrganization = authClient.useActiveOrganization();
+  const organizations = authClient.useListOrganizations();
   const activationAttemptRef = useRef<string | null>(null);
   const [activationErrorMessage, setActivationErrorMessage] = useState<string | null>(null);
   const [isActivating, setIsActivating] = useState(false);
@@ -159,7 +134,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
     setActivationErrorMessage(null);
     setIsActivating(true);
 
-    void organizationAuth.organization
+    void authClient.organization
       .setActive({
         organizationId: targetOrganization.id,
       })

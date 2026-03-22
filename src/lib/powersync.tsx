@@ -1,9 +1,8 @@
-import { createClient } from "@neondatabase/neon-js";
-import { BetterAuthReactAdapter } from "@neondatabase/neon-js/auth/react/adapters";
 import { PowerSyncContext } from "@powersync/react";
 import { PowerSyncDatabase, Schema, Table, WASQLiteOpenFactory, column } from "@powersync/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type PropsWithChildren, useEffect, useRef } from "react";
+import { authClient } from "../auth";
 import { env } from "../env";
 
 const POWERSYNC_DB_FILENAME = "warungku.sqlite";
@@ -111,19 +110,9 @@ const queryClient = new QueryClient({
   },
 });
 
-export const neon = createClient({
-  auth: {
-    adapter: BetterAuthReactAdapter(),
-    url: env.VITE_NEON_AUTH_URL,
-  },
-  dataApi: {
-    url: env.VITE_NEON_DATA_API_URL,
-  },
-});
-
 const connector = {
   async fetchCredentials() {
-    const response = await neon.auth.getSession();
+    const response = await authClient.getSession();
     const token = response.data?.session?.token?.trim();
 
     if (!token) {
@@ -172,7 +161,7 @@ async function connectPowerSync() {
 }
 
 function PowerSyncSessionBridge() {
-  const session = neon.auth.useSession();
+  const session = authClient.useSession();
   const hadSessionRef = useRef(false);
 
   useEffect(() => {
