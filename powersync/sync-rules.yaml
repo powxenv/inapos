@@ -2,11 +2,6 @@ config:
   edition: 3
 
 streams:
-  stores:
-    auto_subscribe: true
-    queries:
-      - SELECT * FROM stores
-
   customers:
     auto_subscribe: true
     queries:

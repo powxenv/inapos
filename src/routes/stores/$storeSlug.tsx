@@ -492,6 +492,10 @@ function RouteComponent() {
                         );
                       }
 
+                      if (module.id === "product-list") {
+                        return <ProductListModule storeId={organization.id} />;
+                      }
+
                       const ModuleComponent = moduleComponents[module.id];
                       return <ModuleComponent />;
                     })()}
