@@ -31,8 +31,6 @@ export type OllamaModel = z.infer<typeof ollamaModelSchema>;
 export type OllamaPullProgress = z.infer<typeof ollamaPullProgressSchema>;
 export type OllamaStatus = z.infer<typeof ollamaStatusSchema>;
 
-export const OLLAMA_MODEL_PREFERENCE_KEY = "inapos.ollama-model";
-
 export const recommendedOllamaModels = [
   {
     description: "Paling ringan untuk memulai chat lokal di desktop dengan resource rendah.",
@@ -86,16 +84,4 @@ export async function getOllamaPullProgress() {
 
   const result = await invoke("get_ollama_pull_progress");
   return ollamaPullProgressSchema.parse(result);
-}
-
-export function readPreferredOllamaModel() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return window.localStorage.getItem(OLLAMA_MODEL_PREFERENCE_KEY) ?? "";
-}
-
-export function savePreferredOllamaModel(value: string) {
-  window.localStorage.setItem(OLLAMA_MODEL_PREFERENCE_KEY, value);
 }

@@ -1,27 +1,32 @@
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, Card, ScrollShadow } from "@heroui/react";
+import { Alert, Button, Card, ScrollShadow, Spinner } from "@heroui/react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
 import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
-import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import TextareaAutosize from "react-textarea-autosize";
+import { Streamdown } from "streamdown";
+import { authClient } from "../../auth";
+import { env } from "../../env";
+import { buildAiChatStreamUrl, initializeAiRuntime } from "../../lib/assistant";
+import {
+  getAiProviderStatus,
+  readPreferredAiProvider,
+  readPreferredModel,
+  type AiProvider,
+  type AiProviderStatus,
+} from "../../lib/ai-provider";
 import {
   getOllamaStatus,
   isTauriRuntime,
-  readPreferredOllamaModel,
-  savePreferredOllamaModel,
   type OllamaStatus,
 } from "../../lib/ollama";
 
-type AssistantMessage = {
-  body: string;
-  id: string;
-  role: "assistant" | "user";
-};
-
 type AssistantModuleProps = {
   minimal?: boolean;
+  storeId: string;
 };
 
 const starterPrompts = [
@@ -31,37 +36,127 @@ const starterPrompts = [
   "Pengeluaran mana yang paling besar bulan ini?",
 ] as const;
 
-const initialMessages: AssistantMessage[] = [
+const initialMessages: UIMessage[] = [
   {
-    body: "Halo. Saya bisa bantu merangkum kondisi toko, memberi saran restok, atau menjelaskan cara pakai menu yang ada.",
     id: "assistant-welcome",
+    parts: [
+      {
+        text: "Halo. Saya bisa bantu merangkum kondisi toko, memberi saran restok, atau menjelaskan cara pakai menu yang ada.",
+        type: "text",
+      },
+    ],
     role: "assistant",
   },
 ];
 
-function findDefaultModel(status: OllamaStatus) {
+function findDefaultModel(status: OllamaStatus): string {
   return status.availableModels[0]?.name ?? "";
 }
 
-export function AssistantModule({ minimal = false }: AssistantModuleProps) {
+function readAssistantPreferences(): {
+  model: string;
+  provider: AiProvider;
+} {
+  const provider = readPreferredAiProvider();
+
+  return {
+    model: readPreferredModel(provider),
+    provider,
+  };
+}
+
+function extractMessageText(message: UIMessage): string {
+  return message.parts.filter(isTextUIPart).map((part) => part.text).join("");
+}
+
+function findLatestAssistantMessage(messages: UIMessage[]): UIMessage | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (message.role === "assistant") {
+      return message;
+    }
+  }
+
+  return null;
+}
+
+function createAssistantTransport(
+  provider: AiProvider,
+  model: string,
+  storeId: string,
+): DefaultChatTransport<UIMessage> {
+  return new DefaultChatTransport({
+    api: buildAiChatStreamUrl({
+      model,
+      provider,
+      storeId,
+    }),
+  });
+}
+
+export function AssistantModule({ minimal = false, storeId }: AssistantModuleProps) {
+  const initialPreferences = readAssistantPreferences();
   const [inputValue, setInputValue] = useState("");
-  const [messages, setMessages] = useState<AssistantMessage[]>(initialMessages);
+  const [assistantError, setAssistantError] = useState<string | null>(null);
+  const [isInitializingAssistant, setIsInitializingAssistant] = useState(false);
+  const [isAssistantReady, setIsAssistantReady] = useState(false);
   const [status, setStatus] = useState<OllamaStatus | null>(null);
+  const [providerStatus, setProviderStatus] = useState<AiProviderStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const [selectedModel, setSelectedModel] = useState(readPreferredOllamaModel);
+  const [selectedProvider, setSelectedProvider] = useState<AiProvider>(
+    initialPreferences.provider,
+  );
+  const [selectedModel, setSelectedModel] = useState(initialPreferences.model);
   const trimmedInput = inputValue.trim();
+  const chatId = `${storeId}:${selectedProvider}:${selectedModel || "unconfigured"}`;
+  const activeModel = selectedModel || "unconfigured";
+  const {
+    clearError,
+    error: chatError,
+    messages,
+    sendMessage,
+    status: chatStatus,
+  } = useChat({
+    id: chatId,
+    messages: initialMessages,
+    transport: createAssistantTransport(selectedProvider, activeModel, storeId),
+  });
+  const canUseAssistant =
+    selectedProvider === "openrouter"
+      ? Boolean(providerStatus?.openrouterConfigured)
+      : Boolean(status?.canUse);
+  const hasSelectedModel = selectedModel.length > 0;
+  const canSendMessage = canUseAssistant && hasSelectedModel;
+  const isSendingMessage = chatStatus === "submitted" || chatStatus === "streaming";
+  const resolvedAssistantError = assistantError ?? chatError?.message ?? null;
+  const latestAssistantMessage = findLatestAssistantMessage(messages);
+  const latestAssistantBody = latestAssistantMessage ? extractMessageText(latestAssistantMessage) : "";
+  const showLoadingBubble =
+    isInitializingAssistant ||
+    (isSendingMessage &&
+      (messages[messages.length - 1]?.role !== "assistant" || latestAssistantBody.length === 0));
 
-  async function loadOllamaStatus() {
+  async function loadOllamaStatus(): Promise<void> {
     setIsLoadingStatus(true);
     setStatusError(null);
 
     try {
-      const nextStatus = await getOllamaStatus();
+      const preferences = readAssistantPreferences();
+      const [nextStatus, nextProviderStatus] = await Promise.all([
+        getOllamaStatus(),
+        getAiProviderStatus(),
+      ]);
+
+      setSelectedProvider(preferences.provider);
+      setSelectedModel(preferences.model);
       setStatus(nextStatus);
+      setProviderStatus(nextProviderStatus);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa Ollama.");
+      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa AI.");
       setStatus(null);
+      setProviderStatus(null);
     } finally {
       setIsLoadingStatus(false);
     }
@@ -71,7 +166,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
     void loadOllamaStatus();
   }, []);
 
-  async function handleInstallOllama() {
+  async function handleInstallOllama(): Promise<void> {
     if (!isTauriRuntime()) {
       return;
     }
@@ -84,46 +179,95 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
       return;
     }
 
-    const preferredModel = readPreferredOllamaModel();
-    const installed = new Set(status.availableModels.map((model) => model.name));
-    const nextModel = installed.has(preferredModel) ? preferredModel : findDefaultModel(status);
-
-    if (!nextModel || nextModel === selectedModel) {
+    if (selectedProvider !== "ollama") {
       return;
     }
 
-    setSelectedModel(nextModel);
-    savePreferredOllamaModel(nextModel);
-  }, [selectedModel, status]);
+    const preferredModel = readPreferredModel("ollama");
+    const installedModels = new Set(status.availableModels.map((model) => model.name));
+    const nextModel = installedModels.has(preferredModel)
+      ? preferredModel
+      : findDefaultModel(status);
 
-  function sendMessage(rawValue: string) {
+    if (nextModel && nextModel !== selectedModel) {
+      setSelectedModel(nextModel);
+    }
+  }, [selectedModel, selectedProvider, status]);
+
+  async function prepareAssistantRuntime(): Promise<boolean> {
+    if (!canUseAssistant) {
+      setIsAssistantReady(false);
+      return false;
+    }
+
+    setIsInitializingAssistant(true);
+    setAssistantError(null);
+
+    try {
+      const session = await authClient.getSession();
+      const sessionToken = session.data?.session?.token?.trim();
+
+      if (!sessionToken) {
+        throw new Error("Sesi login tidak ditemukan untuk menyiapkan AI.");
+      }
+
+      const runtimeStatus = await initializeAiRuntime(sessionToken, env.VITE_POWERSYNC_URL);
+
+      if (selectedProvider === "ollama" && !runtimeStatus.ready) {
+        throw new Error(runtimeStatus.reason ?? "Runtime AI belum siap.");
+      }
+
+      setIsAssistantReady(true);
+      return true;
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : "Gagal menyiapkan runtime AI.");
+      setIsAssistantReady(false);
+      return false;
+    } finally {
+      setIsInitializingAssistant(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!canUseAssistant) {
+      return;
+    }
+
+    void prepareAssistantRuntime();
+  }, [canUseAssistant, selectedProvider]);
+
+  async function submitMessage(rawValue: string): Promise<void> {
     const value = rawValue.trim();
 
-    if (!value || !status?.canUse) {
+    if (!value || !canSendMessage || isSendingMessage) {
       return;
     }
 
-    const userMessage: AssistantMessage = {
-      body: value,
-      id: `user-${crypto.randomUUID()}`,
-      role: "user",
-    };
-    const assistantPlaceholderMessage: AssistantMessage = {
-      body: selectedModel
-        ? `Model ${selectedModel} sudah dipilih, tetapi chat Ollama asli belum disambungkan.`
-        : "Chat Ollama asli belum disambungkan.",
-      id: `assistant-${crypto.randomUUID()}`,
-      role: "assistant",
-    };
-
-    setMessages((currentMessages) => [...currentMessages, userMessage, assistantPlaceholderMessage]);
+    setAssistantError(null);
+    clearError();
     setInputValue("");
+
+    if (!isAssistantReady) {
+      const ready = await prepareAssistantRuntime();
+
+      if (!ready) {
+        return;
+      }
+    }
+
+    try {
+      await sendMessage({
+        text: value,
+      });
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : "Gagal mengirim pesan ke AI.");
+    }
   }
 
   if (isLoadingStatus) {
     return (
       <div className={`flex min-h-[320px] items-center justify-center ${minimal ? "px-4" : ""}`}>
-        <p className="text-sm text-stone-500">Memeriksa ketersediaan Ollama...</p>
+        <p className="text-sm text-stone-500">Memeriksa runtime AI...</p>
       </div>
     );
   }
@@ -146,7 +290,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
     );
   }
 
-  if (!status || !status.canUse) {
+  if (!status || !providerStatus || !canUseAssistant) {
     return (
       <div className={`${minimal ? "flex min-h-[320px] items-center justify-center px-4" : "space-y-4"}`}>
         <div className="space-y-4">
@@ -155,12 +299,14 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
             <Alert.Content>
               <Alert.Title>Asisten AI belum bisa dipakai</Alert.Title>
               <Alert.Description>
-                {status?.reason ??
-                  "Modul ini hanya bisa dipakai di desktop app dengan Ollama yang terpasang, aktif, dan memiliki model terinstal."}
+                {selectedProvider === "openrouter"
+                  ? "Simpan API key OpenRouter di menu Model AI terlebih dahulu."
+                  : status?.reason ??
+                    "Modul ini hanya bisa dipakai di desktop app dengan Ollama yang terpasang, aktif, dan memiliki model terinstal."}
               </Alert.Description>
             </Alert.Content>
           </Alert>
-          {status?.isDesktop && !status.ollamaInstalled ? (
+          {selectedProvider === "ollama" && status?.isDesktop && !status.ollamaInstalled ? (
             <Button onPress={() => void handleInstallOllama()}>
               <DownloadSimpleIcon aria-hidden size={16} />
               Install Ollama
@@ -177,7 +323,7 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">Asisten</h3>
           <p className="text-sm text-stone-500">
-            Chat memakai Ollama lokal. Pengaturan model dipindahkan ke menu Model AI.
+            Chat memakai provider dan model aktif dari menu Model AI.
           </p>
         </div>
       )}
@@ -187,12 +333,25 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
           <Alert status="success">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Ollama siap dipakai</Alert.Title>
+              <Alert.Title>
+                {selectedProvider === "openrouter" ? "OpenRouter siap dipakai" : "Ollama siap dipakai"}
+              </Alert.Title>
               <Alert.Description>
-                Service aktif di desktop ini. Model default saat ini: {selectedModel || "belum dipilih"}.
+                {hasSelectedModel
+                  ? `Model aktif: ${selectedModel}.`
+                  : "Pilih model aktif di menu Model AI sebelum mulai chat."}
               </Alert.Description>
             </Alert.Content>
           </Alert>
+          {resolvedAssistantError ? (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>AI belum bisa menjawab</Alert.Title>
+                <Alert.Description>{resolvedAssistantError}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
         </div>
       )}
 
@@ -201,8 +360,9 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
           {starterPrompts.map((prompt) => (
             <Button
               className="rounded-full"
+              isDisabled={!canSendMessage || isInitializingAssistant || isSendingMessage}
               key={prompt}
-              onPress={() => sendMessage(prompt)}
+              onPress={() => void submitMessage(prompt)}
               variant="outline"
             >
               {prompt}
@@ -211,6 +371,16 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
         </div>
       )}
 
+      {minimal && resolvedAssistantError ? (
+        <Alert status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>AI belum bisa menjawab</Alert.Title>
+            <Alert.Description>{resolvedAssistantError}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
       <ScrollShadow
         className={`${minimal ? "h-[calc(100vh-220px)]" : "h-[min(68vh,720px)]"} px-4 py-4`}
         hideScrollBar
@@ -218,6 +388,12 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
           {messages.map((message) => {
             const isAssistant = message.role === "assistant";
+            const body = extractMessageText(message);
+            const isLatestAssistantMessage = latestAssistantMessage?.id === message.id;
+
+            if (!body) {
+              return null;
+            }
 
             return (
               <div
@@ -231,11 +407,49 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
                       : "rounded-tr-md bg-stone-950 text-stone-50"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.body}</p>
+                  {isAssistant ? (
+                    <div className="space-y-3">
+                      <Streamdown
+                        animated
+                        className="streamdown text-sm leading-7 [&_a]:text-stone-900 [&_a]:underline [&_code]:rounded-md [&_code]:bg-stone-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-stone-200 [&_pre]:bg-stone-950 [&_pre]:text-stone-50"
+                        isAnimating={isLatestAssistantMessage && chatStatus === "streaming"}
+                        mode="streaming"
+                      >
+                        {body}
+                      </Streamdown>
+                      {isLatestAssistantMessage && chatStatus === "streaming" ? (
+                        <div className="flex items-center gap-2 text-xs text-stone-500">
+                          <Spinner color="current" size="sm" />
+                          <span>Menulis jawaban</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{body}</p>
+                  )}
                 </div>
               </div>
             );
           })}
+          {showLoadingBubble ? (
+            <div className="flex gap-3 justify-start">
+              <div className="max-w-3xl rounded-[28px] rounded-tl-md border border-stone-200 bg-white px-4 py-4 text-stone-800">
+                <div className="flex items-center gap-3">
+                  <Spinner color="accent" size="sm" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-stone-900">
+                      {isInitializingAssistant ? "Menyiapkan AI" : "Menyusun jawaban"}
+                    </p>
+                    <p className="text-xs text-stone-500">
+                      {isInitializingAssistant
+                        ? "Memeriksa runtime dan koneksi model."
+                        : "Jawaban akan muncul langsung di sini saat stream mulai masuk."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </ScrollShadow>
 
@@ -251,17 +465,17 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
-                    sendMessage(inputValue);
+                    void submitMessage(inputValue);
                   }
                 }}
-                placeholder={`Tanyakan sesuatu dengan ${selectedModel}`}
+                placeholder={`Tanyakan sesuatu dengan ${selectedModel || "model AI aktif"}`}
                 value={inputValue}
               />
               <Button
                 aria-label="Kirim pesan"
                 className="mb-1 mr-1 size-10 rounded-full"
-                isDisabled={!trimmedInput}
-                onPress={() => sendMessage(inputValue)}
+                isDisabled={!trimmedInput || !canSendMessage || isInitializingAssistant || isSendingMessage}
+                onPress={() => void submitMessage(inputValue)}
               >
                 <ArrowUpIcon aria-hidden size={16} />
               </Button>
@@ -269,12 +483,8 @@ export function AssistantModule({ minimal = false }: AssistantModuleProps) {
           </div>
 
           {minimal ? null : (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500">
               <p>Tekan Enter untuk kirim, Shift + Enter untuk baris baru.</p>
-              <div className="flex items-center gap-2">
-                <ClockCounterClockwiseIcon aria-hidden size={14} />
-                <span>Chat saat ini masih simulasi lokal, tetapi preferensi model sudah tersimpan.</span>
-              </div>
             </div>
           )}
         </div>

@@ -1,3 +1,5 @@
+mod ai;
+
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpStream};
@@ -83,9 +85,7 @@ fn fetch_ollama_tags() -> Result<OllamaTagsResponse, String> {
         .set_write_timeout(Some(Duration::from_secs(2)))
         .map_err(|error| error.to_string())?;
     stream
-        .write_all(
-            b"GET /api/tags HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
-        )
+        .write_all(b"GET /api/tags HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
         .map_err(|error| error.to_string())?;
 
     let response = read_http_response(&mut stream)?;
@@ -175,7 +175,10 @@ fn read_headers(reader: &mut BufReader<TcpStream>) -> Result<(bool, u16), String
     Ok((is_chunked, status_code))
 }
 
-fn stream_pull_response(progress: &Arc<Mutex<OllamaPullProgress>>, reader: &mut BufReader<TcpStream>) -> Result<(), String> {
+fn stream_pull_response(
+    progress: &Arc<Mutex<OllamaPullProgress>>,
+    reader: &mut BufReader<TcpStream>,
+) -> Result<(), String> {
     let mut pending = String::new();
 
     loop {
@@ -188,8 +191,8 @@ fn stream_pull_response(progress: &Arc<Mutex<OllamaPullProgress>>, reader: &mut 
             break;
         }
 
-        let chunk_size = usize::from_str_radix(size_line.trim(), 16)
-            .map_err(|error| error.to_string())?;
+        let chunk_size =
+            usize::from_str_radix(size_line.trim(), 16).map_err(|error| error.to_string())?;
 
         if chunk_size == 0 {
             break;
@@ -349,7 +352,9 @@ fn get_ollama_status() -> Result<OllamaStatus, String> {
 }
 
 #[tauri::command]
-fn get_ollama_pull_progress(state: tauri::State<'_, OllamaState>) -> Result<OllamaPullProgress, String> {
+fn get_ollama_pull_progress(
+    state: tauri::State<'_, OllamaState>,
+) -> Result<OllamaPullProgress, String> {
     state
         .pull_progress
         .lock()
@@ -400,6 +405,10 @@ pub fn run() {
     tauri::Builder::default()
         .manage(OllamaState::default())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            ai::start_http_server(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
             get_ollama_status,

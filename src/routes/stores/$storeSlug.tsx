@@ -953,7 +953,7 @@ function RouteComponent() {
         ) : null}
 
         {appMode === "chat" ? (
-          <AssistantModule minimal />
+          <AssistantModule minimal storeId={organization.id} />
         ) : null}
 
         {appMode === "full" ? (
@@ -1064,6 +1064,10 @@ function RouteComponent() {
 
                       if (module.id === "ai-models") {
                         return <AiModelsModule />;
+                      }
+
+                      if (module.id === "assistant") {
+                        return <AssistantModule storeId={organization.id} />;
                       }
 
                       const ModuleComponent = moduleComponents[module.id];

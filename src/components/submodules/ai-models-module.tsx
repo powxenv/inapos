@@ -1,19 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, Card, ListBox, Select, Table } from "@heroui/react";
+import { Alert, Button, Card, InputGroup, ListBox, Select, Switch } from "@heroui/react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
+import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
+import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
+import { KeyIcon } from "@phosphor-icons/react/dist/csr/Key";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  clearOpenRouterApiKey,
+  getAiProviderStatus,
+  getOpenRouterFreeModels,
+  type OpenRouterModel,
+  readPreferredAiProvider,
+  readPreferredModel,
+  saveOpenRouterApiKey,
+  savePreferredAiProvider,
+  savePreferredModel,
+  type AiProvider,
+  type AiProviderStatus,
+} from "../../lib/ai-provider";
 import {
   getOllamaPullProgress,
   getOllamaStatus,
   isTauriRuntime,
-  readPreferredOllamaModel,
   recommendedOllamaModels,
-  savePreferredOllamaModel,
   startOllamaPull,
   type OllamaPullProgress,
   type OllamaStatus,
 } from "../../lib/ollama";
+
+const openRouterApiKeySchema = z.object({
+  apiKey: z.string().trim().min(1, "API key OpenRouter wajib diisi."),
+});
+
+type OpenRouterApiKeyFormValues = z.infer<typeof openRouterApiKeySchema>;
 
 function formatBytes(value: number | null | undefined) {
   if (!value) {
@@ -24,13 +47,65 @@ function formatBytes(value: number | null | undefined) {
   return `${sizeInGb.toFixed(1)} GB`;
 }
 
+function formatContextLength(value: number | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return `${value.toLocaleString("en-US")} token`;
+}
+
+function readPreferredOllamaModel() {
+  return readPreferredModel("ollama");
+}
+
+function savePreferredOllamaModel(value: string) {
+  savePreferredModel("ollama", value);
+}
+
+function readPreferredOpenRouterModel() {
+  return readPreferredModel("openrouter");
+}
+
+function savePreferredOpenRouterModel(value: string) {
+  savePreferredModel("openrouter", value);
+}
+
+function buildStatusMessage(provider: AiProvider, status: OllamaStatus | null, providerStatus: AiProviderStatus | null) {
+  if (provider === "openrouter") {
+    return providerStatus?.openrouterConfigured
+      ? "API key sudah tersimpan di database lokal aplikasi."
+      : "Masukkan API key OpenRouter untuk mulai memakai model cloud.";
+  }
+
+  if (!status) {
+    return "Status Ollama belum tersedia.";
+  }
+
+  if (status.ollamaRunning) {
+    return "Ollama lokal aktif dan siap dipakai.";
+  }
+
+  return status.reason ?? "Ollama belum aktif di desktop app ini.";
+}
+
 export function AiModelsModule() {
   const [status, setStatus] = useState<OllamaStatus | null>(null);
+  const [providerStatus, setProviderStatus] = useState<AiProviderStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedModel, setSelectedModel] = useState(readPreferredOllamaModel);
+  const [selectedProvider, setSelectedProvider] = useState<AiProvider>(readPreferredAiProvider);
+  const [selectedOllamaModel, setSelectedOllamaModel] = useState(readPreferredOllamaModel);
+  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(readPreferredOpenRouterModel);
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
+  const [openRouterModelsError, setOpenRouterModelsError] = useState<string | null>(null);
+  const [isLoadingOpenRouterModels, setIsLoadingOpenRouterModels] = useState(false);
   const [pullProgress, setPullProgress] = useState<OllamaPullProgress | null>(null);
   const [pullError, setPullError] = useState<string | null>(null);
+  const [providerMessage, setProviderMessage] = useState<string | null>(null);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
+  const [isClearingApiKey, setIsClearingApiKey] = useState(false);
   const installedModels = status?.availableModels ?? [];
   const installedNames = useMemo(
     () => new Set(installedModels.map((model) => model.name)),
@@ -40,24 +115,61 @@ export function AiModelsModule() {
     pullProgress?.completed && pullProgress.total
       ? Math.min(100, Math.round((pullProgress.completed / pullProgress.total) * 100))
       : null;
+  const currentStatusMessage = buildStatusMessage(selectedProvider, status, providerStatus);
+  const {
+    control,
+    handleSubmit,
+    setError,
+    clearErrors,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<OpenRouterApiKeyFormValues>({
+    defaultValues: {
+      apiKey: "",
+    },
+    resolver: zodResolver(openRouterApiKeySchema),
+  });
 
   async function loadStatus() {
     setIsLoading(true);
     setStatusError(null);
 
     try {
-      const nextStatus = await getOllamaStatus();
+      const [nextStatus, nextProviderStatus] = await Promise.all([
+        getOllamaStatus(),
+        getAiProviderStatus(),
+      ]);
       setStatus(nextStatus);
+      setProviderStatus(nextProviderStatus);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa Ollama.");
+      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa status AI.");
       setStatus(null);
+      setProviderStatus(null);
     } finally {
       setIsLoading(false);
     }
   }
 
+  async function loadOpenRouterModels() {
+    setIsLoadingOpenRouterModels(true);
+    setOpenRouterModelsError(null);
+
+    try {
+      const nextModels = await getOpenRouterFreeModels();
+      setOpenRouterModels(nextModels);
+    } catch (error) {
+      setOpenRouterModels([]);
+      setOpenRouterModelsError(
+        error instanceof Error ? error.message : "Gagal memuat model gratis OpenRouter.",
+      );
+    } finally {
+      setIsLoadingOpenRouterModels(false);
+    }
+  }
+
   useEffect(() => {
     void loadStatus();
+    void loadOpenRouterModels();
   }, []);
 
   useEffect(() => {
@@ -105,17 +217,40 @@ export function AiModelsModule() {
     const preferred = readPreferredOllamaModel();
 
     if (preferred && installedNames.has(preferred)) {
-      setSelectedModel(preferred);
+      setSelectedOllamaModel(preferred);
       return;
     }
 
     const fallback = installedModels[0]?.name ?? "";
 
-    if (fallback) {
-      setSelectedModel(fallback);
-      savePreferredOllamaModel(fallback);
+    if (!fallback) {
+      return;
     }
+
+    setSelectedOllamaModel(fallback);
+    savePreferredOllamaModel(fallback);
   }, [installedModels, installedNames]);
+
+  useEffect(() => {
+    if (!openRouterModels.length) {
+      return;
+    }
+
+    const installed = new Set(openRouterModels.map((model) => model.id));
+    const preferred = readPreferredOpenRouterModel();
+    const nextModel = installed.has(preferred) ? preferred : openRouterModels[0]?.id ?? "";
+
+    if (!nextModel) {
+      return;
+    }
+
+    if (nextModel === selectedOpenRouterModel) {
+      return;
+    }
+
+    setSelectedOpenRouterModel(nextModel);
+    savePreferredOpenRouterModel(nextModel);
+  }, [openRouterModels, selectedOpenRouterModel]);
 
   async function handleInstallOllama() {
     if (!isTauriRuntime()) {
@@ -144,25 +279,309 @@ export function AiModelsModule() {
     }
   }
 
+  function handleProviderToggle(useCloudProvider: boolean) {
+    const nextProvider = useCloudProvider ? "openrouter" : "ollama";
+    setSelectedProvider(nextProvider);
+    savePreferredAiProvider(nextProvider);
+    setProviderError(null);
+    setProviderMessage(null);
+  }
+
+  function handleOllamaModelSelection(key: string) {
+    setSelectedOllamaModel(key);
+    savePreferredOllamaModel(key);
+  }
+
+  function handleOpenRouterModelSelection(key: string) {
+    setSelectedOpenRouterModel(key);
+    savePreferredOpenRouterModel(key);
+  }
+
+  const saveApiKey = handleSubmit(async ({ apiKey }) => {
+    clearErrors("root");
+    setProviderError(null);
+    setProviderMessage(null);
+
+    try {
+      const nextStatus = await saveOpenRouterApiKey(apiKey);
+      setProviderStatus(nextStatus);
+      setProviderMessage("API key OpenRouter berhasil disimpan di database lokal aplikasi.");
+      reset({
+        apiKey: "",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Gagal menyimpan API key OpenRouter.";
+      setError("root", {
+        type: "server",
+        message,
+      });
+      setProviderError(message);
+    }
+  });
+
+  async function handleClearApiKey() {
+    clearErrors("root");
+    setProviderError(null);
+    setProviderMessage(null);
+    setIsClearingApiKey(true);
+
+    try {
+      const nextStatus = await clearOpenRouterApiKey();
+      setProviderStatus(nextStatus);
+      setProviderMessage("API key OpenRouter berhasil dihapus dari database lokal aplikasi.");
+      reset({
+        apiKey: "",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Gagal menghapus API key OpenRouter.";
+      setProviderError(message);
+    } finally {
+      setIsClearingApiKey(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-1">
         <h3 className="text-lg font-semibold">Model AI</h3>
-        <p className="text-sm text-stone-500">
-          Kelola Ollama lokal dan pilih model default yang akan dipakai modul asisten.
-        </p>
+        <p className="text-sm text-stone-500">Pilih sumber AI dan model yang ingin dipakai.</p>
       </div>
 
-      {isLoading ? <p className="text-sm text-stone-500">Memeriksa Ollama...</p> : null}
+      <Card className="border border-stone-200 shadow-none">
+        <Card.Content className="space-y-4 p-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+            <Switch
+              isSelected={selectedProvider === "openrouter"}
+              onChange={handleProviderToggle}
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Content>
+                <div>
+                  <p className="font-medium text-stone-950">
+                    {selectedProvider === "openrouter" ? "OpenRouter aktif" : "Ollama aktif"}
+                  </p>
+                  <p className="text-sm text-stone-500">Aktifkan untuk pakai cloud. Nonaktif untuk pakai lokal.</p>
+                </div>
+              </Switch.Content>
+            </Switch>
+            <div className="rounded-full bg-stone-100 px-3 py-1 text-sm text-stone-700">
+              {currentStatusMessage}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button onPress={() => void loadStatus()} variant="outline">
+              <ArrowClockwiseIcon aria-hidden size={16} />
+              Refresh status
+            </Button>
+            {selectedProvider === "openrouter" ? (
+              <Button
+                isPending={isLoadingOpenRouterModels}
+                onPress={() => void loadOpenRouterModels()}
+                variant="outline"
+              >
+                <ArrowClockwiseIcon aria-hidden size={16} />
+                Refresh model
+              </Button>
+            ) : null}
+          </div>
+        </Card.Content>
+      </Card>
+
+      {isLoading ? <p className="text-sm text-stone-500">Memeriksa status AI...</p> : null}
 
       {statusError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Gagal memeriksa Ollama</Alert.Title>
+            <Alert.Title>Gagal memeriksa status AI</Alert.Title>
             <Alert.Description>{statusError}</Alert.Description>
           </Alert.Content>
         </Alert>
+      ) : null}
+
+      {selectedProvider === "openrouter" ? (
+        <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
+          <Card className="border border-stone-200 shadow-none">
+            <Card.Header>
+              <Card.Title>Model</Card.Title>
+            </Card.Header>
+            <Card.Content className="space-y-3">
+              <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
+                <span className="text-sm text-stone-500">Model gratis</span>
+                <span className="text-sm font-medium text-stone-950">{openRouterModels.length}</span>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-stone-700" htmlFor="openrouter-model">
+                  Model default
+                </label>
+                <Select
+                  aria-label="Pilih model OpenRouter gratis"
+                  className="w-full"
+                  id="openrouter-model"
+                  isDisabled={!openRouterModels.length}
+                  selectedKey={selectedOpenRouterModel}
+                  onSelectionChange={(key) => {
+                    if (typeof key !== "string" || !key) {
+                      return;
+                    }
+
+                    handleOpenRouterModelSelection(key);
+                  }}
+                >
+                  <Select.Trigger className="w-full">
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {openRouterModels.map((model) => (
+                        <ListBox.Item id={model.id} key={model.id} textValue={model.id}>
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate">{model.id}</p>
+                              <p className="truncate text-xs text-stone-500">{model.name}</p>
+                            </div>
+                            <span className="shrink-0 text-xs text-stone-500">
+                              {formatContextLength(model.context_length)}
+                            </span>
+                          </div>
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+              </div>
+
+              {openRouterModelsError ? (
+                <Alert status="danger">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Title>Gagal memuat model</Alert.Title>
+                    <Alert.Description>{openRouterModelsError}</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : null}
+            </Card.Content>
+          </Card>
+
+          <Card className="border border-stone-200 shadow-none">
+            <Card.Header>
+              <Card.Title>API key</Card.Title>
+            </Card.Header>
+            <Card.Content className="space-y-3">
+              <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
+                <span className="text-sm text-stone-500">Status</span>
+                <span className="text-sm font-medium text-stone-950">
+                  {providerStatus?.openrouterConfigured ? "Tersimpan" : "Belum ada"}
+                </span>
+              </div>
+
+              <form className="space-y-3" onSubmit={saveApiKey}>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-stone-700" htmlFor="openrouter-api-key">
+                    API key
+                  </label>
+                  <Controller
+                    control={control}
+                    name="apiKey"
+                    render={({ field, fieldState }) => (
+                      <InputGroup className="w-full" isInvalid={fieldState.invalid}>
+                        <InputGroup.Prefix className="text-stone-400">
+                          <KeyIcon aria-hidden size={18} />
+                        </InputGroup.Prefix>
+                        <InputGroup.Input
+                          aria-invalid={fieldState.invalid}
+                          aria-label="API key OpenRouter"
+                          autoComplete="off"
+                          className="w-full"
+                          id="openrouter-api-key"
+                          onBlur={field.onBlur}
+                          onChange={field.onChange}
+                          placeholder="sk-or-v1-..."
+                          type={isApiKeyVisible ? "text" : "password"}
+                          value={field.value}
+                        />
+                        <InputGroup.Suffix className="pr-0">
+                          <Button
+                            aria-label={
+                              isApiKeyVisible ? "Sembunyikan API key" : "Tampilkan API key"
+                            }
+                            className="min-w-0 px-2 text-stone-500 hover:text-stone-900"
+                            onPress={() => setIsApiKeyVisible((value) => !value)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                          >
+                            {isApiKeyVisible ? (
+                              <EyeSlashIcon aria-hidden size={18} />
+                            ) : (
+                              <EyeIcon aria-hidden size={18} />
+                            )}
+                          </Button>
+                        </InputGroup.Suffix>
+                      </InputGroup>
+                    )}
+                  />
+                  {errors.apiKey?.message ? (
+                    <p className="text-sm text-red-600">{errors.apiKey.message}</p>
+                  ) : null}
+                </div>
+
+                {errors.root?.message ? (
+                  <Alert status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Penyimpanan API key gagal</Alert.Title>
+                      <Alert.Description>{errors.root.message}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
+
+                {providerError ? (
+                  <Alert status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Gagal</Alert.Title>
+                      <Alert.Description>{providerError}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
+
+                {providerMessage ? (
+                  <Alert status="success">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Tersimpan</Alert.Title>
+                      <Alert.Description>{providerMessage}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <Button isPending={isSubmitting} type="submit">
+                    Simpan API key
+                  </Button>
+                  <Button
+                    isDisabled={!providerStatus?.openrouterConfigured}
+                    isPending={isClearingApiKey}
+                    onPress={() => void handleClearApiKey()}
+                    type="button"
+                    variant="outline"
+                  >
+                    Hapus API key
+                  </Button>
+                </div>
+              </form>
+            </Card.Content>
+          </Card>
+        </div>
       ) : null}
 
       {pullError ? (
@@ -196,98 +615,69 @@ export function AiModelsModule() {
         </Alert>
       ) : null}
 
-      {!isLoading && !statusError && status ? (
+      {selectedProvider === "ollama" && !isLoading && !statusError && status ? (
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
           <Card className="border border-stone-200 shadow-none">
-            <Card.Header className="space-y-1">
-              <Card.Title>Status runtime</Card.Title>
-              <Card.Description>
-                Asisten AI hanya tersedia di desktop app dengan Ollama aktif.
-              </Card.Description>
+            <Card.Header>
+              <Card.Title>Runtime</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
-              <div className="rounded-2xl border border-stone-200 p-4">
-                <p className="text-sm text-stone-500">Platform</p>
-                <p className="mt-1 font-medium text-stone-950">{status.platform}</p>
+              <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
+                <span className="text-sm text-stone-500">Platform</span>
+                <span className="text-sm font-medium text-stone-950">{status.platform}</span>
               </div>
-              <div className="rounded-2xl border border-stone-200 p-4">
-                <p className="text-sm text-stone-500">Ollama</p>
-                <p className="mt-1 font-medium text-stone-950">
+              <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
+                <span className="text-sm text-stone-500">Ollama</span>
+                <span className="text-sm font-medium text-stone-950">
                   {status.ollamaInstalled
                     ? status.ollamaRunning
-                      ? "Terpasang dan aktif"
-                      : "Terpasang, tetapi belum aktif"
-                    : "Belum terpasang"}
-                </p>
-                {status.reason ? <p className="mt-2 text-sm text-stone-500">{status.reason}</p> : null}
+                      ? "Aktif"
+                      : "Terpasang"
+                    : "Belum ada"}
+                </span>
               </div>
+              {status.reason ? (
+                <div className="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-500">
+                  {status.reason}
+                </div>
+              ) : null}
               {!status.ollamaInstalled && status.isDesktop ? (
                 <Button onPress={() => void handleInstallOllama()}>
                   <DownloadSimpleIcon aria-hidden size={16} />
                   Install Ollama
                 </Button>
               ) : null}
-              <Button onPress={() => void loadStatus()} variant="outline">
-                <ArrowClockwiseIcon aria-hidden size={16} />
-                Refresh status
-              </Button>
             </Card.Content>
           </Card>
 
           <Card className="border border-stone-200 shadow-none">
-            <Card.Header className="space-y-1">
-              <Card.Title>Model default</Card.Title>
-              <Card.Description>Pilih model lokal yang dipakai asisten untuk chat.</Card.Description>
+            <Card.Header>
+              <Card.Title>Model</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
-              <div className="rounded-2xl border border-stone-200 p-4">
-                <p className="text-sm text-stone-500">Rekomendasi saat ini</p>
-                <p className="mt-1 font-medium text-stone-950">{recommendedOllamaModels[0].name}</p>
-                <p className="mt-2 text-sm text-stone-500">{recommendedOllamaModels[0].description}</p>
-                <p className="mt-2 text-sm text-stone-500">Ukuran: {recommendedOllamaModels[0].sizeLabel}</p>
-                <p className="mt-2 text-sm text-stone-500">
-                  {recommendedOllamaModels[0].minimumRequirement}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    isDisabled={Boolean(pullProgress?.active)}
-                    onPress={() => void handleDownloadModel(recommendedOllamaModels[0].name)}
-                    variant={installedNames.has(recommendedOllamaModels[0].name) ? "outline" : "primary"}
-                  >
-                    <DownloadSimpleIcon aria-hidden size={16} />
-                    {installedNames.has(recommendedOllamaModels[0].name) ? "Download ulang" : "Download model"}
-                  </Button>
-                  {installedNames.has(recommendedOllamaModels[0].name) ? (
-                    <Button
-                      onPress={() => {
-                        setSelectedModel(recommendedOllamaModels[0].name);
-                        savePreferredOllamaModel(recommendedOllamaModels[0].name);
-                      }}
-                      variant={selectedModel === recommendedOllamaModels[0].name ? "primary" : "outline"}
-                    >
-                      Pilih sebagai default
-                    </Button>
-                  ) : null}
-                </div>
+              <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
+                <span className="text-sm text-stone-500">Default</span>
+                <span className="text-sm font-medium text-stone-950">
+                  {selectedOllamaModel || "Belum dipilih"}
+                </span>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-stone-700" htmlFor="ollama-model">
-                  Model terpasang
+                  Model lokal
                 </label>
                 <Select
                   aria-label="Pilih model Ollama"
                   className="w-full"
                   id="ollama-model"
                   isDisabled={!installedModels.length}
-                  selectedKey={selectedModel}
+                  selectedKey={selectedOllamaModel}
                   onSelectionChange={(key) => {
                     if (typeof key !== "string") {
                       return;
                     }
 
-                    setSelectedModel(key);
-                    savePreferredOllamaModel(key);
+                    handleOllamaModelSelection(key);
                   }}
                 >
                   <Select.Trigger className="w-full">
@@ -298,7 +688,10 @@ export function AiModelsModule() {
                     <ListBox>
                       {installedModels.map((model) => (
                         <ListBox.Item id={model.name} key={model.name} textValue={model.name}>
-                          {model.name}
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <span>{model.name}</span>
+                            <span className="text-xs text-stone-500">{formatBytes(model.size)}</span>
+                          </div>
                           <ListBox.ItemIndicator />
                         </ListBox.Item>
                       ))}
@@ -306,37 +699,35 @@ export function AiModelsModule() {
                   </Select.Popover>
                 </Select>
               </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  isDisabled={Boolean(pullProgress?.active)}
+                  onPress={() => void handleDownloadModel(recommendedOllamaModels[0].name)}
+                  variant={installedNames.has(recommendedOllamaModels[0].name) ? "outline" : "primary"}
+                >
+                  <DownloadSimpleIcon aria-hidden size={16} />
+                  {installedNames.has(recommendedOllamaModels[0].name)
+                    ? "Download ulang"
+                    : `Download ${recommendedOllamaModels[0].name}`}
+                </Button>
+                {installedNames.has(recommendedOllamaModels[0].name) ? (
+                  <Button
+                    onPress={() => handleOllamaModelSelection(recommendedOllamaModels[0].name)}
+                    variant={
+                      selectedOllamaModel === recommendedOllamaModels[0].name
+                        ? "primary"
+                        : "outline"
+                    }
+                  >
+                    Pakai default
+                  </Button>
+                ) : null}
+              </div>
             </Card.Content>
           </Card>
         </div>
       ) : null}
-
-      <Table>
-        <Table.ScrollContainer>
-          <Table.Content aria-label="Model Ollama terpasang">
-            <Table.Header>
-              <Table.Column isRowHeader>Model</Table.Column>
-              <Table.Column>Ukuran</Table.Column>
-              <Table.Column>Status</Table.Column>
-            </Table.Header>
-            <Table.Body>
-              {installedModels.length > 0 ? (
-                installedModels.map((model) => (
-                  <Table.Row key={model.name}>
-                    <Table.Cell>{model.name}</Table.Cell>
-                    <Table.Cell>{formatBytes(model.size)}</Table.Cell>
-                    <Table.Cell>{selectedModel === model.name ? "Default" : "Tersedia"}</Table.Cell>
-                  </Table.Row>
-                ))
-              ) : (
-                <Table.Row>
-                  <Table.Cell colSpan={3}>Belum ada model terpasang yang terdeteksi.</Table.Cell>
-                </Table.Row>
-              )}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
     </div>
   );
 }
