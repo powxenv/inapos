@@ -97,15 +97,6 @@ const appSchema = new Schema({
     payment_term: column.text,
     updated_at: column.text,
   }),
-  users: new Table({
-    store_id: column.text,
-    name: column.text,
-    role: column.text,
-    phone: column.text,
-    email: column.text,
-    is_active: column.integer,
-    updated_at: column.text,
-  }),
 });
 
 const queryClient = new QueryClient({
@@ -131,7 +122,6 @@ const MUTABLE_TABLES = new Set([
   "sales",
   "stores",
   "suppliers",
-  "users",
 ]);
 
 type UploadError = {

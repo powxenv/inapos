@@ -1,6 +1,24 @@
 import { Card, Chip } from "@heroui/react";
 import { useStatus } from "@powersync/react";
 
+function getSyncMessage(status: ReturnType<typeof useStatus>) {
+  const syncError = status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError;
+
+  if (syncError) {
+    return syncError.message || syncError.name || "PowerSync gagal tersambung.";
+  }
+
+  if (status.connected && status.hasSynced) {
+    return "Perangkat sudah tersambung dan sinkron dengan PowerSync.";
+  }
+
+  if (status.connecting) {
+    return "PowerSync sedang mencoba membuat koneksi awal.";
+  }
+
+  return "PowerSync belum tersambung.";
+}
+
 export function DevicesSyncModule() {
   const status = useStatus();
   const hasSyncError = Boolean(
@@ -11,7 +29,7 @@ export function DevicesSyncModule() {
     ? "Butuh perhatian"
     : status.connected && status.hasSynced
       ? "Sinkron"
-      : status.connected
+      : status.connecting || status.connected
         ? "Menghubungkan"
         : "Belum tersambung";
 
@@ -40,9 +58,7 @@ export function DevicesSyncModule() {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Sinkronisasi berjalan otomatis lewat PowerSync saat sesi Neon Auth tersedia.
-            </p>
+            <p className="text-sm text-stone-600">{getSyncMessage(status)}</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
@@ -64,7 +80,9 @@ export function DevicesSyncModule() {
               {status.dataFlowStatus.downloading
                 ? "Perangkat sedang menerima perubahan terbaru dari PowerSync."
                 : status.dataFlowStatus.downloadError
-                  ? status.dataFlowStatus.downloadError.message
+                  ? status.dataFlowStatus.downloadError.message ||
+                    status.dataFlowStatus.downloadError.name ||
+                    "Unduhan PowerSync gagal."
                   : "Belum ada unduhan aktif saat ini."}
             </p>
           </Card.Content>
