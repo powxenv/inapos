@@ -544,6 +544,10 @@ function RouteComponent() {
                         return <ExpensesModule storeId={organization.id} />;
                       }
 
+                      if (module.id === "reports") {
+                        return <ReportsModule storeId={organization.id} />;
+                      }
+
                       const ModuleComponent = moduleComponents[module.id];
                       return <ModuleComponent />;
                     })()}
