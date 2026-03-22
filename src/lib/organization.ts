@@ -3,6 +3,7 @@ import { neon } from "./powersync";
 
 type SessionHookResult = ReturnType<typeof neon.auth.useSession>;
 type AuthUser = NonNullable<SessionHookResult["data"]>["user"];
+export type OrganizationRole = "admin" | "member" | "owner";
 type OrganizationSummary = {
   id: string;
   name: string;
@@ -12,11 +13,11 @@ type OrganizationSummary = {
   metadata?: unknown;
 };
 
-type OrganizationDetail = OrganizationSummary & {
+export type OrganizationDetail = OrganizationSummary & {
   members: Array<{
     id: string;
     organizationId: string;
-    role: "admin" | "member" | "owner";
+    role: OrganizationRole;
     createdAt: Date;
     userId: string;
     user: {
@@ -30,7 +31,7 @@ type OrganizationDetail = OrganizationSummary & {
     id: string;
     organizationId: string;
     email: string;
-    role: "admin" | "member" | "owner";
+    role: OrganizationRole;
     status: string;
     inviterId: string;
     expiresAt: Date;
@@ -85,7 +86,16 @@ type OrganizationGateState =
       user: AuthUser;
       organization: OrganizationDetail;
       organizations: OrganizationSummary[];
+      refresh: () => Promise<void>;
     };
+
+export function getOrganizationMember(organization: OrganizationDetail, userId: string) {
+  return organization.members.find((member) => member.userId === userId) ?? null;
+}
+
+export function isOrganizationAdmin(role: OrganizationRole | null | undefined) {
+  return role === "owner" || role === "admin";
+}
 
 export function slugifyOrganizationName(value: string) {
   return value
@@ -247,6 +257,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       user: session.data.user,
       organization: activeOrganization.data,
       organizations: organizations.data ?? [],
+      refresh: retry,
     };
   }
 

@@ -30,10 +30,29 @@ import {
   TodayActivityModule,
   UsersModule,
 } from "../../components/submodules";
-import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
+import {
+  createRandomOrganizationSlug,
+  getOrganizationMember,
+  isOrganizationAdmin,
+  useOrganizationGate,
+} from "../../lib/organization";
 import { neon } from "../../lib/powersync";
 
-const moduleGroups = [
+type ModuleDefinition = {
+  id: keyof typeof moduleComponents;
+  label: string;
+  title: string;
+  adminOnly?: boolean;
+};
+
+type ModuleGroupDefinition = {
+  id: string;
+  label: string;
+  title: string;
+  modules: readonly ModuleDefinition[];
+};
+
+const moduleGroups: readonly ModuleGroupDefinition[] = [
   {
     id: "overview",
     label: "Ringkasan",
@@ -98,16 +117,18 @@ const moduleGroups = [
         id: "devices-sync",
         label: "Perangkat & Sinkronisasi",
         title: "Perangkat & Sinkronisasi",
+        adminOnly: true,
       },
       {
         id: "store-settings",
         label: "Pengaturan Toko",
         title: "Pengaturan Toko",
+        adminOnly: true,
       },
       { id: "assistant", label: "Asisten", title: "Asisten" },
     ],
   },
-] as const;
+];
 
 const moduleComponents = {
   dashboard: DashboardModule,
@@ -128,7 +149,7 @@ const moduleComponents = {
   "devices-sync": DevicesSyncModule,
   "store-settings": StoreSettingsModule,
   assistant: AssistantModule,
-} satisfies Record<string, ComponentType>;
+} satisfies Record<string, ComponentType<any>>;
 
 const createStoreSchema = z.object({
   name: z
@@ -216,6 +237,15 @@ function RouteComponent() {
   }
 
   const { organization, organizations, user } = gate;
+  const currentMember = getOrganizationMember(organization, user.id);
+  const currentRole = currentMember?.role ?? "member";
+  const canManageOrganization = isOrganizationAdmin(currentRole);
+  const visibleModuleGroups = moduleGroups
+    .map((group) => ({
+      ...group,
+      modules: group.modules.filter((module) => !module.adminOnly || canManageOrganization),
+    }))
+    .filter((group) => group.modules.length > 0);
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -428,10 +458,10 @@ function RouteComponent() {
           </div>
         </div>
 
-        <Tabs className="w-full" defaultSelectedKey="overview">
+        <Tabs className="w-full" defaultSelectedKey={visibleModuleGroups[0]?.id}>
           <Tabs.ListContainer>
             <Tabs.List aria-label="Modul utama" className="w-fit">
-              {moduleGroups.map((group) => (
+              {visibleModuleGroups.map((group) => (
                 <Tabs.Tab key={group.id} id={group.id}>
                   {group.label}
                   <Tabs.Indicator />
@@ -440,7 +470,7 @@ function RouteComponent() {
             </Tabs.List>
           </Tabs.ListContainer>
 
-          {moduleGroups.map((group) => (
+          {visibleModuleGroups.map((group) => (
             <Tabs.Panel key={group.id} className="w-full pt-4" id={group.id}>
               <div className="mb-4">
                 <h2 className="text-xl font-semibold">{group.title}</h2>
@@ -466,6 +496,17 @@ function RouteComponent() {
                 {group.modules.map((module) => (
                   <Tabs.Panel key={module.id} className="px-4" id={module.id}>
                     {(() => {
+                      if (module.id === "users") {
+                        return (
+                          <UsersModule
+                            currentUserId={user.id}
+                            onOrganizationChange={gate.refresh}
+                            organization={organization}
+                            userRole={currentRole}
+                          />
+                        );
+                      }
+
                       const ModuleComponent = moduleComponents[module.id];
                       return <ModuleComponent />;
                     })()}
