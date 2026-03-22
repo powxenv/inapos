@@ -1,0 +1,10 @@
+{
+  "skills": {
+    "skill:heroui-react": {
+      "name": "heroui-react",
+      "url": "https://github.com/heroui-inc/heroui.git",
+      "branch": "main",
+      "commit": "6ac18d1312258c3421ec706f08bf246a5959462d"
+    }
+  }
+}
