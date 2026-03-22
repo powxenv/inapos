@@ -340,9 +340,7 @@ export function UsersModule({
       ) : null}
 
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-stone-500">
-          Anggota toko
-        </h4>
+        <h4 className="text-sm font-medium text-stone-500">Anggota toko</h4>
         <Table>
           <Table.ScrollContainer>
             <Table.Content aria-label="Daftar anggota toko">
@@ -419,9 +417,7 @@ export function UsersModule({
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-stone-500">
-          Undangan pending
-        </h4>
+        <h4 className="text-sm font-medium text-stone-500">Undangan pending</h4>
         <Table>
           <Table.ScrollContainer>
             <Table.Content aria-label="Daftar undangan pengguna">
