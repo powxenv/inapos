@@ -950,15 +950,7 @@ function RouteComponent() {
         ) : null}
 
         {appMode === "chat" ? (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold">Mode chat</h2>
-              <p className="text-sm text-stone-500">
-                Fokus ke asisten untuk bertanya, merangkum, atau meminta bantuan cepat.
-              </p>
-            </div>
-            <AssistantModule />
-          </div>
+          <AssistantModule minimal />
         ) : null}
 
         {appMode === "full" ? (
