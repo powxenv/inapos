@@ -56,16 +56,18 @@ export function UsersModule({
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
-  const { control, formState, handleSubmit, reset, setValue, watch } = useForm<InviteUserFormValues>({
-    defaultValues: {
-      email: "",
-      role: "member",
-    },
-    resolver: zodResolver(inviteUserSchema),
-  });
+  const { control, formState, handleSubmit, reset, setValue, watch } =
+    useForm<InviteUserFormValues>({
+      defaultValues: {
+        email: "",
+        role: "member",
+      },
+      resolver: zodResolver(inviteUserSchema),
+    });
   const inviteRole = watch("role");
   const members = useMemo(
-    () => [...organization.members].sort((left, right) => left.createdAt > right.createdAt ? 1 : -1),
+    () =>
+      [...organization.members].sort((left, right) => (left.createdAt > right.createdAt ? 1 : -1)),
     [organization.members],
   );
   const invitations = useMemo(
@@ -232,7 +234,9 @@ export function UsersModule({
                               )}
                             />
                             {formState.errors.email?.message ? (
-                              <p className="text-sm text-red-600">{formState.errors.email.message}</p>
+                              <p className="text-sm text-red-600">
+                                {formState.errors.email.message}
+                              </p>
                             ) : null}
                           </div>
 
@@ -322,10 +326,7 @@ export function UsersModule({
               <Table.Body>
                 {members.map((member) => {
                   const isCurrentUser = member.userId === currentUserId;
-                  const canEditRole =
-                    canManageMembers &&
-                    member.role !== "owner" &&
-                    !isCurrentUser;
+                  const canEditRole = canManageMembers && member.role !== "owner" && !isCurrentUser;
 
                   return (
                     <Table.Row key={member.id}>
@@ -415,7 +416,9 @@ export function UsersModule({
                             Batalkan
                           </Button>
                         ) : (
-                          <span className="text-sm text-stone-400">Hanya admin yang dapat mengelola</span>
+                          <span className="text-sm text-stone-400">
+                            Hanya admin yang dapat mengelola
+                          </span>
                         )}
                       </Table.Cell>
                     </Table.Row>

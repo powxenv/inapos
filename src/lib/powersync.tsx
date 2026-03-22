@@ -119,11 +119,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const FATAL_RESPONSE_CODES = [
-  /^22...$/,
-  /^23...$/,
-  /^42501$/,
-];
+const FATAL_RESPONSE_CODES = [/^22...$/, /^23...$/, /^42501$/];
 
 const MUTABLE_TABLES = new Set([
   "customers",

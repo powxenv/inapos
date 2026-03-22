@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pos",
+      "name": "inapos",
       "dependencies": {
         "@heroui/react": "^3.0.1",
         "@heroui/styles": "^3.0.1",
