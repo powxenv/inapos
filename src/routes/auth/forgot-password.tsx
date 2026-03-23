@@ -18,6 +18,7 @@ export const Route = createFileRoute("/auth/forgot-password")({
 
 function RouteComponent() {
   const { text } = useI18n();
+  const signInUrl = new URL("/#/auth/sign-in", window.location.origin).toString();
   const forgotPasswordSchema = z.object({
     email: z.email(text.auth.forgotPassword.schema.email),
   });
@@ -49,7 +50,7 @@ function RouteComponent() {
     try {
       const { error } = await authClient.requestPasswordReset({
         email,
-        redirectTo: `${window.location.origin}/auth/sign-in`,
+        redirectTo: signInUrl,
       });
 
       if (error) {

@@ -1,12 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./main.css";
-import { createBrowserHistory, RouterProvider, createRouter } from "@tanstack/react-router";
+import { createHashHistory, RouterProvider, createRouter } from "@tanstack/react-router";
 
 import { AppProviders } from "./lib/powersync";
 import { routeTree } from "./routeTree.gen";
 
-const router = createRouter({ routeTree, history: createBrowserHistory() });
+const router = createRouter({ routeTree, history: createHashHistory() });
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
