@@ -8,11 +8,23 @@ INAPOS is a store operations app for small shops, kiosks, and warungs. It combin
 
 This README is written for people who use the product. It explains what each part of INAPOS does, what you can do in it today, and how the main day-to-day flows work.
 
-## Download
+## Access and Platforms
 
-Download the latest desktop builds and release assets from:
+INAPOS currently supports these ways to use the product:
 
-https://github.com/powxenv/inapos/releases
+- Desktop on Windows, macOS, and Linux
+- Android mobile
+- Web in the browser at [inapos.netlify.app](https://inapos.netlify.app/)
+
+If you want to install the app, download the latest builds and release assets from:
+
+[github.com/powxenv/inapos/releases](https://github.com/powxenv/inapos/releases)
+
+If you do not want to install anything, you can use the web app at:
+
+[inapos.netlify.app](https://inapos.netlify.app/)
+
+Important: the main store workspace can run in the browser, but the AI assistant runtime is currently desktop-only.
 
 ## Who INAPOS Is For
 

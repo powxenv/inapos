@@ -8,11 +8,23 @@ INAPOS adalah aplikasi operasional toko untuk toko kecil, kios, dan warung. Apli
 
 README ini ditulis untuk pengguna produk. Isinya menjelaskan fungsi setiap bagian INAPOS, hal-hal yang bisa dilakukan saat ini, dan alur kerja harian yang paling penting.
 
-## Download
+## Akses dan Platform
 
-Unduh build desktop terbaru dan aset rilis dari:
+Saat ini INAPOS mendukung cara penggunaan berikut:
 
-https://github.com/powxenv/inapos/releases
+- Desktop di Windows, macOS, dan Linux
+- Android
+- Web di browser melalui [inapos.netlify.app](https://inapos.netlify.app/)
+
+Jika Anda ingin memasang aplikasinya, unduh build terbaru dan aset rilis dari:
+
+[github.com/powxenv/inapos/releases](https://github.com/powxenv/inapos/releases)
+
+Jika Anda tidak ingin install apa pun, gunakan versi web di:
+
+[inapos.netlify.app](https://inapos.netlify.app/)
+
+Penting: workspace toko utama bisa dipakai di browser, tetapi runtime asisten AI saat ini hanya tersedia di desktop.
 
 ## INAPOS Cocok Untuk Siapa
 
