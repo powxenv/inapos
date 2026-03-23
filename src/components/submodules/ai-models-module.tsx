@@ -22,7 +22,7 @@ import { useI18n } from "../../lib/i18n";
 import {
   clearOpenRouterApiKey,
   getAiProviderStatus,
-  getOpenRouterFreeModels,
+  getOpenRouterModels,
   type OpenRouterModel,
   readPreferredAiProvider,
   readPreferredModel,
@@ -208,7 +208,7 @@ export function AiModelsModule() {
     setOpenRouterModelsError(null);
 
     try {
-      const nextModels = await getOpenRouterFreeModels();
+      const nextModels = await getOpenRouterModels();
       setOpenRouterModels(nextModels);
     } catch (error) {
       setOpenRouterModels([]);

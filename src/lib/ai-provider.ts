@@ -97,8 +97,8 @@ export function savePreferredModel(provider: AiProvider, value: string) {
   window.localStorage.setItem(key, value);
 }
 
-export async function getOpenRouterFreeModels() {
-  const response = await fetch("https://openrouter.ai/api/v1/models");
+export async function getOpenRouterModels() {
+  const response = await fetch("https://openrouter.ai/api/v1/models?output_modalities=text");
 
   if (!response.ok) {
     throw new Error("We couldn't load the available assistant options.");
@@ -107,13 +107,13 @@ export async function getOpenRouterFreeModels() {
   const parsed = openRouterModelsResponseSchema.parse(await response.json());
 
   return parsed.data
-    .filter((model) => supportsTextOutput(model) && isOpenRouterFreeModel(model))
+    .filter((model) => supportsTextOutput(model))
     .sort((left, right) => {
-      if (left.id === "openrouter/free") {
+      if (isOpenRouterFreeModel(left) && !isOpenRouterFreeModel(right)) {
         return -1;
       }
 
-      if (right.id === "openrouter/free") {
+      if (!isOpenRouterFreeModel(left) && isOpenRouterFreeModel(right)) {
         return 1;
       }
 
