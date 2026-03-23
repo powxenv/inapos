@@ -65,6 +65,54 @@ type OrganizationGateState =
       refresh: () => Promise<void>;
     };
 
+type AuthLikeError = {
+  message?: string;
+  status?: number | string;
+  statusCode?: number | string;
+};
+
+const MAX_TRANSIENT_AUTH_RECOVERY_ATTEMPTS = 3;
+
+function getErrorCode(value: number | string | undefined) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (normalizedValue === "unauthorized") {
+      return 401;
+    }
+
+    const parsedValue = Number(normalizedValue);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+  }
+
+  return null;
+}
+
+function isAuthLikeError(error: unknown): error is AuthLikeError {
+  return typeof error === "object" && error !== null;
+}
+
+function isUnauthorizedError(error: unknown) {
+  if (!isAuthLikeError(error)) {
+    return false;
+  }
+
+  const status = getErrorCode(error.status);
+  const statusCode = getErrorCode(error.statusCode);
+  const normalizedMessage = error.message?.trim().toLowerCase();
+
+  return (
+    status === 401 ||
+    statusCode === 401 ||
+    normalizedMessage === "http 401" ||
+    normalizedMessage === "unauthorized"
+  );
+}
+
 export function getOrganizationMember(organization: OrganizationDetail, userId: string) {
   return organization.members.find((member) => member.userId === userId) ?? null;
 }
@@ -97,15 +145,77 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   const activeOrganization = authClient.useActiveOrganization();
   const organizations = authClient.useListOrganizations();
   const activationAttemptRef = useRef<string | null>(null);
+  const transientRecoveryAttemptsRef = useRef(0);
+  const hadSessionRef = useRef(false);
   const [activationErrorMessage, setActivationErrorMessage] = useState<string | null>(null);
   const [isActivating, setIsActivating] = useState(false);
+  const [isRecoveringAccess, setIsRecoveringAccess] = useState(false);
+  const hasSession = Boolean(session.data?.session && session.data.user);
+  const organizationAccessError = organizations.error ?? activeOrganization.error ?? null;
+  const canRecoverUnauthorizedAccess =
+    hasSession &&
+    isUnauthorizedError(organizationAccessError) &&
+    transientRecoveryAttemptsRef.current < MAX_TRANSIENT_AUTH_RECOVERY_ATTEMPTS;
 
   useEffect(() => {
-    if (session.isPending || !session.data?.session) {
+    if (hasSession) {
+      if (!hadSessionRef.current) {
+        transientRecoveryAttemptsRef.current = 0;
+        activationAttemptRef.current = null;
+        setActivationErrorMessage(null);
+      }
+
+      hadSessionRef.current = true;
       return;
     }
 
-    if (organizations.isPending || activeOrganization.isPending) {
+    hadSessionRef.current = false;
+    transientRecoveryAttemptsRef.current = 0;
+    activationAttemptRef.current = null;
+    setActivationErrorMessage(null);
+    setIsActivating(false);
+    setIsRecoveringAccess(false);
+  }, [hasSession]);
+
+  useEffect(() => {
+    if (!canRecoverUnauthorizedAccess || isRecoveringAccess) {
+      return;
+    }
+
+    setIsRecoveringAccess(true);
+
+    const timerId = window.setTimeout(
+      () => {
+        transientRecoveryAttemptsRef.current += 1;
+
+        void Promise.all([
+          session.refetch(),
+          activeOrganization.refetch(),
+          organizations.refetch(),
+        ]).finally(() => {
+          setIsRecoveringAccess(false);
+        });
+      },
+      150 * (transientRecoveryAttemptsRef.current + 1),
+    );
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [
+    activeOrganization,
+    canRecoverUnauthorizedAccess,
+    isRecoveringAccess,
+    organizations,
+    session,
+  ]);
+
+  useEffect(() => {
+    if (session.isPending || !hasSession) {
+      return;
+    }
+
+    if (organizations.isPending || activeOrganization.isPending || isRecoveringAccess) {
       return;
     }
 
@@ -114,8 +224,10 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       (!requestedOrganizationSlug || activeOrganization.data.slug === requestedOrganizationSlug)
     ) {
       activationAttemptRef.current = null;
+      transientRecoveryAttemptsRef.current = 0;
       setActivationErrorMessage(null);
       setIsActivating(false);
+      setIsRecoveringAccess(false);
       return;
     }
 
@@ -165,6 +277,8 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       });
   }, [
     activeOrganization,
+    hasSession,
+    isRecoveringAccess,
     organizations,
     session,
     activeOrganization.data,
@@ -172,24 +286,39 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
     organizations.data,
     organizations.isPending,
     requestedOrganizationSlug,
-    session.data?.session,
     session.isPending,
   ]);
 
   const retry = async () => {
     activationAttemptRef.current = null;
+    transientRecoveryAttemptsRef.current = 0;
     setActivationErrorMessage(null);
+    setIsRecoveringAccess(false);
     await Promise.all([session.refetch(), activeOrganization.refetch(), organizations.refetch()]);
   };
 
-  if (session.isPending || organizations.isPending || activeOrganization.isPending) {
+  if (
+    session.isPending ||
+    organizations.isPending ||
+    activeOrganization.isPending ||
+    isRecoveringAccess ||
+    canRecoverUnauthorizedAccess
+  ) {
     return {
       status: "loading",
       message: text.organizationGate.checkingStoreAccess,
     };
   }
 
-  if (!session.data?.session || !session.data.user) {
+  if (!hasSession) {
+    return {
+      status: "signed-out",
+    };
+  }
+
+  const currentUser = session.data?.user;
+
+  if (!currentUser) {
     return {
       status: "signed-out",
     };
@@ -231,7 +360,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   if (activeOrganization.data) {
     return {
       status: "ready",
-      user: session.data.user,
+      user: currentUser,
       organization: activeOrganization.data,
       organizations: organizations.data ?? [],
       refresh: retry,
@@ -247,6 +376,6 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
 
   return {
     status: "needs-organization",
-    user: session.data.user,
+    user: currentUser,
   };
 }

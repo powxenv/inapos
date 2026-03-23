@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
+import { DefaultChatTransport, isTextUIPart, type ChatTransport, type UIMessage } from "ai";
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Alert, Button, Card, CloseButton, ScrollShadow, Spinner } from "@heroui/react";
@@ -128,9 +128,21 @@ function createAssistantTransport(
   });
 }
 
+function createUnavailableAssistantTransport(message: string): ChatTransport<UIMessage> {
+  return {
+    async reconnectToStream() {
+      return null;
+    },
+    async sendMessages() {
+      throw new Error(message);
+    },
+  };
+}
+
 export function AssistantModule({ minimal = false, storeId }: AssistantModuleProps) {
   const { text } = useI18n();
   const initialPreferences = readAssistantPreferences();
+  const isDesktopRuntime = isTauriRuntime();
   const [inputValue, setInputValue] = useState("");
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [isInitializingAssistant, setIsInitializingAssistant] = useState(false);
@@ -160,6 +172,9 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     },
   ];
   const starterPrompts = text.modules.assistant.prompts;
+  const chatTransport = isDesktopRuntime
+    ? createAssistantTransport(selectedProvider, activeModel, storeId)
+    : createUnavailableAssistantTransport(text.modules.assistant.notReadyDescription);
   const {
     clearError,
     error: chatError,
@@ -170,7 +185,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
     experimental_throttle: 50,
     id: chatId,
     messages: initialMessages,
-    transport: createAssistantTransport(selectedProvider, activeModel, storeId),
+    transport: chatTransport,
   });
   const canUseAssistant =
     selectedProvider === "openrouter"

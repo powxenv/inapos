@@ -1,4 +1,4 @@
-import { authClient } from "../../auth";
+import { authClient, waitForActiveSession } from "../../auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -80,6 +80,8 @@ function RouteComponent() {
         return;
       }
 
+      await waitForActiveSession();
+      await session.refetch();
       void navigate({ replace: true, to: "/" });
     } catch (error) {
       setError("root", {

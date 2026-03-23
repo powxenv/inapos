@@ -1140,22 +1140,22 @@ function RouteComponent() {
                           return <ExpensesModule storeId={organization.id} />;
                         }
 
-                      if (module.id === "reports") {
-                        return <ReportsModule storeId={organization.id} />;
-                      }
+                        if (module.id === "reports") {
+                          return <ReportsModule storeId={organization.id} />;
+                        }
 
-                      if (module.id === "store-settings") {
-                        return (
-                          <StoreSettingsModule
-                            storeId={organization.id}
-                            storeName={organization.name}
-                          />
-                        );
-                      }
+                        if (module.id === "store-settings") {
+                          return (
+                            <StoreSettingsModule
+                              storeId={organization.id}
+                              storeName={organization.name}
+                            />
+                          );
+                        }
 
-                      if (module.id === "ai-models") {
-                        return <AiModelsModule />;
-                      }
+                        if (module.id === "ai-models") {
+                          return <AiModelsModule />;
+                        }
 
                         if (module.id === "assistant") {
                           return <AssistantModule storeId={organization.id} />;

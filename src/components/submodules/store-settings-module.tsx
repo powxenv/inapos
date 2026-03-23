@@ -68,10 +68,7 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
       .min(2, "Nama toko minimal 2 karakter.")
       .max(120, "Nama toko maksimal 120 karakter."),
   });
-  const defaultValues = useMemo(
-    () => createDefaultValues(storeName, text),
-    [storeName, text],
-  );
+  const defaultValues = useMemo(() => createDefaultValues(storeName, text), [storeName, text]);
   const { control, formState, handleSubmit, reset } = useForm<StoreSettingsFormValues>({
     defaultValues,
     resolver: zodResolver(storeSettingsSchema),

@@ -1,6 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, Card, CloseButton, InputGroup, ListBox, Select, Switch } from "@heroui/react";
+import {
+  Alert,
+  Button,
+  Card,
+  CloseButton,
+  InputGroup,
+  ListBox,
+  Select,
+  Switch,
+} from "@heroui/react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";

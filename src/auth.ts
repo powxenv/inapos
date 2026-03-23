@@ -16,3 +16,25 @@ export const neonClient = createClient({
     url: env.VITE_NEON_DATA_API_URL,
   },
 });
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    globalThis.setTimeout(resolve, milliseconds);
+  });
+}
+
+export async function waitForActiveSession() {
+  for (const delay of [0, 150, 300, 600, 900]) {
+    if (delay > 0) {
+      await wait(delay);
+    }
+
+    const session = await authClient.getSession();
+
+    if (session.data?.session && session.data.user) {
+      return session.data;
+    }
+  }
+
+  return null;
+}
