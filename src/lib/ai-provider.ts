@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { aiHttpFetch } from "./ai-http";
-import { isTauriRuntime } from "./ollama";
+import { isDesktopAppRuntime } from "./ollama";
 
 const aiProviderSchema = z.enum(["ollama", "openrouter"]);
 
@@ -122,7 +122,7 @@ export async function getOpenRouterModels() {
 }
 
 export async function getAiProviderStatus() {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     return aiProviderStatusSchema.parse({
       openrouterConfigured: false,
     });
@@ -133,7 +133,7 @@ export async function getAiProviderStatus() {
 }
 
 export async function saveOpenRouterApiKey(apiKey: string) {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     throw new Error("This option is only available in the desktop app.");
   }
 
@@ -151,7 +151,7 @@ export async function saveOpenRouterApiKey(apiKey: string) {
 }
 
 export async function clearOpenRouterApiKey() {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     throw new Error("This option is only available in the desktop app.");
   }
 

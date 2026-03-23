@@ -1,4 +1,4 @@
-import { isTauriRuntime } from "./ollama";
+import { isDesktopAppRuntime } from "./ollama";
 
 const AI_HTTP_SERVER_PORT = 32456;
 const AI_HTTP_BASE_URL = `http://127.0.0.1:${AI_HTTP_SERVER_PORT}/api/ai`;
@@ -29,7 +29,7 @@ export function buildAiHttpUrl(path: string) {
 }
 
 export async function aiHttpFetch(path: string, init?: RequestInit) {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     throw new Error("The assistant is only available in the desktop app.");
   }
 

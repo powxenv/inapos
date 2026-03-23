@@ -44,15 +44,50 @@ export function isTauriRuntime() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+function isMobilePlatform() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const navigatorValue: unknown = navigator;
+
+  if (
+    typeof navigatorValue === "object" &&
+    navigatorValue !== null &&
+    "userAgentData" in navigatorValue
+  ) {
+    const userAgentData = navigatorValue.userAgentData;
+
+    if (
+      typeof userAgentData === "object" &&
+      userAgentData !== null &&
+      "mobile" in userAgentData &&
+      userAgentData.mobile === true
+    ) {
+      return true;
+    }
+  }
+
+  if (/android|iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isDesktopAppRuntime() {
+  return isTauriRuntime() && !isMobilePlatform();
+}
+
 export async function getOllamaStatus() {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     return ollamaStatusSchema.parse({
       availableModels: [],
       canUse: false,
       isDesktop: false,
       ollamaInstalled: false,
       ollamaRunning: false,
-      platform: "web",
+      platform: isTauriRuntime() ? "mobile" : "web",
       reason: "The assistant is only available in the desktop app.",
     });
   }
@@ -62,7 +97,7 @@ export async function getOllamaStatus() {
 }
 
 export async function startOllamaPull(model: string) {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     throw new Error("Downloads are only available in the desktop app.");
   }
 
@@ -70,7 +105,7 @@ export async function startOllamaPull(model: string) {
 }
 
 export async function getOllamaPullProgress() {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     return ollamaPullProgressSchema.parse({
       active: false,
       completed: null,

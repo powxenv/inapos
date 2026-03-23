@@ -19,7 +19,7 @@ import {
   type AiProvider,
   type AiProviderStatus,
 } from "../../lib/ai-provider";
-import { getOllamaStatus, isTauriRuntime, type OllamaStatus } from "../../lib/ollama";
+import { getOllamaStatus, isDesktopAppRuntime, type OllamaStatus } from "../../lib/ollama";
 
 type AssistantModuleProps = {
   minimal?: boolean;
@@ -37,7 +37,7 @@ function localizeAssistantReason(reason: string | null | undefined, text: I18nTe
     reason === "The AI assistant is only available in the desktop app." ||
     reason === "The assistant is only available in the desktop app."
   ) {
-    return text.modules.assistant.notReadyDescription;
+    return text.modules.assistant.nonDesktopDescription;
   }
 
   if (
@@ -64,6 +64,10 @@ function describeUnavailableAssistant(
   status: OllamaStatus | null,
   text: I18nText,
 ): string {
+  if (status?.isDesktop === false) {
+    return text.modules.assistant.nonDesktopDescription;
+  }
+
   if (provider === "openrouter" && !providerStatus?.openrouterConfigured) {
     return text.modules.assistant.openRouterNotConfigured;
   }
@@ -142,7 +146,7 @@ function createUnavailableAssistantTransport(message: string): ChatTransport<UIM
 export function AssistantModule({ minimal = false, storeId }: AssistantModuleProps) {
   const { text } = useI18n();
   const initialPreferences = readAssistantPreferences();
-  const isDesktopRuntime = isTauriRuntime();
+  const isDesktopRuntime = isDesktopAppRuntime();
   const [inputValue, setInputValue] = useState("");
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [isInitializingAssistant, setIsInitializingAssistant] = useState(false);
@@ -174,7 +178,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   const starterPrompts = text.modules.assistant.prompts;
   const chatTransport = isDesktopRuntime
     ? createAssistantTransport(selectedProvider, activeModel, storeId)
-    : createUnavailableAssistantTransport(text.modules.assistant.notReadyDescription);
+    : createUnavailableAssistantTransport(text.modules.assistant.nonDesktopDescription);
   const {
     clearError,
     error: chatError,
@@ -259,7 +263,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   }, [resolvedAssistantError]);
 
   async function handleInstallOllama(): Promise<void> {
-    if (!isTauriRuntime()) {
+    if (!isDesktopAppRuntime()) {
       return;
     }
 

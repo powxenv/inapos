@@ -8,6 +8,12 @@ INAPOS is a store operations app for small shops, kiosks, and warungs. It combin
 
 This README is written for people who use the product. It explains what each part of INAPOS does, what you can do in it today, and how the main day-to-day flows work.
 
+## Download
+
+Download the latest desktop builds and release assets from:
+
+https://github.com/powxenv/inapos/releases
+
 ## Who INAPOS Is For
 
 - Store owners who want one place to manage daily sales and operations

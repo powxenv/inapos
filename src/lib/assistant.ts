@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { aiHttpFetch, buildAiHttpUrl } from "./ai-http";
 import { type AiProvider } from "./ai-provider";
-import { isTauriRuntime } from "./ollama";
+import { isDesktopAppRuntime } from "./ollama";
 
 const aiRuntimeStatusSchema = z.object({
   openrouterConfigured: z.boolean().optional().default(false),
@@ -16,7 +16,7 @@ export async function initializeAiRuntime(
   powersyncUrl: string,
   neonDataApiUrl: string,
 ) {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     return aiRuntimeStatusSchema.parse({
       ready: false,
       reason: "The assistant is only available in the desktop app.",
@@ -43,7 +43,7 @@ export function buildAiChatStreamUrl(input: {
   provider: AiProvider;
   storeId: string;
 }) {
-  if (!isTauriRuntime()) {
+  if (!isDesktopAppRuntime()) {
     throw new Error("Live assistant replies are only available in the desktop app.");
   }
 

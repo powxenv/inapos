@@ -35,7 +35,7 @@ import {
 import {
   getOllamaPullProgress,
   getOllamaStatus,
-  isTauriRuntime,
+  isDesktopAppRuntime,
   recommendedOllamaModels,
   startOllamaPull,
   type OllamaPullProgress,
@@ -90,7 +90,7 @@ function localizeAiReason(reason: string | null | undefined, text: I18nText): st
     reason === "The AI assistant is only available in the desktop app." ||
     reason === "The assistant is only available in the desktop app."
   ) {
-    return text.modules.assistant.notReadyDescription;
+    return text.modules.aiModels.localUnsupportedDescription;
   }
 
   if (
@@ -138,6 +138,7 @@ function buildStatusMessage(
 
 export function AiModelsModule() {
   const { text } = useI18n();
+  const isDesktopRuntime = isDesktopAppRuntime();
   const openRouterApiKeySchema = z.object({
     apiKey: z.string().trim().min(1, text.modules.aiModels.validation.apiKey),
   });
@@ -204,6 +205,12 @@ export function AiModelsModule() {
   }
 
   async function loadOpenRouterModels() {
+    if (!isDesktopRuntime) {
+      setOpenRouterModels([]);
+      setOpenRouterModelsError(null);
+      return;
+    }
+
     setIsLoadingOpenRouterModels(true);
     setOpenRouterModelsError(null);
 
@@ -222,10 +229,16 @@ export function AiModelsModule() {
 
   useEffect(() => {
     void loadStatus();
-    void loadOpenRouterModels();
-  }, []);
+    if (isDesktopRuntime) {
+      void loadOpenRouterModels();
+    }
+  }, [isDesktopRuntime]);
 
   useEffect(() => {
+    if (!isDesktopRuntime) {
+      return;
+    }
+
     let intervalId: number | null = null;
 
     async function syncProgress() {
@@ -262,7 +275,7 @@ export function AiModelsModule() {
         window.clearInterval(intervalId);
       }
     };
-  }, []);
+  }, [isDesktopRuntime]);
 
   useEffect(() => {
     if (!installedModels.length) {
@@ -308,7 +321,7 @@ export function AiModelsModule() {
   }, [openRouterModels, selectedOpenRouterModel]);
 
   async function handleInstallOllama() {
-    if (!isTauriRuntime()) {
+    if (!isDesktopRuntime) {
       return;
     }
 
@@ -397,6 +410,24 @@ export function AiModelsModule() {
     } finally {
       setIsClearingApiKey(false);
     }
+  }
+
+  if (!isLoading && !statusError && status?.isDesktop === false) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold">{text.modules.aiModels.heading}</h3>
+          <p className="text-sm text-stone-500">{text.modules.aiModels.description}</p>
+        </div>
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{text.modules.aiModels.heading}</Alert.Title>
+            <Alert.Description>{text.modules.aiModels.localUnsupportedDescription}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      </div>
+    );
   }
 
   return (

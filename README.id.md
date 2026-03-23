@@ -8,6 +8,12 @@ INAPOS adalah aplikasi operasional toko untuk toko kecil, kios, dan warung. Apli
 
 README ini ditulis untuk pengguna produk. Isinya menjelaskan fungsi setiap bagian INAPOS, hal-hal yang bisa dilakukan saat ini, dan alur kerja harian yang paling penting.
 
+## Download
+
+Unduh build desktop terbaru dan aset rilis dari:
+
+https://github.com/powxenv/inapos/releases
+
 ## INAPOS Cocok Untuk Siapa
 
 - Pemilik toko yang ingin mengelola penjualan dan operasional harian di satu tempat

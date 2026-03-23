@@ -874,6 +874,8 @@ const en = {
       helperNotSetUp: "Not set up",
       keyHidden: "Hide sign-in key",
       keyShown: "Show sign-in key",
+      localUnsupportedDescription:
+        "The AI assistant is disabled on this platform for now. Use the desktop app to set up on-device or online AI.",
       modelPlaceholder: "Choose an assistant option for this device",
       openRouterPlaceholder: "Choose a default online assistant option",
       optionCount: "Available options",
@@ -919,6 +921,8 @@ const en = {
       gettingReady: "Getting the assistant ready...",
       initializing: "Getting ready",
       minimalPrompt: "Pick the one that feels closest to what you need.",
+      nonDesktopDescription:
+        "The AI assistant is disabled on this platform for now. Use the desktop app to chat with it.",
       notAvailable: "The assistant isn't available yet",
       notReady: "The assistant isn't ready yet",
       notReadyDescription: "The assistant is not ready yet. Check Store > Assistant setup.",
@@ -1836,6 +1840,8 @@ const id: Messages = {
       helperNotSetUp: "Belum disiapkan",
       keyHidden: "Sembunyikan kunci masuk",
       keyShown: "Tampilkan kunci masuk",
+      localUnsupportedDescription:
+        "AI assistant dinonaktifkan dulu di platform ini. Gunakan aplikasi desktop untuk menyiapkan AI lokal maupun online.",
       modelPlaceholder: "Pilih opsi asisten untuk perangkat ini",
       openRouterPlaceholder: "Pilih opsi asisten online utama",
       optionCount: "Opsi yang tersedia",
@@ -1881,6 +1887,8 @@ const id: Messages = {
       gettingReady: "Sedang menyiapkan asisten...",
       initializing: "Sedang menyiapkan",
       minimalPrompt: "Pilih yang paling dekat dengan kebutuhan Anda.",
+      nonDesktopDescription:
+        "AI assistant dinonaktifkan dulu di platform ini. Gunakan aplikasi desktop untuk memakainya.",
       notAvailable: "Asisten belum tersedia",
       notReady: "Asisten belum siap",
       notReadyDescription: "Asisten belum siap. Cek Toko > Pengaturan asisten.",
