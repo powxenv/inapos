@@ -21,14 +21,17 @@ These workflows were aligned to the official Tauri v2 documentation:
 ## Desktop signing
 
 - The desktop workflow follows Tauri’s `tauri-action` release pattern.
-- macOS signing and notarization require the Apple secrets documented by Tauri.
+- macOS builds currently use Tauri CLI's documented `--no-sign` option so CI can produce unsigned desktop artifacts without Apple signing secrets.
+- The macOS matrix uses native GitHub-hosted runners for each architecture to avoid the current cross-compilation failure in this repository's OpenSSL dependency chain.
 - The current `src-tauri/tauri.conf.json` does not include Windows signing configuration under `bundle.windows`, so Windows artifacts will build unsigned until that app-specific configuration is added.
+- Windows builds are still blocked by a repository dependency chain that links against `sqlite3.lib` during the Tauri build.
 
 ## Mobile signing
 
 - Android release builds require `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, and `ANDROID_KEY_BASE64`.
 - The Android Gradle app module now includes Tauri’s documented `release` signing configuration and expects `src-tauri/gen/android/keystore.properties` to be generated in CI.
 - iOS builds support either Tauri’s automatic signing flow with `APPLE_API_ISSUER`, `APPLE_API_KEY`, and an App Store Connect private key secret, or Tauri’s manual signing flow with `IOS_CERTIFICATE`, `IOS_CERTIFICATE_PASSWORD`, and `IOS_MOBILE_PROVISION`.
+- The iOS job is currently disabled until Apple signing and provisioning are configured for this repository.
 
 ## App Store distribution
 

@@ -87,6 +87,7 @@ jobs:
           if-no-files-found: error
 
   ios:
+    if: ${{ false }}
     runs-on: macos-latest
     permissions:
       contents: read

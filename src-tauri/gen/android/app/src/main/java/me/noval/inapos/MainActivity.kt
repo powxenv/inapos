@@ -1,4 +1,4 @@
-package me.noval.pos
+package me.noval.inapos
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
