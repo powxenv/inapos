@@ -4,6 +4,7 @@ import {
   AlertDialog,
   Button,
   Card,
+  CloseButton,
   Input,
   InputGroup,
   ListBox,
@@ -309,6 +310,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
             <Alert.Title>{text.modules.expenses.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

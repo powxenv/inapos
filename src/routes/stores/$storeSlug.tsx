@@ -5,6 +5,7 @@ import {
   Alert,
   AlertDialog,
   Button,
+  CloseButton,
   Dropdown,
   Input,
   InputGroup,
@@ -218,6 +219,7 @@ function RouteComponent() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
   const [appMode, setAppMode] = useState<AppMode>(readAppMode);
+  const [isGateAlertVisible, setIsGateAlertVisible] = useState(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
@@ -278,13 +280,16 @@ function RouteComponent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-md space-y-4">
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{text.storeShell.missingStoreTitle}</Alert.Title>
-              <Alert.Description>{gate.message}</Alert.Description>
-            </Alert.Content>
-          </Alert>
+          {isGateAlertVisible ? (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{text.storeShell.missingStoreTitle}</Alert.Title>
+                <Alert.Description>{gate.message}</Alert.Description>
+              </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => setIsGateAlertVisible(false)} />
+            </Alert>
+          ) : null}
           <Button fullWidth onPress={() => void gate.retry()}>
             {text.common.actions.tryAgain}
           </Button>
@@ -638,6 +643,10 @@ function RouteComponent() {
                                   </Alert.Title>
                                   <Alert.Description>{createStoreError}</Alert.Description>
                                 </Alert.Content>
+                                <CloseButton
+                                  aria-label="Close"
+                                  onPress={() => setCreateStoreError(null)}
+                                />
                               </Alert>
                             ) : null}
 
@@ -769,6 +778,7 @@ function RouteComponent() {
               <Alert.Title>{text.storeShell.preferences.successTitle}</Alert.Title>
               <Alert.Description>{preferencesMessage}</Alert.Description>
             </Alert.Content>
+            <CloseButton aria-label="Close" onPress={() => setPreferencesMessage(null)} />
           </Alert>
         ) : null}
 
@@ -843,6 +853,7 @@ function RouteComponent() {
                             <Alert.Title>{text.storeShell.profile.saveErrorTitle}</Alert.Title>
                             <Alert.Description>{profileError}</Alert.Description>
                           </Alert.Content>
+                          <CloseButton aria-label="Close" onPress={() => setProfileError(null)} />
                         </Alert>
                       ) : null}
 

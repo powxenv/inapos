@@ -3,6 +3,7 @@ import {
   Alert,
   AlertDialog,
   Button,
+  CloseButton,
   Input,
   InputGroup,
   Modal,
@@ -218,6 +219,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
             <Alert.Title>{text.modules.customers.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

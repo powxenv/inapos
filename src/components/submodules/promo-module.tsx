@@ -3,6 +3,7 @@ import {
   Alert,
   AlertDialog,
   Button,
+  CloseButton,
   Input,
   InputGroup,
   ListBox,
@@ -331,6 +332,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
             <Alert.Title>{text.modules.promo.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

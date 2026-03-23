@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { Alert, Button } from "@heroui/react";
+import { Alert, Button, CloseButton } from "@heroui/react";
 import { useI18n } from "../lib/i18n";
 import { useOrganizationGate } from "../lib/organization";
 
@@ -10,6 +11,14 @@ export const Route = createFileRoute("/")({
 function RouteComponent() {
   const { text } = useI18n();
   const gate = useOrganizationGate();
+  const [isGateAlertVisible, setIsGateAlertVisible] = useState(true);
+  const gateErrorMessage = gate.status === "error" ? gate.message : null;
+
+  useEffect(() => {
+    if (gate.status === "error") {
+      setIsGateAlertVisible(true);
+    }
+  }, [gate.status, gateErrorMessage]);
 
   if (gate.status === "loading" || gate.status === "activating") {
     return (
@@ -31,13 +40,16 @@ function RouteComponent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-md space-y-4">
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{text.root.storeNotReadyTitle}</Alert.Title>
-              <Alert.Description>{gate.message}</Alert.Description>
-            </Alert.Content>
-          </Alert>
+          {isGateAlertVisible ? (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{text.root.storeNotReadyTitle}</Alert.Title>
+                <Alert.Description>{gate.message}</Alert.Description>
+              </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => setIsGateAlertVisible(false)} />
+            </Alert>
+          ) : null}
           <Button fullWidth onPress={() => void gate.retry()}>
             {text.common.actions.tryAgain}
           </Button>

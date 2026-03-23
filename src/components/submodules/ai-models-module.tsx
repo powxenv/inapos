@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, Card, InputGroup, ListBox, Select, Switch } from "@heroui/react";
+import { Alert, Button, Card, CloseButton, InputGroup, ListBox, Select, Switch } from "@heroui/react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
@@ -452,6 +452,7 @@ export function AiModelsModule() {
             <Alert.Title>{text.modules.aiModels.couldNotCheckTitle}</Alert.Title>
             <Alert.Description>{statusError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setStatusError(null)} />
         </Alert>
       ) : null}
 
@@ -522,6 +523,7 @@ export function AiModelsModule() {
                     <Alert.Title>{text.modules.aiModels.couldNotLoadOptionsTitle}</Alert.Title>
                     <Alert.Description>{openRouterModelsError}</Alert.Description>
                   </Alert.Content>
+                  <CloseButton aria-label="Close" onPress={() => setOpenRouterModelsError(null)} />
                 </Alert>
               ) : null}
             </Card.Content>
@@ -604,6 +606,7 @@ export function AiModelsModule() {
                       <Alert.Title>{text.modules.aiModels.couldNotSaveKeyTitle}</Alert.Title>
                       <Alert.Description>{errors.root.message}</Alert.Description>
                     </Alert.Content>
+                    <CloseButton aria-label="Close" onPress={() => clearErrors("root")} />
                   </Alert>
                 ) : null}
 
@@ -614,6 +617,7 @@ export function AiModelsModule() {
                       <Alert.Title>{text.modules.aiModels.thatDidNotWork}</Alert.Title>
                       <Alert.Description>{providerError}</Alert.Description>
                     </Alert.Content>
+                    <CloseButton aria-label="Close" onPress={() => setProviderError(null)} />
                   </Alert>
                 ) : null}
 
@@ -624,6 +628,7 @@ export function AiModelsModule() {
                       <Alert.Title>{text.modules.aiModels.saveSuccessTitle}</Alert.Title>
                       <Alert.Description>{providerMessage}</Alert.Description>
                     </Alert.Content>
+                    <CloseButton aria-label="Close" onPress={() => setProviderMessage(null)} />
                   </Alert>
                 ) : null}
 
@@ -654,6 +659,7 @@ export function AiModelsModule() {
             <Alert.Title>{text.modules.aiModels.downloadFailed}</Alert.Title>
             <Alert.Description>{pullError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setPullError(null)} />
         </Alert>
       ) : null}
 
@@ -677,6 +683,7 @@ export function AiModelsModule() {
               {progressPercent !== null && pullProgress.active ? ` (${progressPercent}%)` : ""}
             </Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setPullProgress(null)} />
         </Alert>
       ) : null}
 

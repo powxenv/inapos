@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Alert, Button, InputGroup } from "@heroui/react";
+import { Alert, Button, CloseButton, InputGroup } from "@heroui/react";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
@@ -175,6 +175,7 @@ function RouteComponent() {
                 <Alert.Title>{text.auth.signIn.failureTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => clearErrors("root")} />
             </Alert>
           ) : null}
 

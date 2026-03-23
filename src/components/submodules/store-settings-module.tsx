@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Input, ListBox, Select, TextArea } from "@heroui/react";
+import { Alert, Button, Card, CloseButton, Input, ListBox, Select, TextArea } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
@@ -55,6 +55,7 @@ function isCurrency(value: string | null | undefined): value is Currency {
 export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleProps) {
   const { text } = useI18n();
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const storeSettingsSchema = z.object({
     address: z.string().trim().max(240, "Gunakan maksimal 240 karakter."),
@@ -110,6 +111,7 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
 
   async function saveStoreDetails(values: StoreSettingsFormValues) {
     setFormError(null);
+    setSuccessMessage(null);
     setIsSaving(true);
 
     const now = new Date().toISOString();
@@ -168,6 +170,8 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
           ],
         );
       }
+
+      setSuccessMessage(text.modules.storeSettings.saveSuccessDescription);
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "Kami belum bisa menyimpan detail toko.",
@@ -179,6 +183,17 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
 
   return (
     <div className="space-y-4">
+      {successMessage ? (
+        <Alert status="success">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{text.modules.storeSettings.saveSuccessTitle}</Alert.Title>
+            <Alert.Description>{successMessage}</Alert.Description>
+          </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setSuccessMessage(null)} />
+        </Alert>
+      ) : null}
+
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
@@ -186,6 +201,7 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
             <Alert.Title>Detail toko belum tersimpan</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

@@ -1,9 +1,9 @@
 import { authClient } from "../../auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { Alert, Button, InputGroup } from "@heroui/react";
+import { Alert, Button, CloseButton, InputGroup } from "@heroui/react";
 import { StorefrontIcon } from "@phosphor-icons/react/dist/csr/Storefront";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useI18n } from "../../lib/i18n";
@@ -22,6 +22,7 @@ function RouteComponent() {
   const setupStoreSchema = z.object({
     name: z.string().min(2, text.setupStore.schema.min).max(80, text.setupStore.schema.max),
   });
+  const [isGateAlertVisible, setIsGateAlertVisible] = useState(true);
   const navigate = Route.useNavigate();
   const gate = useOrganizationGate();
   const {
@@ -53,6 +54,12 @@ function RouteComponent() {
       shouldDirty: false,
     });
   }, [gate, setValue]);
+
+  useEffect(() => {
+    if (gate.status === "error") {
+      setIsGateAlertVisible(true);
+    }
+  }, [gate.status]);
 
   if (gate.status === "signed-out") {
     return <Navigate replace to="/auth/sign-in" />;
@@ -101,13 +108,16 @@ function RouteComponent() {
         </div>
 
         {gate.status === "error" ? (
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{text.setupStore.loadErrorTitle}</Alert.Title>
-              <Alert.Description>{gate.message}</Alert.Description>
-            </Alert.Content>
-          </Alert>
+          isGateAlertVisible ? (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{text.setupStore.loadErrorTitle}</Alert.Title>
+                <Alert.Description>{gate.message}</Alert.Description>
+              </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => setIsGateAlertVisible(false)} />
+            </Alert>
+          ) : null
         ) : null}
 
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -151,6 +161,7 @@ function RouteComponent() {
                 <Alert.Title>{text.setupStore.createErrorTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => clearErrors("root")} />
             </Alert>
           ) : null}
 

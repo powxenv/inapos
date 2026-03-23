@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Alert, Card, Chip, ListBox, Select, Table } from "@heroui/react";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Card, Chip, CloseButton, ListBox, Select, Table } from "@heroui/react";
 import { ChartBarIcon } from "@phosphor-icons/react/dist/csr/ChartBar";
 import { CoinsIcon } from "@phosphor-icons/react/dist/csr/Coins";
 import { CreditCardIcon } from "@phosphor-icons/react/dist/csr/CreditCard";
@@ -139,6 +139,7 @@ function getReportRange(period: ReportPeriodId) {
 export function ReportsModule({ storeId }: ReportsModuleProps) {
   const { formatCurrency, formatNumber, text } = useI18n();
   const [period, setPeriod] = useState<ReportPeriodId>("month");
+  const [isPeriodAlertVisible, setIsPeriodAlertVisible] = useState(true);
   const reportPeriods = [
     {
       description: text.modules.reports.periods.today.description,
@@ -163,6 +164,10 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
   ] as const;
   const range = useMemo(() => getReportRange(period), [period]);
   const selectedPeriod = reportPeriods.find((item) => item.id === period) ?? reportPeriods[3];
+
+  useEffect(() => {
+    setIsPeriodAlertVisible(true);
+  }, [period]);
   const [
     salesOverviewQuery,
     cogsQuery,
@@ -343,13 +348,16 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         </Select>
       </div>
 
-      <Alert>
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>{selectedPeriod.label}</Alert.Title>
-          <Alert.Description>{text.modules.reports.periodWarningDescription}</Alert.Description>
-        </Alert.Content>
-      </Alert>
+      {isPeriodAlertVisible ? (
+        <Alert>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{selectedPeriod.label}</Alert.Title>
+            <Alert.Description>{text.modules.reports.periodWarningDescription}</Alert.Description>
+          </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setIsPeriodAlertVisible(false)} />
+        </Alert>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none">

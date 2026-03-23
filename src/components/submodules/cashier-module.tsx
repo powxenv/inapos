@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Alert, Button, Card, InputGroup, ListBox, Select, Table } from "@heroui/react";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Card, CloseButton, InputGroup, ListBox, Select, Table } from "@heroui/react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MinusIcon } from "@phosphor-icons/react/dist/csr/Minus";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
@@ -52,6 +52,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isEmptyResultsAlertVisible, setIsEmptyResultsAlertVisible] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productsQuery, customersQuery] = useQueries<[CashierProductRow, CustomerOptionRow]>({
     queries: [
@@ -102,6 +103,12 @@ export function CashierModule({ storeId }: CashierModuleProps) {
     );
   }, [products, searchValue]);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  useEffect(() => {
+    if (filteredProducts.length === 0) {
+      setIsEmptyResultsAlertVisible(true);
+    }
+  }, [filteredProducts.length, searchValue]);
 
   function addToCart(product: CashierProductRow) {
     setCheckoutError(null);
@@ -285,6 +292,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
             <Alert.Title>{text.modules.cashier.saveErrorTitle}</Alert.Title>
             <Alert.Description>{checkoutError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setCheckoutError(null)} />
         </Alert>
       ) : null}
 
@@ -335,7 +343,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                   </Card.Content>
                 </Card>
               ))
-            ) : (
+            ) : isEmptyResultsAlertVisible ? (
               <Alert>
                 <Alert.Indicator />
                 <Alert.Content>
@@ -344,8 +352,12 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     {text.modules.cashier.emptyResultsDescription}
                   </Alert.Description>
                 </Alert.Content>
+                <CloseButton
+                  aria-label="Close"
+                  onPress={() => setIsEmptyResultsAlertVisible(false)}
+                />
               </Alert>
-            )}
+            ) : null}
           </div>
         </div>
 

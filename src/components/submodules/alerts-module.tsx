@@ -1,4 +1,5 @@
-import { Alert, Card, Chip } from "@heroui/react";
+import { useEffect, useState } from "react";
+import { Alert, Card, Chip, CloseButton } from "@heroui/react";
 import { useStatus } from "@powersync/react";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { useI18n } from "../../lib/i18n";
@@ -30,6 +31,7 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
   const { text } = useI18n();
   const status = useStatus();
   const syncError = status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError;
+  const [isSyncAlertVisible, setIsSyncAlertVisible] = useState(true);
   const [alertsQuery] = useQueries<[AlertItemRow]>({
     queries: [
       {
@@ -75,6 +77,12 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
 
   const alerts = alertsQuery.data ?? [];
 
+  useEffect(() => {
+    if (syncError) {
+      setIsSyncAlertVisible(true);
+    }
+  }, [syncError]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-1">
@@ -82,7 +90,7 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
         <p className="text-sm text-stone-500">{text.modules.alerts.description}</p>
       </div>
 
-      {syncError ? (
+      {syncError && isSyncAlertVisible ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
@@ -91,6 +99,7 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
               {syncError.message || text.modules.alerts.syncProblemDescription}
             </Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setIsSyncAlertVisible(false)} />
         </Alert>
       ) : null}
 

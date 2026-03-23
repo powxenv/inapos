@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Chip,
+  CloseButton,
   Input,
   InputGroup,
   ListBox,
@@ -322,6 +323,7 @@ export function StockModule({ storeId }: StockModuleProps) {
             <Alert.Title>{text.modules.stock.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

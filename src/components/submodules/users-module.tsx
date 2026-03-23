@@ -1,6 +1,6 @@
 import { authClient } from "../../auth";
 import { useMemo, useState } from "react";
-import { Alert, Button, InputGroup, Modal, Table } from "@heroui/react";
+import { Alert, Button, CloseButton, InputGroup, Modal, Table } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
 import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
@@ -270,6 +270,7 @@ export function UsersModule({
                                 <Alert.Title>{text.modules.users.inviteErrorTitle}</Alert.Title>
                                 <Alert.Description>{formError}</Alert.Description>
                               </Alert.Content>
+                              <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
                             </Alert>
                           ) : null}
 
@@ -299,6 +300,7 @@ export function UsersModule({
             <Alert.Title>{text.modules.users.inviteReady}</Alert.Title>
             <Alert.Description>{successMessage}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setSuccessMessage(null)} />
         </Alert>
       ) : null}
 
@@ -309,6 +311,7 @@ export function UsersModule({
             <Alert.Title>{text.modules.users.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 

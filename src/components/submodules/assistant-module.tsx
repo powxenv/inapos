@@ -2,7 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, Card, ScrollShadow, Spinner } from "@heroui/react";
+import { Alert, Button, Card, CloseButton, ScrollShadow, Spinner } from "@heroui/react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
 import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
@@ -139,6 +139,9 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   const [providerStatus, setProviderStatus] = useState<AiProviderStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isStatusAlertVisible, setIsStatusAlertVisible] = useState(true);
+  const [isUnavailableAlertVisible, setIsUnavailableAlertVisible] = useState(true);
+  const [isAssistantErrorVisible, setIsAssistantErrorVisible] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<AiProvider>(initialPreferences.provider);
   const [selectedModel, setSelectedModel] = useState(initialPreferences.model);
   const trimmedInput = inputValue.trim();
@@ -177,6 +180,13 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   const canSendMessage = canUseAssistant && hasSelectedModel;
   const isSendingMessage = chatStatus === "submitted" || chatStatus === "streaming";
   const resolvedAssistantError = assistantError ?? chatError?.message ?? null;
+  const unavailableAssistantMessage = describeUnavailableAssistant(
+    selectedProvider,
+    hasSelectedModel,
+    providerStatus,
+    status,
+    text,
+  );
   const latestAssistantMessage = findLatestAssistantMessage(messages);
   const latestAssistantBody = latestAssistantMessage
     ? extractMessageText(latestAssistantMessage)
@@ -214,6 +224,24 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   useEffect(() => {
     void loadOllamaStatus();
   }, []);
+
+  useEffect(() => {
+    if (statusError) {
+      setIsStatusAlertVisible(true);
+    }
+  }, [statusError]);
+
+  useEffect(() => {
+    if (unavailableAssistantMessage) {
+      setIsUnavailableAlertVisible(true);
+    }
+  }, [unavailableAssistantMessage]);
+
+  useEffect(() => {
+    if (resolvedAssistantError) {
+      setIsAssistantErrorVisible(true);
+    }
+  }, [resolvedAssistantError]);
 
   async function handleInstallOllama(): Promise<void> {
     if (!isTauriRuntime()) {
@@ -334,13 +362,16 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   if (statusError) {
     return (
       <div className="space-y-4">
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>{text.modules.assistant.notReady}</Alert.Title>
-            <Alert.Description>{statusError}</Alert.Description>
-          </Alert.Content>
-        </Alert>
+        {isStatusAlertVisible ? (
+          <Alert status="danger">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{text.modules.assistant.notReady}</Alert.Title>
+              <Alert.Description>{statusError}</Alert.Description>
+            </Alert.Content>
+            <CloseButton aria-label="Close" onPress={() => setIsStatusAlertVisible(false)} />
+          </Alert>
+        ) : null}
         <Button onPress={() => void loadOllamaStatus()} variant="outline">
           <ArrowClockwiseIcon aria-hidden size={16} />
           {text.modules.assistant.retry}
@@ -355,21 +386,16 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         className={`${minimal ? "flex min-h-[320px] items-center justify-center px-4" : "space-y-4"}`}
       >
         <div className="space-y-4">
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{text.modules.assistant.notAvailable}</Alert.Title>
-              <Alert.Description>
-                {describeUnavailableAssistant(
-                  selectedProvider,
-                  hasSelectedModel,
-                  providerStatus,
-                  status,
-                  text,
-                )}
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
+          {isUnavailableAlertVisible ? (
+            <Alert status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{text.modules.assistant.notAvailable}</Alert.Title>
+                <Alert.Description>{unavailableAssistantMessage}</Alert.Description>
+              </Alert.Content>
+              <CloseButton aria-label="Close" onPress={() => setIsUnavailableAlertVisible(false)} />
+            </Alert>
+          ) : null}
           {selectedProvider === "ollama" && status?.isDesktop && !status.ollamaInstalled ? (
             <Button onPress={() => void handleInstallOllama()}>
               <DownloadSimpleIcon aria-hidden size={16} />
@@ -383,13 +409,21 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
 
   const content = (
     <div className="space-y-4">
-      {!minimal && resolvedAssistantError ? (
+      {!minimal && resolvedAssistantError && isAssistantErrorVisible ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{text.modules.assistant.cannotReply}</Alert.Title>
             <Alert.Description>{resolvedAssistantError}</Alert.Description>
           </Alert.Content>
+          <CloseButton
+            aria-label="Close"
+            onPress={() => {
+              setAssistantError(null);
+              clearError();
+              setIsAssistantErrorVisible(false);
+            }}
+          />
         </Alert>
       ) : null}
 
@@ -424,13 +458,21 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         </div>
       ) : null}
 
-      {minimal && resolvedAssistantError ? (
+      {minimal && resolvedAssistantError && isAssistantErrorVisible ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{text.modules.assistant.cannotReply}</Alert.Title>
             <Alert.Description>{resolvedAssistantError}</Alert.Description>
           </Alert.Content>
+          <CloseButton
+            aria-label="Close"
+            onPress={() => {
+              setAssistantError(null);
+              clearError();
+              setIsAssistantErrorVisible(false);
+            }}
+          />
         </Alert>
       ) : null}
 

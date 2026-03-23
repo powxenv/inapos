@@ -401,6 +401,8 @@ const en = {
       currency: "Store currency",
       phone: "Store phone or WhatsApp",
       receiptNote: "Receipt footer",
+      saveSuccessDescription: "Store details have been saved.",
+      saveSuccessTitle: "Store details updated",
       storeName: "Store name",
       title: "Store details",
       defaults: {
@@ -1360,6 +1362,8 @@ const id: Messages = {
       currency: "Mata uang toko",
       phone: "Nomor toko atau WhatsApp",
       receiptNote: "Catatan bawah struk",
+      saveSuccessDescription: "Detail toko berhasil disimpan.",
+      saveSuccessTitle: "Detail toko diperbarui",
       storeName: "Nama toko",
       title: "Detail toko",
       defaults: {

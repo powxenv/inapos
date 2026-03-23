@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Chip,
+  CloseButton,
   Input,
   InputGroup,
   ListBox,
@@ -314,6 +315,7 @@ export function CashModule({ storeId }: CashModuleProps) {
             <Alert.Title>{text.modules.cash.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
+          <CloseButton aria-label="Close" onPress={() => setFormError(null)} />
         </Alert>
       ) : null}
 
