@@ -1,5 +1,7 @@
 # INAPOS
 
+https://github.com/user-attachments/assets/60f00591-a230-4f56-81cb-f3ae084faf01
+
 Bahasa Indonesia: [README.id.md](README.id.md)
 
 Developer documentation: [docs/README.md](docs/README.md) | Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
