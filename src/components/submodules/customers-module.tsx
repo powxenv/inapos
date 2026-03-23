@@ -18,6 +18,7 @@ import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type CustomersModuleProps = {
@@ -37,17 +38,11 @@ type EditingCustomer = {
   name: string;
 };
 
-const customerSchema = z.object({
-  address: z.string().trim().max(200, "Use 200 characters or fewer."),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Enter the customer name.")
-    .max(120, "Use 120 characters or fewer."),
-  phone: z.string().trim().max(30, "Use 30 characters or fewer."),
-});
-
-type CustomerFormValues = z.infer<typeof customerSchema>;
+type CustomerFormValues = {
+  address: string;
+  name: string;
+  phone: string;
+};
 
 const defaultValues: CustomerFormValues = {
   address: "",
@@ -60,15 +55,17 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 export function CustomersModule({ storeId }: CustomersModuleProps) {
+  const { formatCurrency, text } = useI18n();
+  const customerSchema = z.object({
+    address: z.string().trim().max(200, text.modules.customers.validation.addressMax),
+    name: z
+      .string()
+      .trim()
+      .min(1, text.modules.customers.validation.nameMin)
+      .max(120, text.modules.customers.validation.nameMax),
+    phone: z.string().trim().max(30, text.modules.customers.validation.phoneMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingCustomer, setEditingCustomer] = useState<EditingCustomer | null>(null);
@@ -122,7 +119,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
   function startEdit(customer: CustomerRow) {
     setEditingCustomer({
       id: customer.id,
-      name: customer.name ?? "Customer",
+      name: customer.name ?? text.modules.customers.title,
     });
     setFormError(null);
     reset({
@@ -185,7 +182,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this customer.");
+      setFormError(error instanceof Error ? error.message : text.modules.customers.formError);
     }
   }
 
@@ -203,24 +200,22 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this customer.");
+      setFormError(error instanceof Error ? error.message : text.modules.customers.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Customers</h3>
-        <p className="text-sm text-stone-500">
-          Keep your regular customers here so future sales are faster.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.customers.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.customers.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.customers.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -233,28 +228,34 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search customers"
+              aria-label={text.modules.customers.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, phone number, or address"
+              placeholder={text.modules.customers.searchPlaceholder}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add customer
+              {text.modules.customers.addCustomer}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingCustomer ? "Edit customer" : "Add customer"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingCustomer
+                      ? text.modules.customers.headingEdit(editingCustomer.name)
+                      : text.modules.customers.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
                           {editingCustomer
-                            ? `Edit customer: ${editingCustomer.name}`
-                            : "Add customer"}
+                            ? text.modules.customers.headingEdit(editingCustomer.name)
+                            : text.modules.customers.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -269,7 +270,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="customer-name"
                             >
-                              Customer name
+                              {text.modules.customers.customerName}
                             </label>
                             <Controller
                               control={control}
@@ -285,7 +286,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                     id="customer-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Rina"
+                                    placeholder={text.modules.customers.placeholderName}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -304,7 +305,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="customer-phone"
                               >
-                                Phone number (optional)
+                                {text.modules.customers.phoneOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -332,7 +333,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="customer-address"
                               >
-                                Address (optional)
+                                {text.modules.customers.addressOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -343,7 +344,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                     id="customer-address"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: 8 Melati Street"
+                                    placeholder={text.modules.customers.placeholderAddress}
                                     value={field.value}
                                   />
                                 )}
@@ -365,10 +366,12 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingCustomer ? "Save changes" : "Save customer"}
+                              {editingCustomer
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.save}
                             </Button>
                           </div>
                         </form>
@@ -381,19 +384,23 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredCustomers.length} of {customers.length} customers
+          {text.common.prompts.ofTotal(
+            filteredCustomers.length,
+            customers.length,
+            text.modules.customers.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Customer list">
+          <Table.Content aria-label={text.modules.customers.customerList}>
             <Table.Header>
-              <Table.Column isRowHeader>Name</Table.Column>
-              <Table.Column>Phone</Table.Column>
-              <Table.Column>Address</Table.Column>
-              <Table.Column>Total spent</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.name}</Table.Column>
+              <Table.Column>{text.common.labels.phone}</Table.Column>
+              <Table.Column>{text.common.labels.address}</Table.Column>
+              <Table.Column>{text.modules.customers.spent}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredCustomers.length > 0 ? (
@@ -402,38 +409,41 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                     <Table.Cell>{customer.name ?? "-"}</Table.Cell>
                     <Table.Cell>{customer.phone ?? "-"}</Table.Cell>
                     <Table.Cell>{customer.address ?? "-"}</Table.Cell>
-                    <Table.Cell>{formatRupiah(customer.total_spent)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(customer.total_spent)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(customer)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this customer?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.customers.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {customer.name ?? "This customer"} will be removed from your
-                                  customer list.
+                                  {text.modules.customers.deleteBody(
+                                    customer.name ?? text.modules.customers.title,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === customer.id}
                                     onPress={() => void deleteCustomer(customer.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -447,7 +457,9 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {customersQuery.isPending ? "Loading customers..." : "No customers yet."}
+                    {customersQuery.isPending
+                      ? text.modules.customers.loading
+                      : text.modules.customers.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

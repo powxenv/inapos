@@ -1,6 +1,7 @@
 import { Alert, Card, Chip } from "@heroui/react";
 import { useStatus } from "@powersync/react";
 import { useQueries } from "@powersync/tanstack-react-query";
+import { useI18n } from "../../lib/i18n";
 
 type AlertItemRow = {
   detail: string;
@@ -26,6 +27,7 @@ function severityColor(severity: string) {
 }
 
 export function AlertsModule({ storeId }: AlertsModuleProps) {
+  const { text } = useI18n();
   const status = useStatus();
   const syncError = status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError;
   const [alertsQuery] = useQueries<[AlertItemRow]>({
@@ -77,18 +79,16 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
     <div className="space-y-4">
       <div className="space-y-1">
         <h3 className="text-lg font-semibold">Alerts</h3>
-        <p className="text-sm text-stone-500">
-          Start here when something needs attention, like low stock or unfinished orders.
-        </p>
+        <p className="text-sm text-stone-500">{text.modules.alerts.description}</p>
       </div>
 
       {syncError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Updates are having trouble</Alert.Title>
+            <Alert.Title>{text.modules.alerts.syncProblemTitle}</Alert.Title>
             <Alert.Description>
-              {syncError.message || "We couldn't update this device right now."}
+              {syncError.message || text.modules.alerts.syncProblemDescription}
             </Alert.Description>
           </Alert.Content>
         </Alert>
@@ -102,11 +102,13 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
                 <div className="space-y-1">
                   <Card.Title className="text-base">{item.title}</Card.Title>
                   <Card.Description className="text-sm text-stone-500">
-                    {item.kind === "stock" ? "Stock" : "Orders"}
+                    {item.kind === "stock" ? text.modules.alerts.stock : text.modules.alerts.orders}
                   </Card.Description>
                 </div>
                 <Chip color={severityColor(item.severity)}>
-                  {item.severity === "danger" ? "Urgent" : "Check soon"}
+                  {item.severity === "danger"
+                    ? text.modules.alerts.urgent
+                    : text.modules.alerts.checkSoon}
                 </Chip>
               </Card.Header>
               <Card.Content>
@@ -117,7 +119,7 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
         ) : (
           <Card className="border border-stone-200 shadow-none">
             <Card.Content className="py-6">
-              <p className="text-sm text-stone-600">Nothing urgent right now.</p>
+              <p className="text-sm text-stone-600">{text.modules.alerts.empty}</p>
             </Card.Content>
           </Card>
         )}

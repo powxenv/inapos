@@ -7,6 +7,7 @@ import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
 import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import {
   type OrganizationDetail,
   type OrganizationRole,
@@ -20,30 +21,21 @@ type UsersModuleProps = {
   userRole: OrganizationRole;
 };
 
-const inviteUserSchema = z.object({
-  email: z.string().trim().min(1, "Enter an email address.").email("Enter a valid email address."),
-  role: z.enum(["admin", "member"]),
-});
+type InviteUserFormValues = {
+  email: string;
+  role: "admin" | "member";
+};
 
-type InviteUserFormValues = z.infer<typeof inviteUserSchema>;
-
-function roleLabel(role: OrganizationRole) {
+function roleLabel(role: OrganizationRole, text: ReturnType<typeof useI18n>["text"]) {
   if (role === "owner") {
-    return "Owner";
+    return text.modules.users.roleOwner;
   }
 
   if (role === "admin") {
-    return "Admin";
+    return text.modules.users.admin;
   }
 
-  return "Team member";
-}
-
-function formatInvitationExpiry(value: Date) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return text.modules.users.roleMember;
 }
 
 export function UsersModule({
@@ -52,6 +44,19 @@ export function UsersModule({
   organization,
   userRole,
 }: UsersModuleProps) {
+  const { formatDate, text } = useI18n();
+  const inviteUserSchema = z.object({
+    email: z
+      .string()
+      .trim()
+      .min(1, text.modules.users.emailLabel)
+      .email(
+        text.auth.signIn.emailLabel === "Email address"
+          ? text.auth.signIn.schema.email
+          : text.auth.signIn.schema.email,
+      ),
+    role: z.enum(["admin", "member"]),
+  });
   const canManageMembers = isOrganizationAdmin(userRole);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -97,12 +102,12 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "We couldn't create this invite.");
+      setFormError(error.message ?? text.modules.users.inviteErrorDescription);
       return;
     }
 
     reset();
-    setSuccessMessage("The invite is ready. It will stay here until the person joins.");
+    setSuccessMessage(text.modules.users.inviteReadyDescription);
     close();
     await refreshOrganization();
   }
@@ -120,7 +125,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "We couldn't change this role.");
+      setFormError(error.message ?? text.modules.users.updateRoleError);
       return;
     }
 
@@ -139,7 +144,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "We couldn't remove this person.");
+      setFormError(error.message ?? text.modules.users.removePersonError);
       return;
     }
 
@@ -157,7 +162,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "We couldn't cancel this invite.");
+      setFormError(error.message ?? text.modules.users.cancelInviteError);
       return;
     }
 
@@ -168,11 +173,9 @@ export function UsersModule({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Team</h3>
+          <h3 className="text-lg font-semibold">{text.modules.users.title}</h3>
           <p className="text-sm text-stone-500">
-            {canManageMembers
-              ? "Invite people to this store and choose what they can manage."
-              : "You can view the people in this store, but you can’t make changes."}
+            {canManageMembers ? text.modules.users.bodyCanManage : text.modules.users.bodyReadOnly}
           </p>
         </div>
         {canManageMembers ? (
@@ -184,15 +187,15 @@ export function UsersModule({
                 reset();
               }}
             >
-              Add person
+              {text.modules.users.addPerson}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="sm">
-                <Modal.Dialog aria-label="Invite someone new">
+                <Modal.Dialog aria-label={text.modules.users.inviteSomeoneNew}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
-                        <Modal.Heading>Invite someone</Modal.Heading>
+                        <Modal.Heading>{text.modules.users.inviteSomeone}</Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
                         <form
@@ -206,7 +209,7 @@ export function UsersModule({
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="invite-user-email"
                             >
-                              Email address
+                              {text.modules.users.emailLabel}
                             </label>
                             <Controller
                               control={control}
@@ -224,7 +227,7 @@ export function UsersModule({
                                     id="invite-user-email"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="team@yourstore.com"
+                                    placeholder={text.modules.users.emailPlaceholder}
                                     type="email"
                                     value={field.value}
                                   />
@@ -247,7 +250,7 @@ export function UsersModule({
                                 variant={inviteRole === "member" ? "primary" : "outline"}
                               >
                                 <UserIcon aria-hidden size={16} />
-                                Team member
+                                {text.modules.users.roleMember}
                               </Button>
                               <Button
                                 onPress={() => setValue("role", "admin")}
@@ -255,7 +258,7 @@ export function UsersModule({
                                 variant={inviteRole === "admin" ? "primary" : "outline"}
                               >
                                 <ShieldCheckIcon aria-hidden size={16} />
-                                Admin
+                                {text.modules.users.admin}
                               </Button>
                             </div>
                           </div>
@@ -264,7 +267,7 @@ export function UsersModule({
                             <Alert status="danger">
                               <Alert.Indicator />
                               <Alert.Content>
-                                <Alert.Title>Invite failed</Alert.Title>
+                                <Alert.Title>{text.modules.users.inviteErrorTitle}</Alert.Title>
                                 <Alert.Description>{formError}</Alert.Description>
                               </Alert.Content>
                             </Alert>
@@ -272,10 +275,10 @@ export function UsersModule({
 
                           <div className="flex justify-end gap-2">
                             <Button slot="close" type="button" variant="tertiary">
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={pendingActionKey === "invite"} type="submit">
-                              Save invite
+                              {text.modules.users.saveInvite}
                             </Button>
                           </div>
                         </form>
@@ -293,7 +296,7 @@ export function UsersModule({
         <Alert>
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Invite ready</Alert.Title>
+            <Alert.Title>{text.modules.users.inviteReady}</Alert.Title>
             <Alert.Description>{successMessage}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -303,23 +306,23 @@ export function UsersModule({
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.users.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
       ) : null}
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-stone-500">People in this store</h4>
+        <h4 className="text-sm font-medium text-stone-500">{text.modules.users.peopleInStore}</h4>
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Store members">
+            <Table.Content aria-label={text.modules.users.tableMembers}>
               <Table.Header>
-                <Table.Column isRowHeader>Name</Table.Column>
-                <Table.Column>Email</Table.Column>
-                <Table.Column>Role</Table.Column>
-                <Table.Column>Status</Table.Column>
-                <Table.Column>Actions</Table.Column>
+                <Table.Column isRowHeader>{text.common.labels.name}</Table.Column>
+                <Table.Column>{text.common.labels.email}</Table.Column>
+                <Table.Column>{text.common.labels.role}</Table.Column>
+                <Table.Column>{text.modules.users.status}</Table.Column>
+                <Table.Column>{text.common.labels.actions}</Table.Column>
               </Table.Header>
               <Table.Body>
                 {members.map((member) => {
@@ -330,8 +333,10 @@ export function UsersModule({
                     <Table.Row key={member.id}>
                       <Table.Cell>{member.user.name}</Table.Cell>
                       <Table.Cell>{member.user.email}</Table.Cell>
-                      <Table.Cell>{roleLabel(member.role)}</Table.Cell>
-                      <Table.Cell>{isCurrentUser ? "Active (you)" : "Active"}</Table.Cell>
+                      <Table.Cell>{roleLabel(member.role, text)}</Table.Cell>
+                      <Table.Cell>
+                        {isCurrentUser ? text.common.states.activeYou : text.common.states.active}
+                      </Table.Cell>
                       <Table.Cell>
                         <div className="flex flex-wrap gap-2">
                           {canEditRole ? (
@@ -343,7 +348,7 @@ export function UsersModule({
                                   size="sm"
                                   variant="outline"
                                 >
-                                  Make admin
+                                  {text.modules.users.makeAdmin}
                                 </Button>
                               ) : null}
                               {member.role !== "member" ? (
@@ -353,7 +358,7 @@ export function UsersModule({
                                   size="sm"
                                   variant="outline"
                                 >
-                                  Make team member
+                                  {text.modules.users.makeMember}
                                 </Button>
                               ) : null}
                               <Button
@@ -362,14 +367,14 @@ export function UsersModule({
                                 size="sm"
                                 variant="danger"
                               >
-                                Remove
+                                {text.common.actions.remove}
                               </Button>
                             </>
                           ) : (
                             <span className="text-sm text-stone-400">
                               {member.role === "owner"
-                                ? "The owner can’t be changed"
-                                : "Only admins can make changes"}
+                                ? text.modules.users.ownerLocked
+                                : text.modules.users.adminsOnly}
                             </span>
                           )}
                         </div>
@@ -384,24 +389,29 @@ export function UsersModule({
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-stone-500">Pending invites</h4>
+        <h4 className="text-sm font-medium text-stone-500">{text.modules.users.pendingInvites}</h4>
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Pending invites">
+            <Table.Content aria-label={text.modules.users.tableInvites}>
               <Table.Header>
-                <Table.Column isRowHeader>Email</Table.Column>
-                <Table.Column>Role</Table.Column>
-                <Table.Column>Expires</Table.Column>
-                <Table.Column>Status</Table.Column>
-                <Table.Column>Actions</Table.Column>
+                <Table.Column isRowHeader>{text.common.labels.email}</Table.Column>
+                <Table.Column>{text.common.labels.role}</Table.Column>
+                <Table.Column>{text.common.labels.expires}</Table.Column>
+                <Table.Column>{text.modules.users.status}</Table.Column>
+                <Table.Column>{text.common.labels.actions}</Table.Column>
               </Table.Header>
               <Table.Body>
                 {invitations.length > 0 ? (
                   invitations.map((invitation) => (
                     <Table.Row key={invitation.id}>
                       <Table.Cell>{invitation.email}</Table.Cell>
-                      <Table.Cell>{roleLabel(invitation.role)}</Table.Cell>
-                      <Table.Cell>{formatInvitationExpiry(invitation.expiresAt)}</Table.Cell>
+                      <Table.Cell>{roleLabel(invitation.role, text)}</Table.Cell>
+                      <Table.Cell>
+                        {formatDate(invitation.expiresAt, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </Table.Cell>
                       <Table.Cell>{invitation.status}</Table.Cell>
                       <Table.Cell>
                         {canManageMembers ? (
@@ -411,11 +421,11 @@ export function UsersModule({
                             size="sm"
                             variant="outline"
                           >
-                            Cancel invite
+                            {text.modules.users.cancelInvite}
                           </Button>
                         ) : (
                           <span className="text-sm text-stone-400">
-                            Only admins can make changes
+                            {text.modules.users.adminsOnly}
                           </span>
                         )}
                       </Table.Cell>
@@ -423,7 +433,7 @@ export function UsersModule({
                   ))
                 ) : (
                   <Table.Row>
-                    <Table.Cell>No pending invites</Table.Cell>
+                    <Table.Cell>{text.modules.users.emptyInvites}</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>

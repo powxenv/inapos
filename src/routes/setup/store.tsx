@@ -6,19 +6,22 @@ import { StorefrontIcon } from "@phosphor-icons/react/dist/csr/Storefront";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
 
-const setupStoreSchema = z.object({
-  name: z.string().min(2, "Use at least 2 characters.").max(80, "Use 80 characters or fewer."),
-});
-
-type SetupStoreFormValues = z.infer<typeof setupStoreSchema>;
+type SetupStoreFormValues = {
+  name: string;
+};
 
 export const Route = createFileRoute("/setup/store")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { text } = useI18n();
+  const setupStoreSchema = z.object({
+    name: z.string().min(2, text.setupStore.schema.min).max(80, text.setupStore.schema.max),
+  });
   const navigate = Route.useNavigate();
   const gate = useOrganizationGate();
   const {
@@ -62,7 +65,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Getting your store ready..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? text.setupStore.loading}</p>
       </main>
     );
   }
@@ -78,7 +81,7 @@ function RouteComponent() {
     if (error) {
       setError("root", {
         type: "server",
-        message: error.message ?? "We couldn't create your store.",
+        message: error.message ?? text.setupStore.createErrorDescription,
       });
       return;
     }
@@ -93,17 +96,15 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Name your store</h1>
-          <p className="text-sm text-stone-500">
-            Pick the name people should see when they use this store.
-          </p>
+          <h1 className="text-2xl font-semibold text-stone-900">{text.setupStore.heading}</h1>
+          <p className="text-sm text-stone-500">{text.setupStore.subheading}</p>
         </div>
 
         {gate.status === "error" ? (
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>We couldn't load your store details</Alert.Title>
+              <Alert.Title>{text.setupStore.loadErrorTitle}</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -112,7 +113,7 @@ function RouteComponent() {
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="setup-store-name">
-              Store name
+              {text.setupStore.nameLabel}
             </label>
             <Controller
               control={control}
@@ -124,13 +125,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Store name"
+                    aria-label={text.setupStore.nameLabel}
                     autoComplete="organization"
                     className="w-full"
                     id="setup-store-name"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Sunrise Corner Store"
+                    placeholder={text.setupStore.namePlaceholder}
                     value={field.value}
                   />
                 </InputGroup>
@@ -139,7 +140,7 @@ function RouteComponent() {
             {errors.name?.message ? (
               <p className="text-sm text-red-600">{errors.name.message}</p>
             ) : (
-              <p className="text-sm text-stone-500">This name will appear across the app.</p>
+              <p className="text-sm text-stone-500">{text.setupStore.helper}</p>
             )}
           </div>
 
@@ -147,14 +148,14 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>We couldn't create your store</Alert.Title>
+                <Alert.Title>{text.setupStore.createErrorTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Continue
+            {text.common.actions.continue}
           </Button>
         </form>
       </div>

@@ -9,19 +9,23 @@ import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimpl
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
 import { LockKeyIcon } from "@phosphor-icons/react/dist/csr/LockKey";
+import { useI18n } from "../../lib/i18n";
 
-const signInSchema = z.object({
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(1, "Enter your password."),
-});
-
-type SignInFormValues = z.infer<typeof signInSchema>;
+type SignInFormValues = {
+  email: string;
+  password: string;
+};
 
 export const Route = createFileRoute("/auth/sign-in")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { text } = useI18n();
+  const signInSchema = z.object({
+    email: z.email(text.auth.signIn.schema.email),
+    password: z.string().min(1, text.auth.signIn.schema.password),
+  });
   const navigate = Route.useNavigate();
   const session = authClient.useSession();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -57,7 +61,7 @@ function RouteComponent() {
       if (error) {
         setError("root", {
           type: "server",
-          message: error.message ?? "We couldn't sign you in.",
+          message: error.message ?? text.auth.signIn.failureDescription,
         });
         return;
       }
@@ -66,7 +70,7 @@ function RouteComponent() {
     } catch (error) {
       setError("root", {
         type: "server",
-        message: error instanceof Error ? error.message : "We couldn't sign you in.",
+        message: error instanceof Error ? error.message : text.auth.signIn.failureDescription,
       });
     }
   });
@@ -75,14 +79,14 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Sign in</h1>
-          <p className="text-sm text-stone-500">Welcome back. Sign in to open your store.</p>
+          <h1 className="text-2xl font-semibold text-stone-900">{text.auth.signIn.heading}</h1>
+          <p className="text-sm text-stone-500">{text.auth.signIn.description}</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-in-email">
-              Email address
+              {text.auth.signIn.emailLabel}
             </label>
             <Controller
               control={control}
@@ -94,13 +98,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Email address"
+                    aria-label={text.auth.signIn.emailLabel}
                     autoComplete="email"
                     className="w-full"
                     id="sign-in-email"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="you@yourstore.com"
+                    placeholder={text.auth.signIn.emailPlaceholder}
                     type="email"
                     value={field.value}
                   />
@@ -114,7 +118,7 @@ function RouteComponent() {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-in-password">
-              Password
+              {text.auth.signIn.passwordLabel}
             </label>
             <Controller
               control={control}
@@ -126,19 +130,23 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Password"
+                    aria-label={text.auth.signIn.passwordLabel}
                     autoComplete="current-password"
                     className="w-full"
                     id="sign-in-password"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Enter your password"
+                    placeholder={text.auth.signIn.passwordPlaceholder}
                     type={isPasswordVisible ? "text" : "password"}
                     value={field.value}
                   />
                   <InputGroup.Suffix className="pr-0">
                     <Button
-                      aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                      aria-label={
+                        isPasswordVisible
+                          ? text.auth.signIn.toggleHide
+                          : text.auth.signIn.toggleShow
+                      }
                       onPress={() => setIsPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
@@ -164,14 +172,14 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Sign-in failed</Alert.Title>
+                <Alert.Title>{text.auth.signIn.failureTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Sign in
+            {text.common.actions.signIn}
           </Button>
 
           <div className="space-y-2 pt-1 text-sm">
@@ -179,13 +187,13 @@ function RouteComponent() {
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/forgot-password"
             >
-              Forgot your password?
+              {text.auth.signIn.forgotPassword}
             </Link>
             <Link
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/sign-up"
             >
-              Need an account? Create one
+              {text.auth.signIn.needAccount}
             </Link>
           </div>
         </form>

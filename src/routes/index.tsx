@@ -1,5 +1,6 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Alert, Button } from "@heroui/react";
+import { useI18n } from "../lib/i18n";
 import { useOrganizationGate } from "../lib/organization";
 
 export const Route = createFileRoute("/")({
@@ -7,12 +8,13 @@ export const Route = createFileRoute("/")({
 });
 
 function RouteComponent() {
+  const { text } = useI18n();
   const gate = useOrganizationGate();
 
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Getting things ready..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? text.root.preparing}</p>
       </main>
     );
   }
@@ -32,12 +34,12 @@ function RouteComponent() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Your store isn't ready yet</Alert.Title>
+              <Alert.Title>{text.root.storeNotReadyTitle}</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
           <Button fullWidth onPress={() => void gate.retry()}>
-            Try again
+            {text.common.actions.tryAgain}
           </Button>
         </div>
       </main>

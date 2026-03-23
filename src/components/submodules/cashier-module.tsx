@@ -6,6 +6,7 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { ShoppingCartIcon } from "@phosphor-icons/react/dist/csr/ShoppingCart";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQueries } from "@powersync/tanstack-react-query";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type CashierModuleProps = {
@@ -34,11 +35,7 @@ type CartItem = {
   stock: number | null;
 };
 
-const paymentMethodOptions = [
-  { id: "cash", label: "Cash" },
-  { id: "transfer", label: "Bank transfer" },
-  { id: "qris", label: "QRIS" },
-] as const;
+const paymentMethodOptions = ["cash", "transfer", "qris"] as const;
 
 function createReceiptNumber() {
   const stamp = new Date()
@@ -48,15 +45,8 @@ function createReceiptNumber() {
   return `TRX-${stamp}`;
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 export function CashierModule({ storeId }: CashierModuleProps) {
+  const { formatCurrency, text } = useI18n();
   const [search, setSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
@@ -133,7 +123,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
         ...currentCart,
         {
           id: product.id,
-          name: product.name ?? "Item",
+          name: product.name ?? text.modules.cashier.itemFallback,
           price: product.selling_price ?? 0,
           quantity: 1,
           stock: product.stock,
@@ -175,7 +165,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
   async function submitSale() {
     if (cart.length === 0) {
-      setCheckoutError("Add at least one item before saving this sale.");
+      setCheckoutError(text.modules.cashier.validationAddItem);
       return;
     }
 
@@ -275,24 +265,24 @@ export function CashierModule({ storeId }: CashierModuleProps) {
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);
-      setCheckoutError(error instanceof Error ? error.message : "We couldn't save this sale.");
+      setCheckoutError(
+        error instanceof Error ? error.message : text.modules.cashier.saveErrorDescription,
+      );
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Checkout</h3>
-        <p className="text-sm text-stone-500">
-          Search for items, add them to the basket, and save the sale from one screen.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.cashier.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.cashier.description}</p>
       </div>
 
       {checkoutError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>We couldn’t save this sale</Alert.Title>
+            <Alert.Title>{text.modules.cashier.saveErrorTitle}</Alert.Title>
             <Alert.Description>{checkoutError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -306,14 +296,16 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 <MagnifyingGlassIcon aria-hidden size={18} />
               </InputGroup.Prefix>
               <InputGroup.Input
-                aria-label="Search items for checkout"
+                aria-label={text.modules.cashier.searchLabel}
                 className="w-full"
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by item name, code, or unit"
+                placeholder={text.modules.cashier.searchPlaceholder}
                 value={search}
               />
             </InputGroup>
-            <p className="text-sm text-stone-500">{filteredProducts.length} items found</p>
+            <p className="text-sm text-stone-500">
+              {text.common.prompts.itemsFound(filteredProducts.length)}
+            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -323,15 +315,13 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                   <Card.Header className="space-y-1">
                     <Card.Title className="text-base">{product.name ?? "-"}</Card.Title>
                     <Card.Description className="text-sm text-stone-500">
-                      {product.sku ?? "No code"}
+                      {product.sku ?? text.modules.cashier.noCode}
                     </Card.Description>
                   </Card.Header>
                   <Card.Content className="space-y-3">
                     <div className="text-sm text-stone-600">
-                      <p>{formatRupiah(product.selling_price)}</p>
-                      <p>
-                        In stock: {product.stock ?? 0} {product.unit ?? ""}
-                      </p>
+                      <p>{formatCurrency(product.selling_price)}</p>
+                      <p>{text.modules.cashier.inStock(product.stock ?? 0, product.unit)}</p>
                     </div>
                     <Button
                       fullWidth
@@ -340,7 +330,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                       variant="outline"
                     >
                       <PlusIcon aria-hidden size={16} />
-                      Add
+                      {text.modules.cashier.add}
                     </Button>
                   </Card.Content>
                 </Card>
@@ -349,9 +339,9 @@ export function CashierModule({ storeId }: CashierModuleProps) {
               <Alert>
                 <Alert.Indicator />
                 <Alert.Content>
-                  <Alert.Title>No items found</Alert.Title>
+                  <Alert.Title>{text.modules.cashier.emptyResultsTitle}</Alert.Title>
                   <Alert.Description>
-                    Try a different search or add a new item first.
+                    {text.modules.cashier.emptyResultsDescription}
                   </Alert.Description>
                 </Alert.Content>
               </Alert>
@@ -362,9 +352,9 @@ export function CashierModule({ storeId }: CashierModuleProps) {
         <div className="space-y-4">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header className="space-y-1">
-              <Card.Title className="text-base">Basket</Card.Title>
+              <Card.Title className="text-base">{text.modules.cashier.basket}</Card.Title>
               <Card.Description className="text-sm text-stone-500">
-                This is what will be saved when you finish the sale.
+                {text.modules.cashier.basketDescription}
               </Card.Description>
             </Card.Header>
             <Card.Content className="space-y-4">
@@ -374,10 +364,10 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     className="block text-sm font-medium text-stone-700"
                     htmlFor="cashier-customer"
                   >
-                    Customer (optional)
+                    {text.modules.cashier.customerOptional}
                   </label>
                   <Select
-                    aria-label="Choose a customer"
+                    aria-label={text.common.labels.customer}
                     className="w-full"
                     id="cashier-customer"
                     onSelectionChange={(key) =>
@@ -391,10 +381,10 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     </Select.Trigger>
                     <Select.Popover>
                       <ListBox>
-                        <ListBox.Item id="">No customer</ListBox.Item>
+                        <ListBox.Item id="">{text.modules.cashier.noCustomer}</ListBox.Item>
                         {customers.map((customer) => (
                           <ListBox.Item id={customer.id} key={customer.id}>
-                            {customer.name ?? "Unnamed customer"}
+                            {customer.name ?? text.common.states.unnamedCustomer}
                           </ListBox.Item>
                         ))}
                       </ListBox>
@@ -407,10 +397,10 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     className="block text-sm font-medium text-stone-700"
                     htmlFor="cashier-payment"
                   >
-                    Payment method
+                    {text.modules.cashier.paymentMethod}
                   </label>
                   <Select
-                    aria-label="Choose a payment method"
+                    aria-label={text.modules.cashier.paymentMethod}
                     className="w-full"
                     id="cashier-payment"
                     onSelectionChange={(key) =>
@@ -425,8 +415,8 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     <Select.Popover>
                       <ListBox>
                         {paymentMethodOptions.map((option) => (
-                          <ListBox.Item id={option.id} key={option.id}>
-                            {option.label}
+                          <ListBox.Item id={option} key={option}>
+                            {text.modules.orders.paymentMethods[option]}
                           </ListBox.Item>
                         ))}
                       </ListBox>
@@ -437,12 +427,12 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
               <Table>
                 <Table.ScrollContainer>
-                  <Table.Content aria-label="Checkout basket">
+                  <Table.Content aria-label={text.modules.cashier.tableAria}>
                     <Table.Header>
-                      <Table.Column isRowHeader>Item</Table.Column>
-                      <Table.Column>Qty</Table.Column>
-                      <Table.Column>Subtotal</Table.Column>
-                      <Table.Column>Actions</Table.Column>
+                      <Table.Column isRowHeader>{text.modules.productList.title}</Table.Column>
+                      <Table.Column>{text.modules.cashier.quantity}</Table.Column>
+                      <Table.Column>{text.modules.cashier.subtotal}</Table.Column>
+                      <Table.Column>{text.common.labels.actions}</Table.Column>
                     </Table.Header>
                     <Table.Body>
                       {cart.length > 0 ? (
@@ -450,7 +440,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                           <Table.Row key={item.id}>
                             <Table.Cell>{item.name}</Table.Cell>
                             <Table.Cell>{item.quantity}</Table.Cell>
-                            <Table.Cell>{formatRupiah(item.price * item.quantity)}</Table.Cell>
+                            <Table.Cell>{formatCurrency(item.price * item.quantity)}</Table.Cell>
                             <Table.Cell>
                               <div className="flex items-center gap-2">
                                 <Button
@@ -480,7 +470,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                         ))
                       ) : (
                         <Table.Row>
-                          <Table.Cell colSpan={4}>Your basket is empty.</Table.Cell>
+                          <Table.Cell colSpan={4}>{text.modules.cashier.emptyBasket}</Table.Cell>
                         </Table.Row>
                       )}
                     </Table.Body>
@@ -491,15 +481,21 @@ export function CashierModule({ storeId }: CashierModuleProps) {
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <Card className="border border-stone-200 shadow-none">
                   <Card.Header>
-                    <Card.Title className="text-sm font-medium text-stone-600">Subtotal</Card.Title>
+                    <Card.Title className="text-sm font-medium text-stone-600">
+                      {text.modules.cashier.subtotal}
+                    </Card.Title>
                   </Card.Header>
                   <Card.Content>
-                    <p className="text-xl font-semibold text-stone-950">{formatRupiah(subtotal)}</p>
+                    <p className="text-xl font-semibold text-stone-950">
+                      {formatCurrency(subtotal)}
+                    </p>
                   </Card.Content>
                 </Card>
                 <Card className="border border-stone-200 shadow-none">
                   <Card.Header>
-                    <Card.Title className="text-sm font-medium text-stone-600">Lines</Card.Title>
+                    <Card.Title className="text-sm font-medium text-stone-600">
+                      {text.common.prompts.lines(cart.length)}
+                    </Card.Title>
                   </Card.Header>
                   <Card.Content>
                     <p className="text-xl font-semibold text-stone-950">{cart.length}</p>
@@ -508,7 +504,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 <Card className="border border-stone-200 shadow-none">
                   <Card.Header>
                     <Card.Title className="text-sm font-medium text-stone-600">
-                      Total quantity
+                      {text.modules.cashier.totalQuantity}
                     </Card.Title>
                   </Card.Header>
                   <Card.Content>
@@ -521,7 +517,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
               <Button fullWidth isPending={isSubmitting} onPress={() => void submitSale()}>
                 <ShoppingCartIcon aria-hidden size={16} />
-                Save sale
+                {text.common.actions.saveSale}
               </Button>
             </Card.Content>
           </Card>

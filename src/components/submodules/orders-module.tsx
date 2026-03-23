@@ -20,6 +20,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type OrdersModuleProps = {
@@ -47,21 +48,13 @@ type EditingOrder = {
   label: string;
 };
 
-const orderSchema = z.object({
-  customerId: z.string().trim().max(100, "Choose a valid customer."),
-  orderDate: z.string().trim().min(1, "Choose a date."),
-  paymentMethod: z.enum(["cash", "transfer", "qris", "tempo"]),
-  status: z.enum(["draft", "ordered", "ready", "completed", "cancelled"]),
-  totalAmount: z
-    .string()
-    .trim()
-    .min(1, "Enter a total.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Use 0 or more.",
-    }),
-});
-
-type OrderFormValues = z.infer<typeof orderSchema>;
+type OrderFormValues = {
+  customerId: string;
+  orderDate: string;
+  paymentMethod: "cash" | "transfer" | "qris" | "tempo";
+  status: "draft" | "ordered" | "ready" | "completed" | "cancelled";
+  totalAmount: string;
+};
 
 const defaultValues: OrderFormValues = {
   customerId: "",
@@ -71,20 +64,9 @@ const defaultValues: OrderFormValues = {
   totalAmount: "0",
 };
 
-const paymentMethodOptions = [
-  { id: "cash", label: "Cash" },
-  { id: "transfer", label: "Bank transfer" },
-  { id: "qris", label: "QRIS" },
-  { id: "tempo", label: "Pay later" },
-] as const;
+const paymentMethodOptions = ["cash", "transfer", "qris", "tempo"] as const;
 
-const orderStatusOptions = [
-  { id: "draft", label: "Draft" },
-  { id: "ordered", label: "In progress" },
-  { id: "ready", label: "Ready for pickup" },
-  { id: "completed", label: "Completed" },
-  { id: "cancelled", label: "Cancelled" },
-] as const;
+const orderStatusOptions = ["draft", "ordered", "ready", "completed", "cancelled"] as const;
 
 function createOrderNumber() {
   const stamp = new Date()
@@ -99,41 +81,49 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDate(value: string | null | undefined) {
+function paymentMethodLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return (
+    text.modules.orders.paymentMethods[value as keyof typeof text.modules.orders.paymentMethods] ??
+    value
+  );
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
-function paymentMethodLabel(value: string | null | undefined) {
+function orderStatusLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
     return "-";
   }
 
-  return paymentMethodOptions.find((option) => option.id === value)?.label ?? value;
-}
-
-function orderStatusLabel(value: string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-
-  return orderStatusOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    text.modules.orders.statusOptions[value as keyof typeof text.modules.orders.statusOptions] ??
+    value
+  );
 }
 
 export function OrdersModule({ storeId }: OrdersModuleProps) {
+  const { formatCurrency, formatDate, text } = useI18n();
+  const orderSchema = z.object({
+    customerId: z.string().trim().max(100, text.modules.orders.validation.customerId),
+    orderDate: z.string().trim().min(1, text.modules.orders.validation.orderDate),
+    paymentMethod: z.enum(["cash", "transfer", "qris", "tempo"]),
+    status: z.enum(["draft", "ordered", "ready", "completed", "cancelled"]),
+    totalAmount: z
+      .string()
+      .trim()
+      .min(1, text.modules.orders.validation.totalAmount)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
+        message: text.modules.orders.validation.totalAmountMin,
+      }),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingOrder, setEditingOrder] = useState<EditingOrder | null>(null);
@@ -210,7 +200,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
   function startEdit(order: OrderRow) {
     setEditingOrder({
       id: order.id,
-      label: order.receipt_number ?? "Pesanan",
+      label: order.receipt_number ?? text.modules.orders.title,
     });
     setFormError(null);
     reset({
@@ -308,7 +298,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this order.");
+      setFormError(error instanceof Error ? error.message : text.modules.orders.saveError);
     }
   }
 
@@ -326,22 +316,22 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this order.");
+      setFormError(error instanceof Error ? error.message : text.modules.orders.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Orders</h3>
-        <p className="text-sm text-stone-500">Keep track of orders and update their progress.</p>
+        <h3 className="text-lg font-semibold">{text.modules.orders.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.orders.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.orders.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -354,26 +344,34 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search orders"
+              aria-label={text.modules.orders.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by order number, customer, status, or payment"
+              placeholder={text.modules.orders.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              New order
+              {text.modules.orders.newOrder}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingOrder ? "Edit order" : "New order"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingOrder
+                      ? text.modules.orders.headingEdit(editingOrder.label)
+                      : text.modules.orders.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingOrder ? `Edit order: ${editingOrder.label}` : "New order"}
+                          {editingOrder
+                            ? text.modules.orders.headingEdit(editingOrder.label)
+                            : text.modules.orders.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -388,21 +386,21 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="order-customer"
                             >
-                              Customer (optional)
+                              {text.modules.cashier.customerOptional}
                             </label>
                             <Controller
                               control={control}
                               name="customerId"
                               render={({ field }) => (
                                 <Select
-                                  aria-label="Choose a customer"
+                                  aria-label={text.common.labels.customer}
                                   className="w-full"
                                   id="order-customer"
                                   onBlur={field.onBlur}
                                   onSelectionChange={(key) =>
                                     field.onChange(typeof key === "string" ? key : "")
                                   }
-                                  placeholder="Choose a customer"
+                                  placeholder={text.modules.orders.placeholderCustomer}
                                   selectedKey={field.value || null}
                                 >
                                   <Select.Trigger className="w-full">
@@ -411,10 +409,12 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                   </Select.Trigger>
                                   <Select.Popover>
                                     <ListBox>
-                                      <ListBox.Item id="">No customer</ListBox.Item>
+                                      <ListBox.Item id="">
+                                        {text.common.states.noCustomer}
+                                      </ListBox.Item>
                                       {customerOptions.map((customer) => (
                                         <ListBox.Item id={customer.id} key={customer.id}>
-                                          {customer.name ?? "Unnamed customer"}
+                                          {customer.name ?? text.common.states.unnamedCustomer}
                                         </ListBox.Item>
                                       ))}
                                     </ListBox>
@@ -430,14 +430,14 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="order-status"
                               >
-                                Status
+                                {text.common.labels.status}
                               </label>
                               <Controller
                                 control={control}
                                 name="status"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose an order status"
+                                    aria-label={text.common.labels.status}
                                     className="w-full"
                                     id="order-status"
                                     onBlur={field.onBlur}
@@ -453,8 +453,8 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                     <Select.Popover>
                                       <ListBox>
                                         {orderStatusOptions.map((option) => (
-                                          <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                          <ListBox.Item id={option} key={option}>
+                                            {text.modules.orders.statusOptions[option]}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -469,14 +469,14 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="order-payment"
                               >
-                                Payment
+                                {text.common.labels.payment}
                               </label>
                               <Controller
                                 control={control}
                                 name="paymentMethod"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a payment method"
+                                    aria-label={text.common.labels.payment}
                                     className="w-full"
                                     id="order-payment"
                                     onBlur={field.onBlur}
@@ -492,8 +492,8 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                     <Select.Popover>
                                       <ListBox>
                                         {paymentMethodOptions.map((option) => (
-                                          <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                          <ListBox.Item id={option} key={option}>
+                                            {text.modules.orders.paymentMethods[option]}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -508,7 +508,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="order-total"
                               >
-                                Total
+                                {text.modules.orders.totalLabel}
                               </label>
                               <Controller
                                 control={control}
@@ -544,7 +544,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="order-date"
                               >
-                                Date
+                                {text.common.labels.date}
                               </label>
                               <Controller
                                 control={control}
@@ -578,10 +578,12 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingOrder ? "Save changes" : "Save order"}
+                              {editingOrder
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveOrder}
                             </Button>
                           </div>
                         </form>
@@ -594,63 +596,70 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredOrders.length} of {orders.length} orders
+          {text.common.prompts.ofTotal(
+            filteredOrders.length,
+            orders.length,
+            text.modules.orders.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Order list">
+          <Table.Content aria-label={text.modules.orders.orderList}>
             <Table.Header>
-              <Table.Column isRowHeader>Order number</Table.Column>
-              <Table.Column>Date</Table.Column>
-              <Table.Column>Customer</Table.Column>
-              <Table.Column>Status</Table.Column>
-              <Table.Column>Payment</Table.Column>
-              <Table.Column>Total</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.modules.orders.orderNumber}</Table.Column>
+              <Table.Column>{text.common.labels.date}</Table.Column>
+              <Table.Column>{text.common.labels.customer}</Table.Column>
+              <Table.Column>{text.common.labels.status}</Table.Column>
+              <Table.Column>{text.common.labels.payment}</Table.Column>
+              <Table.Column>{text.common.labels.total}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <Table.Row key={order.id}>
                     <Table.Cell>{order.receipt_number ?? "-"}</Table.Cell>
-                    <Table.Cell>{formatDate(order.created_at)}</Table.Cell>
+                    <Table.Cell>{formatDate(order.created_at, { dateStyle: "medium" })}</Table.Cell>
                     <Table.Cell>{order.customer_name ?? "-"}</Table.Cell>
-                    <Table.Cell>{orderStatusLabel(order.status)}</Table.Cell>
-                    <Table.Cell>{paymentMethodLabel(order.payment_method)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(order.total_amount)}</Table.Cell>
+                    <Table.Cell>{orderStatusLabel(order.status, text)}</Table.Cell>
+                    <Table.Cell>{paymentMethodLabel(order.payment_method, text)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(order.total_amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(order)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this order?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.orders.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {order.receipt_number ?? "This order"} will be removed from your
-                                  order list.
+                                  {text.modules.orders.deleteBody(
+                                    order.receipt_number ?? text.modules.orders.title,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === order.id}
                                     onPress={() => void deleteOrder(order.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -664,7 +673,9 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={7}>
-                    {ordersQuery.isPending ? "Loading orders..." : "No orders yet."}
+                    {ordersQuery.isPending
+                      ? text.modules.orders.loading
+                      : text.modules.orders.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

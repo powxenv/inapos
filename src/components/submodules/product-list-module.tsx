@@ -20,6 +20,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type ProductListModuleProps = {
@@ -38,29 +39,15 @@ type ProductRow = {
   unit: string | null;
 };
 
-const productSchema = z.object({
-  barcode: z.string().trim().max(50, "Use 50 characters or fewer."),
-  category: z.string().trim().max(60, "Use 60 characters or fewer."),
-  costPrice: z
-    .string()
-    .trim()
-    .min(1, "Enter a cost price.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Use 0 or more.",
-    }),
-  name: z.string().trim().min(1, "Enter an item name.").max(120, "Use 120 characters or fewer."),
-  sellingPrice: z
-    .string()
-    .trim()
-    .min(1, "Enter a selling price.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Use 0 or more.",
-    }),
-  sku: z.string().trim().max(50, "Use 50 characters or fewer."),
-  unit: z.string().trim().max(30, "Use 30 characters or fewer."),
-});
-
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormValues = {
+  barcode: string;
+  category: string;
+  costPrice: string;
+  name: string;
+  sellingPrice: string;
+  sku: string;
+  unit: string;
+};
 
 type EditingProduct = {
   id: string;
@@ -98,14 +85,6 @@ const productUnitOptions = [
   { id: "sachet", label: "sachet" },
 ] as const;
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 function normalizeText(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -120,6 +99,32 @@ function productCategoryLabel(value: string | null | undefined) {
 }
 
 export function ProductListModule({ storeId }: ProductListModuleProps) {
+  const { formatCurrency, text } = useI18n();
+  const productSchema = z.object({
+    barcode: z.string().trim().max(50, text.modules.productList.validation.barcodeMax),
+    category: z.string().trim().max(60, text.modules.productList.validation.categoryMax),
+    costPrice: z
+      .string()
+      .trim()
+      .min(1, text.modules.productList.validation.costPrice)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
+        message: text.modules.productList.validation.minAmount,
+      }),
+    name: z
+      .string()
+      .trim()
+      .min(1, text.modules.productList.validation.nameMin)
+      .max(120, text.modules.productList.validation.nameMax),
+    sellingPrice: z
+      .string()
+      .trim()
+      .min(1, text.modules.productList.validation.sellingPrice)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
+        message: text.modules.productList.validation.minAmount,
+      }),
+    sku: z.string().trim().max(50, text.modules.productList.validation.skuMax),
+    unit: z.string().trim().max(30, text.modules.productList.validation.unitMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState<EditingProduct | null>(null);
@@ -182,7 +187,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
   function startEdit(product: ProductRow) {
     setEditingProduct({
       id: product.id,
-      name: product.name ?? "Item",
+      name: product.name ?? text.modules.productList.title,
     });
     setFormError(null);
     reset({
@@ -284,7 +289,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this item.");
+      setFormError(error instanceof Error ? error.message : text.modules.productList.saveError);
     }
   }
 
@@ -302,15 +307,15 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this item.");
+      setFormError(error instanceof Error ? error.message : text.common.actions.delete);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Items</h3>
-        <p className="text-sm text-stone-500">Add and update the items you sell in this store.</p>
+        <h3 className="text-lg font-semibold">{text.modules.productList.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.productList.description}</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -662,8 +667,8 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                     <Table.Cell>{product.sku ?? "-"}</Table.Cell>
                     <Table.Cell>{productCategoryLabel(product.category)}</Table.Cell>
                     <Table.Cell>{product.unit ?? "-"}</Table.Cell>
-                    <Table.Cell>{formatRupiah(product.cost_price)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(product.selling_price)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(product.cost_price)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(product.selling_price)}</Table.Cell>
                     <Table.Cell>{product.is_active === 0 ? "Hidden" : "Active"}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">

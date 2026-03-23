@@ -55,95 +55,63 @@ import {
   isOrganizationAdmin,
   useOrganizationGate,
 } from "../../lib/organization";
+import { type Language, useI18n } from "../../lib/i18n";
 
 type ModuleDefinition = {
   id: keyof typeof moduleComponents;
-  label: string;
-  title: string;
   adminOnly?: boolean;
 };
 
 type ModuleGroupDefinition = {
   id: string;
-  label: string;
-  title: string;
   modules: readonly ModuleDefinition[];
 };
 
 const moduleGroups: readonly ModuleGroupDefinition[] = [
   {
     id: "overview",
-    label: "Overview",
-    title: "Keep an eye on what matters most",
     modules: [
-      { id: "dashboard", label: "Dashboard", title: "Dashboard" },
-      { id: "alerts", label: "Alerts", title: "Alerts" },
+      { id: "dashboard" },
+      { id: "alerts" },
       {
         id: "today-activity",
-        label: "Today",
-        title: "Today",
       },
     ],
   },
   {
     id: "sales",
-    label: "Sales",
-    title: "Everything you need while serving customers",
-    modules: [
-      { id: "cashier", label: "Checkout", title: "Checkout" },
-      { id: "orders", label: "Orders", title: "Orders" },
-      { id: "customers", label: "Customers", title: "Customers" },
-      { id: "promo", label: "Offers", title: "Offers" },
-    ],
+    modules: [{ id: "cashier" }, { id: "orders" }, { id: "customers" }, { id: "promo" }],
   },
   {
     id: "products",
-    label: "Products",
-    title: "Manage your items and stock day to day",
     modules: [
       {
         id: "product-list",
-        label: "Items",
-        title: "Items",
       },
-      { id: "stock", label: "Stock", title: "Stock" },
+      { id: "stock" },
       {
         id: "purchases",
-        label: "Purchases",
-        title: "Purchases",
       },
-      { id: "suppliers", label: "Suppliers", title: "Suppliers" },
+      { id: "suppliers" },
     ],
   },
   {
     id: "finance",
-    label: "Money",
-    title: "Track money in, money out, and your results",
-    modules: [
-      { id: "cash", label: "Cash", title: "Cash" },
-      { id: "expenses", label: "Expenses", title: "Expenses" },
-      { id: "reports", label: "Reports", title: "Reports" },
-    ],
+    modules: [{ id: "cash" }, { id: "expenses" }, { id: "reports" }],
   },
   {
     id: "store",
-    label: "Store",
-    title: "Store details, your team, and helpful tools",
     modules: [
-      { id: "users", label: "Team", title: "Team" },
+      { id: "users" },
       {
         id: "devices-sync",
-        label: "This Device",
-        title: "This Device",
         adminOnly: true,
       },
       {
         id: "store-settings",
-        label: "Store Details",
-        title: "Store Details",
         adminOnly: true,
       },
-      { id: "ai-models", label: "Assistant Setup", title: "Assistant Setup" },
+      { id: "ai-models" },
     ],
   },
 ];
@@ -170,21 +138,13 @@ const moduleComponents = {
   assistant: AssistantModule,
 };
 
-const createStoreSchema = z.object({
-  name: z.string().min(2, "Use at least 2 characters.").max(80, "Use 80 characters or fewer."),
-});
+type CreateStoreFormValues = {
+  name: string;
+};
 
-type CreateStoreFormValues = z.infer<typeof createStoreSchema>;
-
-const profileSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Use at least 2 characters.")
-    .max(80, "Use 80 characters or fewer."),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = {
+  name: string;
+};
 
 const preferencesSchema = z.object({
   language: z.enum(["id", "en"]),
@@ -193,51 +153,24 @@ const preferencesSchema = z.object({
 type PreferencesFormValues = z.infer<typeof preferencesSchema>;
 
 type AppMode = "full" | "cashier" | "chat";
-type LanguagePreference = "id" | "en";
 
 const APP_MODE_STORAGE_KEY = "inapos.app-mode";
-const LANGUAGE_STORAGE_KEY = "inapos.language";
 
 const appModes: readonly {
-  description: string;
   icon: typeof MonitorIcon;
   id: AppMode;
-  label: string;
 }[] = [
   {
-    description: "See the full store in one place.",
     icon: MonitorIcon,
     id: "full",
-    label: "Full view",
   },
   {
-    description: "Keep the screen focused on sales.",
     icon: StorefrontIcon,
     id: "cashier",
-    label: "Checkout view",
   },
   {
-    description: "Open only the assistant for quick help.",
     icon: ChatCircleDotsIcon,
     id: "chat",
-    label: "Chat view",
-  },
-] as const;
-
-const languageOptions: readonly {
-  description: string;
-  id: LanguagePreference;
-  label: string;
-}[] = [
-  {
-    description: "Use Indonesian across the app.",
-    id: "id",
-    label: "Bahasa Indonesia",
-  },
-  {
-    description: "Use English across the app.",
-    id: "en",
-    label: "English",
   },
 ] as const;
 
@@ -250,20 +183,22 @@ function readAppMode(): AppMode {
   return value === "cashier" || value === "chat" || value === "full" ? value : "full";
 }
 
-function readLanguagePreference(): LanguagePreference {
-  if (typeof window === "undefined") {
-    return "id";
-  }
-
-  const value = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return value === "en" || value === "id" ? value : "id";
-}
-
 export const Route = createFileRoute("/stores/$storeSlug")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { language, setLanguage, text } = useI18n();
+  const createStoreSchema = z.object({
+    name: z.string().min(2, text.storeShell.schema.min).max(80, text.storeShell.schema.max),
+  });
+  const profileSchema = z.object({
+    name: z
+      .string()
+      .trim()
+      .min(2, text.storeShell.schema.profileMin)
+      .max(80, text.storeShell.schema.profileMax),
+  });
   const { storeSlug } = Route.useParams();
   const navigate = Route.useNavigate();
   const gate = useOrganizationGate(storeSlug);
@@ -271,8 +206,6 @@ function RouteComponent() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
   const [appMode, setAppMode] = useState<AppMode>(readAppMode);
-  const [languagePreference, setLanguagePreference] =
-    useState<LanguagePreference>(readLanguagePreference);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
@@ -308,7 +241,7 @@ function RouteComponent() {
     reset: resetPreferences,
   } = useForm<PreferencesFormValues>({
     defaultValues: {
-      language: languagePreference,
+      language,
     },
     resolver: zodResolver(preferencesSchema),
   });
@@ -316,7 +249,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Getting your store ready..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? text.storeShell.loading}</p>
       </main>
     );
   }
@@ -336,12 +269,12 @@ function RouteComponent() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Your store isn't ready yet</Alert.Title>
+              <Alert.Title>{text.storeShell.missingStoreTitle}</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
           <Button fullWidth onPress={() => void gate.retry()}>
-            Try again
+            {text.common.actions.tryAgain}
           </Button>
         </div>
       </main>
@@ -356,15 +289,79 @@ function RouteComponent() {
   const currentMember = getOrganizationMember(organization, user.id);
   const currentRole = currentMember?.role ?? "member";
   const canManageOrganization = isOrganizationAdmin(currentRole);
+  const localizedGroupLabels = {
+    finance: {
+      label: text.storeShell.groups.finance,
+      title: text.storeShell.groupTitles.finance,
+    },
+    overview: {
+      label: text.storeShell.groups.overview,
+      title: text.storeShell.groupTitles.overview,
+    },
+    products: {
+      label: text.storeShell.groups.products,
+      title: text.storeShell.groupTitles.products,
+    },
+    sales: {
+      label: text.storeShell.groups.sales,
+      title: text.storeShell.groupTitles.sales,
+    },
+    store: {
+      label: text.storeShell.groups.store,
+      title: text.storeShell.groupTitles.store,
+    },
+  } as const;
+  const localizedModuleLabels = {
+    "ai-models": text.modules.aiModels.heading,
+    assistant: text.storeShell.assistant,
+    alerts: text.modules.alerts.title,
+    cashier: text.modules.cashier.title,
+    cash: text.modules.cash.title,
+    customers: text.modules.customers.title,
+    dashboard: text.modules.dashboard.title,
+    "devices-sync": text.modules.devicesSync.title,
+    expenses: text.modules.expenses.title,
+    orders: text.modules.orders.title,
+    "product-list": text.modules.productList.title,
+    promo: text.modules.promo.title,
+    purchases: text.modules.purchases.title,
+    reports: text.modules.reports.title,
+    stock: text.modules.stock.title,
+    "store-settings": text.modules.storeSettings.title,
+    suppliers: text.modules.suppliers.title,
+    "today-activity": text.modules.todayActivity.title,
+    users: text.modules.users.title,
+  } as const;
   const visibleModuleGroups = moduleGroups
     .map((group) => ({
       ...group,
+      label: localizedGroupLabels[group.id as keyof typeof localizedGroupLabels].label,
       modules: group.modules.filter((module) => !module.adminOnly || canManageOrganization),
+      title: localizedGroupLabels[group.id as keyof typeof localizedGroupLabels].title,
     }))
     .filter((group) => group.modules.length > 0);
-  const currentAppMode = appModes.find((mode) => mode.id === appMode) ?? appModes[0];
+  const localizedAppModes = appModes.map((mode) => ({
+    ...mode,
+    description: text.storeShell.appModes[mode.id].description,
+    label: text.storeShell.appModes[mode.id].label,
+  }));
+  const currentAppMode =
+    localizedAppModes.find((mode) => mode.id === appMode) ?? localizedAppModes[0];
+  const languageOptions: ReadonlyArray<{
+    id: Language;
+    label: string;
+  }> = [
+    {
+      id: "id",
+      label: text.common.languageNames.id,
+    },
+    {
+      id: "en",
+      label: text.common.languageNames.en,
+    },
+  ];
   const currentLanguageOption =
-    languageOptions.find((option) => option.id === languagePreference) ?? languageOptions[0];
+    languageOptions.find((option) => option.id === language) ?? languageOptions[0];
 
   function openProfileModal() {
     setProfileError(null);
@@ -377,7 +374,7 @@ function RouteComponent() {
   function openPreferencesModal() {
     setPreferencesMessage(null);
     resetPreferences({
-      language: languagePreference,
+      language,
     });
     setIsPreferencesModalOpen(true);
   }
@@ -454,7 +451,7 @@ function RouteComponent() {
     setIsCreatingStore(false);
 
     if (error || !data?.slug) {
-      setCreateStoreError(error?.message ?? "We couldn't create that store.");
+      setCreateStoreError(error?.message ?? text.storeShell.createStore.failureDescription);
       return null;
     }
 
@@ -479,7 +476,7 @@ function RouteComponent() {
     setIsSavingProfile(false);
 
     if (error) {
-      setProfileError(error.message ?? "We couldn't save your details.");
+      setProfileError(error.message ?? text.storeShell.profile.saveErrorDescription);
       return false;
     }
 
@@ -490,9 +487,8 @@ function RouteComponent() {
 
   const savePreferences = async (values: PreferencesFormValues) => {
     setIsSavingPreferences(true);
-    setLanguagePreference(values.language);
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, values.language);
-    setPreferencesMessage("Saved on this device.");
+    setLanguage(values.language);
+    setPreferencesMessage(text.storeShell.preferences.saved);
     setIsSavingPreferences(false);
     setIsPreferencesModalOpen(false);
     return true;
@@ -512,7 +508,7 @@ function RouteComponent() {
               </Dropdown.Trigger>
               <Dropdown.Popover>
                 <Dropdown.Menu
-                  aria-label="Choose a store"
+                  aria-label={text.storeShell.storePicker.chooseStore}
                   onAction={(key) => void handleStoreAction(key)}
                 >
                   <Dropdown.Section>
@@ -542,15 +538,15 @@ function RouteComponent() {
                 variant="outline"
               >
                 <PlusIcon aria-hidden size={16} />
-                New store
+                {text.storeShell.storePicker.newStore}
               </Button>
               <Modal.Backdrop>
                 <Modal.Container placement="center" size="sm">
-                  <Modal.Dialog aria-label="Create a new store">
+                  <Modal.Dialog aria-label={text.storeShell.createStore.heading}>
                     {({ close }) => (
                       <>
                         <Modal.Header>
-                          <Modal.Heading>Create a new store</Modal.Heading>
+                          <Modal.Heading>{text.storeShell.createStore.heading}</Modal.Heading>
                         </Modal.Header>
                         <Modal.Body>
                           <form
@@ -567,7 +563,7 @@ function RouteComponent() {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="modal-store-name"
                               >
-                                Store name
+                                {text.storeShell.createStore.nameLabel}
                               </label>
                               <Controller
                                 control={control}
@@ -579,12 +575,12 @@ function RouteComponent() {
                                     </InputGroup.Prefix>
                                     <InputGroup.Input
                                       aria-invalid={fieldState.invalid}
-                                      aria-label="Store name"
+                                      aria-label={text.storeShell.createStore.nameLabel}
                                       className="w-full"
                                       id="modal-store-name"
                                       onBlur={field.onBlur}
                                       onChange={field.onChange}
-                                      placeholder="New branch store"
+                                      placeholder={text.storeShell.createStore.namePlaceholder}
                                       value={field.value}
                                     />
                                   </InputGroup>
@@ -599,7 +595,9 @@ function RouteComponent() {
                               <Alert status="danger">
                                 <Alert.Indicator />
                                 <Alert.Content>
-                                  <Alert.Title>We couldn’t create that store</Alert.Title>
+                                  <Alert.Title>
+                                    {text.storeShell.createStore.failureTitle}
+                                  </Alert.Title>
                                   <Alert.Description>{createStoreError}</Alert.Description>
                                 </Alert.Content>
                               </Alert>
@@ -607,10 +605,10 @@ function RouteComponent() {
 
                             <div className="flex justify-end gap-2">
                               <Button slot="close" type="button" variant="tertiary">
-                                Cancel
+                                {text.common.actions.cancel}
                               </Button>
                               <Button isPending={isCreatingStore} type="submit">
-                                Create store
+                                {text.common.actions.createStore}
                               </Button>
                             </div>
                           </form>
@@ -633,12 +631,12 @@ function RouteComponent() {
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[260px]">
                 <Dropdown.Menu
-                  aria-label="Choose a view"
+                  aria-label={text.storeShell.tabs.checkoutViewTabs}
                   selectedKeys={new Set([appMode])}
                   selectionMode="single"
                   onAction={handleModeAction}
                 >
-                  {appModes.map((mode) => {
+                  {localizedAppModes.map((mode) => {
                     const Icon = mode.icon;
 
                     return (
@@ -669,36 +667,53 @@ function RouteComponent() {
                 </Button>
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[240px]">
-                <Dropdown.Menu aria-label="Profile menu" onAction={handleProfileAction}>
+                <Dropdown.Menu
+                  aria-label={text.storeShell.profileMenu.editProfile}
+                  onAction={handleProfileAction}
+                >
                   <Dropdown.Section>
-                    <Dropdown.Item id="profile" textValue="Edit profile">
+                    <Dropdown.Item id="profile" textValue={text.storeShell.profileMenu.editProfile}>
                       <div className="flex items-center gap-3">
                         <PencilSimpleIcon aria-hidden className="text-stone-500" size={16} />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-stone-900">Edit profile</p>
+                          <p className="text-sm font-medium text-stone-900">
+                            {text.storeShell.profileMenu.editProfile}
+                          </p>
                           <p className="text-xs text-stone-500">
-                            Update the name shown in the app.
+                            {text.storeShell.profile.editDescription}
                           </p>
                         </div>
                       </div>
                     </Dropdown.Item>
-                    <Dropdown.Item id="preferences" textValue="Preferences">
+                    <Dropdown.Item id="preferences" textValue={text.storeShell.preferences.title}>
                       <div className="flex items-center gap-3">
                         <GlobeIcon aria-hidden className="text-stone-500" size={16} />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-stone-900">Preferences</p>
+                          <p className="text-sm font-medium text-stone-900">
+                            {text.storeShell.preferences.title}
+                          </p>
                           <p className="text-xs text-stone-500">
-                            Current language: {currentLanguageOption.label}
+                            {text.storeShell.preferences.currentLanguage(
+                              currentLanguageOption.label,
+                            )}
                           </p>
                         </div>
                       </div>
                     </Dropdown.Item>
-                    <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
+                    <Dropdown.Item
+                      id="logout"
+                      textValue={text.storeShell.profileMenu.signOut}
+                      variant="danger"
+                    >
                       <div className="flex items-center gap-3">
                         <SignOutIcon aria-hidden className="text-stone-500" size={16} />
                         <div className="text-left">
-                          <p className="text-sm font-medium">Sign out</p>
-                          <p className="text-xs text-stone-500">Sign out on this device.</p>
+                          <p className="text-sm font-medium">
+                            {text.storeShell.profileMenu.signOut}
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            {text.storeShell.profileMenu.signOutDescription}
+                          </p>
                         </div>
                       </div>
                     </Dropdown.Item>
@@ -713,7 +728,7 @@ function RouteComponent() {
           <Alert className="mb-4" status="success">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Preferences updated</Alert.Title>
+              <Alert.Title>{text.storeShell.preferences.successTitle}</Alert.Title>
               <Alert.Description>{preferencesMessage}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -725,11 +740,11 @@ function RouteComponent() {
           onOpenChange={setIsProfileModalOpen}
         >
           <Modal.Container placement="center" size="sm">
-            <Modal.Dialog aria-label="Edit profile">
+            <Modal.Dialog aria-label={text.storeShell.profile.editTitle}>
               {({ close }) => (
                 <>
                   <Modal.Header>
-                    <Modal.Heading>Edit profile</Modal.Heading>
+                    <Modal.Heading>{text.storeShell.profile.editTitle}</Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
                     <form
@@ -746,7 +761,7 @@ function RouteComponent() {
                           className="block text-sm font-medium text-stone-700"
                           htmlFor="profile-name"
                         >
-                          Name
+                          {text.storeShell.profile.nameLabel}
                         </label>
                         <Controller
                           control={profileControl}
@@ -762,7 +777,7 @@ function RouteComponent() {
                                 id="profile-name"
                                 onBlur={field.onBlur}
                                 onChange={field.onChange}
-                                placeholder="Your name"
+                                placeholder={text.storeShell.profile.namePlaceholder}
                                 value={field.value}
                               />
                             </InputGroup>
@@ -778,7 +793,7 @@ function RouteComponent() {
                           className="block text-sm font-medium text-stone-700"
                           htmlFor="profile-email"
                         >
-                          Email
+                          {text.storeShell.profile.emailLabel}
                         </label>
                         <Input className="w-full" disabled id="profile-email" value={user.email} />
                       </div>
@@ -787,7 +802,7 @@ function RouteComponent() {
                         <Alert status="danger">
                           <Alert.Indicator />
                           <Alert.Content>
-                            <Alert.Title>We couldn’t save your details</Alert.Title>
+                            <Alert.Title>{text.storeShell.profile.saveErrorTitle}</Alert.Title>
                             <Alert.Description>{profileError}</Alert.Description>
                           </Alert.Content>
                         </Alert>
@@ -802,10 +817,10 @@ function RouteComponent() {
                           type="button"
                           variant="tertiary"
                         >
-                          Cancel
+                          {text.common.actions.cancel}
                         </Button>
                         <Button isPending={isSavingProfile} type="submit">
-                          Save
+                          {text.common.actions.save}
                         </Button>
                       </div>
                     </form>
@@ -822,11 +837,11 @@ function RouteComponent() {
           onOpenChange={setIsPreferencesModalOpen}
         >
           <Modal.Container placement="center" size="sm">
-            <Modal.Dialog aria-label="Preferences">
+            <Modal.Dialog aria-label={text.storeShell.preferences.title}>
               {({ close }) => (
                 <>
                   <Modal.Header>
-                    <Modal.Heading>Preferences</Modal.Heading>
+                    <Modal.Heading>{text.storeShell.preferences.title}</Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
                     <form
@@ -843,14 +858,14 @@ function RouteComponent() {
                           className="block text-sm font-medium text-stone-700"
                           htmlFor="preferences-language"
                         >
-                          Language
+                          {text.common.labels.language}
                         </label>
                         <Controller
                           control={preferencesControl}
                           name="language"
                           render={({ field }) => (
                             <Select
-                              aria-label="Choose a language"
+                              aria-label={text.common.labels.language}
                               className="w-full"
                               id="preferences-language"
                               selectedKey={field.value}
@@ -882,7 +897,7 @@ function RouteComponent() {
                           )}
                         />
                         <p className="text-sm text-stone-500">
-                          This choice is saved on this device.
+                          {text.storeShell.preferences.helper}
                         </p>
                       </div>
 
@@ -895,10 +910,10 @@ function RouteComponent() {
                           type="button"
                           variant="tertiary"
                         >
-                          Cancel
+                          {text.common.actions.cancel}
                         </Button>
                         <Button isPending={isSavingPreferences} type="submit">
-                          Save
+                          {text.common.actions.save}
                         </Button>
                       </div>
                     </form>
@@ -911,21 +926,21 @@ function RouteComponent() {
 
         <AlertDialog.Backdrop isOpen={isSignOutDialogOpen} onOpenChange={setIsSignOutDialogOpen}>
           <AlertDialog.Container placement="center" size="sm">
-            <AlertDialog.Dialog aria-label="Sign out of the app">
+            <AlertDialog.Dialog aria-label={text.storeShell.profileMenu.signOut}>
               <AlertDialog.Header>
-                <AlertDialog.Heading>Sign out?</AlertDialog.Heading>
+                <AlertDialog.Heading>{text.storeShell.signOut.title}</AlertDialog.Heading>
               </AlertDialog.Header>
-              <AlertDialog.Body>{user.email} will be signed out on this device.</AlertDialog.Body>
+              <AlertDialog.Body>{text.storeShell.signOut.body(user.email)}</AlertDialog.Body>
               <AlertDialog.Footer>
                 <Button
                   onPress={() => setIsSignOutDialogOpen(false)}
                   type="button"
                   variant="tertiary"
                 >
-                  Cancel
+                  {text.common.actions.cancel}
                 </Button>
                 <Button isPending={isSigningOut} onPress={() => void handleSignOut()}>
-                  Sign out
+                  {text.common.actions.signOut}
                 </Button>
               </AlertDialog.Footer>
             </AlertDialog.Dialog>
@@ -935,20 +950,20 @@ function RouteComponent() {
         {appMode === "cashier" ? (
           <div className="space-y-4">
             <div className="space-y-1">
-              <h2 className="text-xl font-semibold">Checkout view</h2>
+              <h2 className="text-xl font-semibold">{text.storeShell.tabs.checkoutView}</h2>
               <p className="text-sm text-stone-500">
-                This view keeps the screen focused on selling, without extra distractions.
+                {text.storeShell.tabs.checkoutViewDescription}
               </p>
             </div>
             <Tabs className="w-full" defaultSelectedKey="cashier">
               <Tabs.ListContainer>
-                <Tabs.List aria-label="Checkout view" className="w-fit">
+                <Tabs.List aria-label={text.storeShell.tabs.checkoutViewTabs} className="w-fit">
                   <Tabs.Tab id="cashier" key="cashier">
-                    Checkout
+                    {text.modules.cashier.title}
                     <Tabs.Indicator />
                   </Tabs.Tab>
                   <Tabs.Tab id="transactions" key="transactions">
-                    Orders
+                    {text.modules.orders.title}
                     <Tabs.Indicator />
                   </Tabs.Tab>
                 </Tabs.List>
@@ -970,7 +985,7 @@ function RouteComponent() {
         {appMode === "full" ? (
           <Tabs className="w-full" defaultSelectedKey={visibleModuleGroups[0]?.id}>
             <Tabs.ListContainer>
-              <Tabs.List aria-label="Main sections" className="w-fit">
+              <Tabs.List aria-label={text.storeShell.fullView.mainSections} className="w-fit">
                 {visibleModuleGroups.map((group) => (
                   <Tabs.Tab key={group.id} id={group.id}>
                     {group.label}
@@ -978,7 +993,7 @@ function RouteComponent() {
                   </Tabs.Tab>
                 ))}
                 <Tabs.Tab id="assistant" key="assistant">
-                  Assistant
+                  {text.storeShell.assistant}
                   <Tabs.Indicator />
                 </Tabs.Tab>
               </Tabs.List>
@@ -1000,7 +1015,7 @@ function RouteComponent() {
                     <Tabs.List aria-label={`${group.label} sections`} className="min-w-[250px]">
                       {group.modules.map((module) => (
                         <Tabs.Tab className="justify-start" key={module.id} id={module.id}>
-                          {module.label}
+                          {localizedModuleLabels[module.id]}
                           <Tabs.Indicator />
                         </Tabs.Tab>
                       ))}
@@ -1096,7 +1111,7 @@ function RouteComponent() {
 
             <Tabs.Panel className="w-full pt-4" id="assistant">
               <div className="mb-4">
-                <h2 className="text-xl font-semibold">Assistant</h2>
+                <h2 className="text-xl font-semibold">{text.storeShell.assistant}</h2>
               </div>
               <AssistantModule storeId={organization.id} />
             </Tabs.Panel>

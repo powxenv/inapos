@@ -1,6 +1,7 @@
 import { Card, Chip, Table } from "@heroui/react";
 import { useStatus } from "@powersync/react";
 import { useQueries } from "@powersync/tanstack-react-query";
+import { useI18n } from "../../lib/i18n";
 
 type DashboardMetricRow = {
   nilai: number | null;
@@ -18,41 +19,25 @@ type DashboardModuleProps = {
   storeId: string;
 };
 
-function getSyncMessage(status: ReturnType<typeof useStatus>) {
+function getSyncMessage(
+  status: ReturnType<typeof useStatus>,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   const syncError = status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError;
 
   if (syncError) {
-    return syncError.message || syncError.name || "We couldn't update this device right now.";
+    return syncError.message || syncError.name || text.modules.dashboard.syncError;
   }
 
   if (status.connected && status.hasSynced) {
-    return "This device is up to date.";
+    return text.modules.dashboard.thisDeviceUpToDate;
   }
 
   if (status.connecting) {
-    return "Checking for the latest changes...";
+    return text.modules.dashboard.loadingUpdates;
   }
 
-  return "This device is not connected yet.";
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
+  return text.modules.dashboard.notConnected;
 }
 
 function getSyncChipColor(connected: boolean, hasSynced: boolean | undefined, hasError: boolean) {
@@ -72,6 +57,7 @@ function getSyncChipColor(connected: boolean, hasSynced: boolean | undefined, ha
 }
 
 export function DashboardModule({ storeId }: DashboardModuleProps) {
+  const { formatCurrency, formatDate, text } = useI18n();
   const status = useStatus();
   const hasSyncError = Boolean(
     status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError,
@@ -155,34 +141,38 @@ export function DashboardModule({ storeId }: DashboardModuleProps) {
   const cashBalance = cashBalanceQuery.data?.[0]?.nilai ?? 0;
   const recentSales = recentSalesQuery.data ?? [];
   const syncLabel = hasSyncError
-    ? "Needs attention"
+    ? text.modules.dashboard.syncNeedsAttention
     : status.connected && status.hasSynced
-      ? "Up to date"
+      ? text.common.states.upToDate
       : status.connecting || status.connected
-        ? "Checking"
-        : "Offline";
+        ? text.modules.dashboard.checking
+        : text.common.states.offline;
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
         <h3 className="text-lg font-semibold">Dashboard</h3>
-        <p className="text-sm text-stone-500">
-          A quick look at today’s sales, stock, cash, and updates.
-        </p>
+        <p className="text-sm text-stone-500">{text.modules.dashboard.description}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Today’s sales</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.dashboard.salesToday}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(totalSalesToday)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatCurrency(totalSalesToday)}
+            </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Sales</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.dashboard.totalSales}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">{transactionCount}</p>
@@ -190,53 +180,66 @@ export function DashboardModule({ storeId }: DashboardModuleProps) {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">Low stock</Card.Title>
-            <Chip color={lowStockCount > 0 ? "warning" : "success"}>{lowStockCount} items</Chip>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.dashboard.lowStock}
+            </Card.Title>
+            <Chip color={lowStockCount > 0 ? "warning" : "success"}>
+              {text.common.prompts.totalItems(lowStockCount)}
+            </Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Cash balance</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.dashboard.cashBalance}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(cashBalance)}</p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(cashBalance)}</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">Updates</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.dashboard.updated}
+            </Card.Title>
             <Chip color={getSyncChipColor(status.connected, status.hasSynced, hasSyncError)}>
               {syncLabel}
             </Chip>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">{getSyncMessage(status)}</p>
+            <p className="text-sm text-stone-600">{getSyncMessage(status, text)}</p>
           </Card.Content>
         </Card>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Recent sales">
+          <Table.Content aria-label={text.modules.dashboard.recentSales}>
             <Table.Header>
-              <Table.Column isRowHeader>Receipt</Table.Column>
-              <Table.Column>Waktu</Table.Column>
-              <Table.Column>Payment</Table.Column>
-              <Table.Column>Total</Table.Column>
+              <Table.Column isRowHeader>{text.modules.dashboard.receipt}</Table.Column>
+              <Table.Column>{text.modules.dashboard.time}</Table.Column>
+              <Table.Column>{text.modules.dashboard.payment}</Table.Column>
+              <Table.Column>{text.common.labels.total}</Table.Column>
             </Table.Header>
             <Table.Body>
               {recentSales.length > 0 ? (
                 recentSales.map((sale) => (
                   <Table.Row key={sale.id}>
                     <Table.Cell>{sale.receipt_number ?? "-"}</Table.Cell>
-                    <Table.Cell>{formatDate(sale.created_at)}</Table.Cell>
+                    <Table.Cell>
+                      {formatDate(sale.created_at, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </Table.Cell>
                     <Table.Cell>{sale.payment_method ?? "-"}</Table.Cell>
-                    <Table.Cell>{formatRupiah(sale.total_amount)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(sale.total_amount)}</Table.Cell>
                   </Table.Row>
                 ))
               ) : (
                 <Table.Row>
-                  <Table.Cell colSpan={4}>No sales yet.</Table.Cell>
+                  <Table.Cell colSpan={4}>{text.modules.dashboard.emptySales}</Table.Cell>
                 </Table.Row>
               )}
             </Table.Body>

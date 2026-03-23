@@ -6,18 +6,21 @@ import { z } from "zod";
 import { Alert, Button, InputGroup } from "@heroui/react";
 import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
+import { useI18n } from "../../lib/i18n";
 
-const forgotPasswordSchema = z.object({
-  email: z.email("Enter a valid email address."),
-});
-
-type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ForgotPasswordFormValues = {
+  email: string;
+};
 
 export const Route = createFileRoute("/auth/forgot-password")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { text } = useI18n();
+  const forgotPasswordSchema = z.object({
+    email: z.email(text.auth.forgotPassword.schema.email),
+  });
   const session = authClient.useSession();
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const {
@@ -52,18 +55,17 @@ function RouteComponent() {
       if (error) {
         setError("root", {
           type: "server",
-          message: error.message ?? "We couldn't send the reset link.",
+          message: error.message ?? text.auth.forgotPassword.failureDescription,
         });
         return;
       }
 
-      setNoticeMessage(
-        "If that email is in your account, you'll get a password reset link shortly.",
-      );
+      setNoticeMessage(text.auth.forgotPassword.notice);
     } catch (error) {
       setError("root", {
         type: "server",
-        message: error instanceof Error ? error.message : "We couldn't send the reset link.",
+        message:
+          error instanceof Error ? error.message : text.auth.forgotPassword.failureDescription,
       });
     }
   });
@@ -72,10 +74,10 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Reset password</h1>
-          <p className="text-sm text-stone-500">
-            Enter the email address you use for this account and we'll send you a reset link.
-          </p>
+          <h1 className="text-2xl font-semibold text-stone-900">
+            {text.auth.forgotPassword.heading}
+          </h1>
+          <p className="text-sm text-stone-500">{text.auth.forgotPassword.description}</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -84,7 +86,7 @@ function RouteComponent() {
               className="block text-sm font-medium text-stone-700"
               htmlFor="forgot-password-email"
             >
-              Email address
+              {text.auth.forgotPassword.emailLabel}
             </label>
             <Controller
               control={control}
@@ -96,13 +98,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Email address"
+                    aria-label={text.auth.forgotPassword.emailLabel}
                     autoComplete="email"
                     className="w-full"
                     id="forgot-password-email"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="you@yourstore.com"
+                    placeholder={text.auth.forgotPassword.emailPlaceholder}
                     type="email"
                     value={field.value}
                   />
@@ -118,7 +120,7 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>That didn’t work</Alert.Title>
+                <Alert.Title>{text.auth.forgotPassword.failureTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
@@ -128,14 +130,14 @@ function RouteComponent() {
             <Alert status="success">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Check your email</Alert.Title>
+                <Alert.Title>{text.auth.forgotPassword.successTitle}</Alert.Title>
                 <Alert.Description>{noticeMessage}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Send reset link
+            {text.common.actions.sendResetLink}
           </Button>
 
           <div className="pt-1 text-sm">
@@ -143,7 +145,7 @@ function RouteComponent() {
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/sign-in"
             >
-              Back to sign in
+              {text.auth.forgotPassword.back}
             </Link>
           </div>
         </form>

@@ -10,26 +10,32 @@ import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
 import { LockKeyIcon } from "@phosphor-icons/react/dist/csr/LockKey";
 import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
+import { useI18n } from "../../lib/i18n";
 
-const signUpSchema = z
-  .object({
-    name: z.string().min(1, "Enter your name."),
-    email: z.email("Enter a valid email address."),
-    password: z.string().min(8, "Use at least 8 characters."),
-    confirmPassword: z.string().min(1, "Enter your password again."),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "The passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
-type SignUpFormValues = z.infer<typeof signUpSchema>;
+type SignUpFormValues = {
+  confirmPassword: string;
+  email: string;
+  name: string;
+  password: string;
+};
 
 export const Route = createFileRoute("/auth/sign-up")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { text } = useI18n();
+  const signUpSchema = z
+    .object({
+      name: z.string().min(1, text.auth.signUp.schema.name),
+      email: z.email(text.auth.signUp.schema.email),
+      password: z.string().min(8, text.auth.signUp.schema.password),
+      confirmPassword: z.string().min(1, text.auth.signUp.schema.confirmPassword),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: text.auth.signUp.schema.passwordMatch,
+      path: ["confirmPassword"],
+    });
   const navigate = Route.useNavigate();
   const session = authClient.useSession();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -69,7 +75,7 @@ function RouteComponent() {
       if (error) {
         setError("root", {
           type: "server",
-          message: error.message ?? "We couldn't create your account.",
+          message: error.message ?? text.auth.signUp.failureDescription,
         });
         return;
       }
@@ -78,7 +84,7 @@ function RouteComponent() {
     } catch (error) {
       setError("root", {
         type: "server",
-        message: error instanceof Error ? error.message : "We couldn't create your account.",
+        message: error instanceof Error ? error.message : text.auth.signUp.failureDescription,
       });
     }
   });
@@ -87,14 +93,14 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Create account</h1>
-          <p className="text-sm text-stone-500">Set up your account and get started.</p>
+          <h1 className="text-2xl font-semibold text-stone-900">{text.auth.signUp.heading}</h1>
+          <p className="text-sm text-stone-500">{text.auth.signUp.description}</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-name">
-              Your name
+              {text.auth.signUp.nameLabel}
             </label>
             <Controller
               control={control}
@@ -106,13 +112,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Your name"
+                    aria-label={text.auth.signUp.nameLabel}
                     autoComplete="name"
                     className="w-full"
                     id="sign-up-name"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Your full name"
+                    placeholder={text.auth.signUp.namePlaceholder}
                     value={field.value}
                   />
                 </InputGroup>
@@ -125,7 +131,7 @@ function RouteComponent() {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-email">
-              Email address
+              {text.auth.signUp.emailLabel}
             </label>
             <Controller
               control={control}
@@ -137,13 +143,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Email address"
+                    aria-label={text.auth.signUp.emailLabel}
                     autoComplete="email"
                     className="w-full"
                     id="sign-up-email"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="you@yourstore.com"
+                    placeholder={text.auth.signUp.emailPlaceholder}
                     type="email"
                     value={field.value}
                   />
@@ -157,7 +163,7 @@ function RouteComponent() {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-password">
-              Password
+              {text.auth.signUp.passwordLabel}
             </label>
             <Controller
               control={control}
@@ -169,19 +175,23 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Password"
+                    aria-label={text.auth.signUp.passwordLabel}
                     autoComplete="new-password"
                     className="w-full"
                     id="sign-up-password"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Create a password"
+                    placeholder={text.auth.signUp.passwordPlaceholder}
                     type={isPasswordVisible ? "text" : "password"}
                     value={field.value}
                   />
                   <InputGroup.Suffix className="pr-0">
                     <Button
-                      aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                      aria-label={
+                        isPasswordVisible
+                          ? text.auth.signUp.toggleHide
+                          : text.auth.signUp.toggleShow
+                      }
                       onPress={() => setIsPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
@@ -208,7 +218,7 @@ function RouteComponent() {
               className="block text-sm font-medium text-stone-700"
               htmlFor="sign-up-confirm-password"
             >
-              Confirm password
+              {text.auth.signUp.confirmPasswordLabel}
             </label>
             <Controller
               control={control}
@@ -220,19 +230,23 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Confirm password"
+                    aria-label={text.auth.signUp.confirmPasswordLabel}
                     autoComplete="new-password"
                     className="w-full"
                     id="sign-up-confirm-password"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Enter the password again"
+                    placeholder={text.auth.signUp.confirmPasswordPlaceholder}
                     type={isConfirmPasswordVisible ? "text" : "password"}
                     value={field.value}
                   />
                   <InputGroup.Suffix className="pr-0">
                     <Button
-                      aria-label={isConfirmPasswordVisible ? "Hide password" : "Show password"}
+                      aria-label={
+                        isConfirmPasswordVisible
+                          ? text.auth.signUp.toggleHide
+                          : text.auth.signUp.toggleShow
+                      }
                       onPress={() => setIsConfirmPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
@@ -258,14 +272,14 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Account setup failed</Alert.Title>
+                <Alert.Title>{text.auth.signUp.failureTitle}</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Create account
+            {text.auth.signUp.heading}
           </Button>
 
           <div className="pt-1 text-sm">
@@ -273,7 +287,7 @@ function RouteComponent() {
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/sign-in"
             >
-              Already have an account? Sign in
+              {text.auth.signUp.haveAccount}
             </Link>
           </div>
         </form>

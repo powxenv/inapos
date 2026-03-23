@@ -1,5 +1,6 @@
 import { Table } from "@heroui/react";
 import { useQueries } from "@powersync/tanstack-react-query";
+import { useI18n } from "../../lib/i18n";
 
 type ActivityRow = {
   activity: string;
@@ -12,18 +13,8 @@ type TodayActivityModuleProps = {
   storeId: string;
 };
 
-function formatTime(value: string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 export function TodayActivityModule({ storeId }: TodayActivityModuleProps) {
+  const { formatDate, text } = useI18n();
   const [activityQuery] = useQueries<[ActivityRow]>({
     queries: [
       {
@@ -97,31 +88,34 @@ export function TodayActivityModule({ storeId }: TodayActivityModuleProps) {
     <div className="space-y-4">
       <div className="space-y-1">
         <h3 className="text-lg font-semibold">Today</h3>
-        <p className="text-sm text-stone-500">
-          See what has happened today, from sales and purchases to expenses.
-        </p>
+        <p className="text-sm text-stone-500">{text.modules.todayActivity.description}</p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Today’s activity">
+          <Table.Content aria-label={text.modules.todayActivity.ariaLabel}>
             <Table.Header>
-              <Table.Column isRowHeader>Time</Table.Column>
-              <Table.Column>Activity</Table.Column>
-              <Table.Column>Details</Table.Column>
+              <Table.Column isRowHeader>{text.modules.todayActivity.time}</Table.Column>
+              <Table.Column>{text.modules.todayActivity.activity}</Table.Column>
+              <Table.Column>{text.modules.todayActivity.details}</Table.Column>
             </Table.Header>
             <Table.Body>
               {activities.length > 0 ? (
                 activities.map((activity) => (
                   <Table.Row key={activity.id}>
-                    <Table.Cell>{formatTime(activity.happened_at)}</Table.Cell>
+                    <Table.Cell>
+                      {formatDate(activity.happened_at, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Table.Cell>
                     <Table.Cell>{activity.activity}</Table.Cell>
                     <Table.Cell>{activity.detail}</Table.Cell>
                   </Table.Row>
                 ))
               ) : (
                 <Table.Row>
-                  <Table.Cell colSpan={3}>Nothing has been recorded yet today.</Table.Cell>
+                  <Table.Cell colSpan={3}>{text.modules.todayActivity.empty}</Table.Cell>
                 </Table.Row>
               )}
             </Table.Body>

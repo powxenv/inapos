@@ -1,5 +1,6 @@
 import { authClient } from "../auth";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "./i18n";
 
 type SessionHookResult = ReturnType<typeof authClient.useSession>;
 type AuthUser = NonNullable<SessionHookResult["data"]>["user"];
@@ -91,6 +92,7 @@ export function createRandomOrganizationSlug(name: string) {
 }
 
 export function useOrganizationGate(requestedOrganizationSlug?: string): OrganizationGateState {
+  const { text } = useI18n();
   const session = authClient.useSession();
   const activeOrganization = authClient.useActiveOrganization();
   const organizations = authClient.useListOrganizations();
@@ -141,7 +143,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       .then(async ({ error }: { error?: { message?: string } | null }) => {
         if (error) {
           activationAttemptRef.current = null;
-          setActivationErrorMessage(error.message ?? "We couldn't open this store.");
+          setActivationErrorMessage(error.message ?? text.organizationGate.couldNotOpenStore);
           setIsActivating(false);
           return;
         }
@@ -157,7 +159,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       .catch((error: unknown) => {
         activationAttemptRef.current = null;
         setActivationErrorMessage(
-          error instanceof Error ? error.message : "We couldn't open this store.",
+          error instanceof Error ? error.message : text.organizationGate.couldNotOpenStore,
         );
         setIsActivating(false);
       });
@@ -183,7 +185,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   if (session.isPending || organizations.isPending || activeOrganization.isPending) {
     return {
       status: "loading",
-      message: "Checking your store access...",
+      message: text.organizationGate.checkingStoreAccess,
     };
   }
 
@@ -200,7 +202,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
         session.error?.message ??
         organizations.error?.message ??
         activeOrganization.error?.message ??
-        "We couldn't load your store details.",
+        text.organizationGate.couldNotLoadStore,
       retry,
     };
   }
@@ -221,7 +223,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   ) {
     return {
       status: "error",
-      message: "This store couldn't be found, or you don't have access to it.",
+      message: text.organizationGate.storeNotFound,
       retry,
     };
   }
@@ -239,7 +241,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   if ((organizations.data?.length ?? 0) > 0 || isActivating) {
     return {
       status: "activating",
-      message: "Opening your store...",
+      message: text.organizationGate.openingStore,
     };
   }
 
