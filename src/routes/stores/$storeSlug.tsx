@@ -1,5 +1,5 @@
 import { authClient } from "../../auth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import {
   Alert,
@@ -26,6 +26,7 @@ import { StorefrontIcon } from "@phosphor-icons/react/dist/csr/Storefront";
 import { UserCircleIcon } from "@phosphor-icons/react/dist/csr/UserCircle";
 import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
+import { useQueries } from "@powersync/tanstack-react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -56,8 +57,9 @@ import {
   useOrganizationGate,
 } from "../../lib/organization";
 import {
-  SUPPORTED_CURRENCIES,
+  DEFAULT_CURRENCY,
   getMessages,
+  SUPPORTED_CURRENCIES,
   type Currency,
   type Language,
   useI18n,
@@ -153,7 +155,6 @@ type ProfileFormValues = {
 };
 
 const preferencesSchema = z.object({
-  currency: z.enum(SUPPORTED_CURRENCIES),
   language: z.enum(["id", "en"]),
 });
 
@@ -188,6 +189,10 @@ function readAppMode(): AppMode {
 
   const value = window.localStorage.getItem(APP_MODE_STORAGE_KEY);
   return value === "cashier" || value === "chat" || value === "full" ? value : "full";
+}
+
+function isCurrency(value: string | null | undefined): value is Currency {
+  return typeof value === "string" && SUPPORTED_CURRENCIES.includes(value as Currency);
 }
 
 export const Route = createFileRoute("/stores/$storeSlug")({
@@ -248,7 +253,6 @@ function RouteComponent() {
     reset: resetPreferences,
   } = useForm<PreferencesFormValues>({
     defaultValues: {
-      currency,
       language,
     },
     resolver: zodResolver(preferencesSchema),
@@ -294,6 +298,22 @@ function RouteComponent() {
   }
 
   const { organization, organizations, user } = gate;
+  const [storeSettingsQuery] = useQueries<[{
+    currency_code: string | null;
+  }]>({
+    queries: [
+      {
+        parameters: [organization.id],
+        query: `
+          SELECT currency_code
+          FROM stores
+          WHERE store_id = ?
+          LIMIT 1
+        `,
+        queryKey: ["store-currency", organization.id],
+      },
+    ],
+  });
   const currentMember = getOrganizationMember(organization, user.id);
   const currentRole = currentMember?.role ?? "member";
   const canManageOrganization = isOrganizationAdmin(currentRole);
@@ -368,17 +388,18 @@ function RouteComponent() {
       label: text.common.languageNames.en,
     },
   ];
-  const currencyOptions: ReadonlyArray<{
-    id: Currency;
-    label: string;
-  }> = SUPPORTED_CURRENCIES.map((value) => ({
-    id: value,
-    label: `${value} · ${text.common.currencyNames[value]}`,
-  }));
   const currentLanguageOption =
     languageOptions.find((option) => option.id === language) ?? languageOptions[0];
-  const currentCurrencyOption =
-    currencyOptions.find((option) => option.id === currency) ?? currencyOptions[0];
+
+  useEffect(() => {
+    const nextCurrency = isCurrency(storeSettingsQuery.data?.[0]?.currency_code)
+      ? storeSettingsQuery.data[0].currency_code
+      : DEFAULT_CURRENCY;
+
+    if (nextCurrency !== currency) {
+      setCurrency(nextCurrency);
+    }
+  }, [currency, setCurrency, storeSettingsQuery.data]);
 
   function openProfileModal() {
     setProfileError(null);
@@ -391,7 +412,6 @@ function RouteComponent() {
   function openPreferencesModal() {
     setPreferencesMessage(null);
     resetPreferences({
-      currency,
       language,
     });
     setIsPreferencesModalOpen(true);
@@ -506,7 +526,6 @@ function RouteComponent() {
   const savePreferences = async (values: PreferencesFormValues) => {
     setIsSavingPreferences(true);
     setLanguage(values.language);
-    setCurrency(values.currency);
     setPreferencesMessage(getMessages(values.language).storeShell.preferences.saved);
     setIsSavingPreferences(false);
     setIsPreferencesModalOpen(false);
@@ -716,11 +735,6 @@ function RouteComponent() {
                               currentLanguageOption.label,
                             )}
                           </p>
-                          <p className="text-xs text-stone-500">
-                            {text.storeShell.preferences.currentCurrency(
-                              currentCurrencyOption.label,
-                            )}
-                          </p>
                         </div>
                       </div>
                     </Dropdown.Item>
@@ -877,54 +891,6 @@ function RouteComponent() {
                         }
                       })}
                     >
-                      <div className="space-y-2">
-                        <label
-                          className="block text-sm font-medium text-stone-700"
-                          htmlFor="preferences-currency"
-                        >
-                          {text.common.labels.currency}
-                        </label>
-                        <Controller
-                          control={preferencesControl}
-                          name="currency"
-                          render={({ field }) => (
-                            <Select
-                              aria-label={text.common.labels.currency}
-                              className="w-full"
-                              id="preferences-currency"
-                              selectedKey={field.value}
-                              onSelectionChange={(key) => {
-                                if (typeof key === "string") {
-                                  field.onChange(key);
-                                }
-                              }}
-                            >
-                              <Select.Trigger className="w-full">
-                                <Select.Value />
-                                <Select.Indicator />
-                              </Select.Trigger>
-                              <Select.Popover>
-                                <ListBox>
-                                  {currencyOptions.map((option) => (
-                                    <ListBox.Item
-                                      id={option.id}
-                                      key={option.id}
-                                      textValue={option.label}
-                                    >
-                                      {option.label}
-                                      <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                  ))}
-                                </ListBox>
-                              </Select.Popover>
-                            </Select>
-                          )}
-                        />
-                        <p className="text-sm text-stone-500">
-                          {text.storeShell.preferences.currencyHelper}
-                        </p>
-                      </div>
-
                       <div className="space-y-2">
                         <label
                           className="block text-sm font-medium text-stone-700"
@@ -1160,13 +1126,22 @@ function RouteComponent() {
                           return <ExpensesModule storeId={organization.id} />;
                         }
 
-                        if (module.id === "reports") {
-                          return <ReportsModule storeId={organization.id} />;
-                        }
+                      if (module.id === "reports") {
+                        return <ReportsModule storeId={organization.id} />;
+                      }
 
-                        if (module.id === "ai-models") {
-                          return <AiModelsModule />;
-                        }
+                      if (module.id === "store-settings") {
+                        return (
+                          <StoreSettingsModule
+                            storeId={organization.id}
+                            storeName={organization.name}
+                          />
+                        );
+                      }
+
+                      if (module.id === "ai-models") {
+                        return <AiModelsModule />;
+                      }
 
                         if (module.id === "assistant") {
                           return <AssistantModule storeId={organization.id} />;

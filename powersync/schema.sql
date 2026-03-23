@@ -120,6 +120,27 @@ create table if not exists public.expenses (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.stores (
+  id text primary key default gen_random_uuid()::text,
+  store_id text not null,
+  store_name text not null,
+  phone text,
+  address text,
+  receipt_note text,
+  currency_code text not null default 'IDR',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.stores add column if not exists store_id text;
+alter table public.stores add column if not exists store_name text;
+alter table public.stores add column if not exists phone text;
+alter table public.stores add column if not exists address text;
+alter table public.stores add column if not exists receipt_note text;
+alter table public.stores add column if not exists currency_code text default 'IDR';
+alter table public.stores add column if not exists created_at timestamptz default now();
+alter table public.stores add column if not exists updated_at timestamptz default now();
+
 alter table if exists public.customers drop constraint if exists customers_store_id_fkey;
 alter table if exists public.suppliers drop constraint if exists suppliers_store_id_fkey;
 alter table if exists public.products drop constraint if exists products_store_id_fkey;
@@ -141,6 +162,7 @@ create index if not exists idx_sales_store_id on public.sales(store_id);
 create index if not exists idx_sales_customer_id on public.sales(customer_id);
 create index if not exists idx_sale_items_sale_id on public.sale_items(sale_id);
 create index if not exists idx_expenses_store_id on public.expenses(store_id);
+create unique index if not exists idx_stores_store_id on public.stores(store_id);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -212,4 +234,8 @@ before update on public.expenses
 for each row
 execute function public.set_updated_at();
 
-drop table if exists public.stores;
+drop trigger if exists stores_set_updated_at on public.stores;
+create trigger stores_set_updated_at
+before update on public.stores
+for each row
+execute function public.set_updated_at();

@@ -100,6 +100,15 @@ const appSchema = new Schema({
     created_at: column.text,
     updated_at: column.text,
   }),
+  stores: new Table({
+    store_id: column.text,
+    store_name: column.text,
+    phone: column.text,
+    address: column.text,
+    receipt_note: column.text,
+    currency_code: column.text,
+    updated_at: column.text,
+  }),
   suppliers: new Table({
     store_id: column.text,
     name: column.text,
@@ -133,6 +142,7 @@ const MUTABLE_TABLES = new Set([
   "purchases",
   "sale_items",
   "sales",
+  "stores",
   "suppliers",
 ]);
 

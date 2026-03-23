@@ -51,3 +51,8 @@ streams:
     auto_subscribe: true
     queries:
       - SELECT * FROM expenses
+
+  stores:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM stores

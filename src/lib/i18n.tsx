@@ -7,7 +7,6 @@ export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 type DateFormatOptions = Intl.DateTimeFormatOptions;
 
 const LANGUAGE_STORAGE_KEY = "inapos.language";
-const CURRENCY_STORAGE_KEY = "inapos.currency";
 const DEFAULT_CURRENCY: Currency = "IDR";
 
 const en = {
@@ -399,14 +398,15 @@ const en = {
     },
     storeSettings: {
       address: "Address",
-      currency: "Currency",
-      receiptNote: "Receipt note",
+      currency: "Store currency",
+      phone: "Store phone or WhatsApp",
+      receiptNote: "Receipt footer",
       storeName: "Store name",
       title: "Store details",
       defaults: {
         address: "10 Melati Street",
-        currency: "Indonesian rupiah",
         note: "Thank you for shopping with us",
+        phone: "+62 812 0000 0000",
         storeName: "INAPOS",
       },
     },
@@ -1357,14 +1357,15 @@ const id: Messages = {
     },
     storeSettings: {
       address: "Alamat",
-      currency: "Mata uang",
-      receiptNote: "Catatan struk",
+      currency: "Mata uang toko",
+      phone: "Nomor toko atau WhatsApp",
+      receiptNote: "Catatan bawah struk",
       storeName: "Nama toko",
       title: "Detail toko",
       defaults: {
         address: "Jalan Melati 10",
-        currency: "Rupiah Indonesia",
         note: "Terima kasih sudah berbelanja",
+        phone: "+62 812 0000 0000",
         storeName: "INAPOS",
       },
     },
@@ -1936,25 +1937,12 @@ function readLanguagePreference(): Language {
   return value === "id" || value === "en" ? value : "en";
 }
 
-function isCurrency(value: string | null): value is Currency {
-  return value !== null && SUPPORTED_CURRENCIES.some((currency) => currency === value);
-}
-
-function readCurrencyPreference(): Currency {
-  if (typeof window === "undefined") {
-    return DEFAULT_CURRENCY;
-  }
-
-  const value = window.localStorage.getItem(CURRENCY_STORAGE_KEY);
-  return isCurrency(value) ? value : DEFAULT_CURRENCY;
-}
-
 function resolveLocale(language: Language) {
   return language === "id" ? "id-ID" : "en-US";
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrency] = useState<Currency>(readCurrencyPreference);
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY);
   const [language, setLanguage] = useState<Language>(readLanguagePreference);
   const locale = resolveLocale(language);
 
@@ -1966,14 +1954,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language;
   }, [language]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
-  }, [currency]);
 
   const value = useMemo<I18nContextValue>(
     () => ({
@@ -2021,4 +2001,4 @@ export function getMessages(language: Language) {
   return messages[language];
 }
 
-export { CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY, LANGUAGE_STORAGE_KEY };
+export { DEFAULT_CURRENCY, LANGUAGE_STORAGE_KEY };
