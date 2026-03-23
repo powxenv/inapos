@@ -43,18 +43,6 @@ type TopProductRow = {
   revenue: number | null;
 };
 
-function formatRupiah(value: number | null | undefined, locale: string) {
-  return new Intl.NumberFormat(locale, {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
-function formatNumber(value: number | null | undefined, locale: string) {
-  return new Intl.NumberFormat(locale).format(value ?? 0);
-}
-
 function paymentMethodLabel(
   value: string | null | undefined,
   text: ReturnType<typeof useI18n>["text"],
@@ -149,7 +137,7 @@ function getReportRange(period: ReportPeriodId) {
 }
 
 export function ReportsModule({ storeId }: ReportsModuleProps) {
-  const { locale, text } = useI18n();
+  const { formatCurrency, formatNumber, text } = useI18n();
   const [period, setPeriod] = useState<ReportPeriodId>("month");
   const reportPeriods = [
     {
@@ -379,9 +367,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(grossSales, locale)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(grossSales)}</p>
           </Card.Content>
         </Card>
 
@@ -400,9 +386,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(estimatedCogs, locale)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(estimatedCogs)}</p>
           </Card.Content>
         </Card>
 
@@ -421,9 +405,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(grossProfit, locale)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(grossProfit)}</p>
           </Card.Content>
         </Card>
 
@@ -440,7 +422,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(expenses, locale)}</p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(expenses)}</p>
           </Card.Content>
         </Card>
 
@@ -459,9 +441,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </Chip>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(netProfit, locale)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(netProfit)}</p>
           </Card.Content>
         </Card>
 
@@ -478,9 +458,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(purchases, locale)}
-            </p>
+            <p className="text-xl font-semibold text-stone-950">{formatCurrency(purchases)}</p>
           </Card.Content>
         </Card>
       </div>
@@ -495,19 +473,19 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             <div className="rounded-2xl border border-stone-200 p-4">
               <p className="text-sm text-stone-500">{text.modules.reports.moneyIn}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.cash_in, locale)}
+                {formatCurrency(cashOverview?.cash_in)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
               <p className="text-sm text-stone-500">{text.modules.reports.moneyOut}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.cash_out, locale)}
+                {formatCurrency(cashOverview?.cash_out)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
               <p className="text-sm text-stone-500">{text.modules.reports.recordedBalance}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.balance, locale)}
+                {formatCurrency(cashOverview?.balance)}
               </p>
             </div>
           </Card.Content>
@@ -523,11 +501,10 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
               <div className="space-y-1">
                 <p className="text-sm text-stone-500">{text.modules.reports.averagePerSale}</p>
                 <p className="text-base font-semibold text-stone-950">
-                  {formatRupiah(
+                  {formatCurrency(
                     (salesOverview?.orders ?? 0) > 0
                       ? grossSales / (salesOverview?.orders ?? 1)
                       : 0,
-                    locale,
                   )}
                 </p>
               </div>
@@ -570,8 +547,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
                       paymentBreakdown.map((row) => (
                         <Table.Row key={row.label ?? "other"}>
                           <Table.Cell>{paymentMethodLabel(row.label, text)}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.count, locale)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.value, locale)}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.count)}</Table.Cell>
+                          <Table.Cell>{formatCurrency(row.value)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
@@ -607,8 +584,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
                       expenseBreakdown.map((row) => (
                         <Table.Row key={row.label ?? "other"}>
                           <Table.Cell>{expenseCategoryLabel(row.label, text)}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.count, locale)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.value, locale)}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.count)}</Table.Cell>
+                          <Table.Cell>{formatCurrency(row.value)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
@@ -642,8 +619,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
                       topProducts.map((row) => (
                         <Table.Row key={row.name ?? "item"}>
                           <Table.Cell>{row.name ?? text.common.states.unnamedItem}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.quantity, locale)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.revenue, locale)}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.quantity)}</Table.Cell>
+                          <Table.Cell>{formatCurrency(row.revenue)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (

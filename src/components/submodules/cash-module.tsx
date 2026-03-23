@@ -88,14 +88,6 @@ function formatDate(value: string | null | undefined, locale: string) {
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined, locale: string) {
-  return new Intl.NumberFormat(locale, {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 function cashTypeMeta(entryType: string | null, text: ReturnType<typeof useI18n>["text"]) {
   if (entryType === "out") {
     return {
@@ -113,7 +105,7 @@ function cashTypeMeta(entryType: string | null, text: ReturnType<typeof useI18n>
 }
 
 export function CashModule({ storeId }: CashModuleProps) {
-  const { locale, text } = useI18n();
+  const { formatCurrency, locale, text } = useI18n();
   const cashEntrySchema = z.object({
     amount: z
       .string()
@@ -334,7 +326,7 @@ export function CashModule({ storeId }: CashModuleProps) {
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.balance, locale)}
+              {formatCurrency(summary?.balance)}
             </p>
           </Card.Content>
         </Card>
@@ -346,7 +338,7 @@ export function CashModule({ storeId }: CashModuleProps) {
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.cash_in_today, locale)}
+              {formatCurrency(summary?.cash_in_today)}
             </p>
           </Card.Content>
         </Card>
@@ -358,7 +350,7 @@ export function CashModule({ storeId }: CashModuleProps) {
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.cash_out_today, locale)}
+              {formatCurrency(summary?.cash_out_today)}
             </p>
           </Card.Content>
         </Card>
@@ -649,7 +641,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                         </Chip>
                       </Table.Cell>
                       <Table.Cell>{entry.note ?? text.common.states.notAdded}</Table.Cell>
-                      <Table.Cell>{formatRupiah(entry.amount, locale)}</Table.Cell>
+                      <Table.Cell>{formatCurrency(entry.amount)}</Table.Cell>
                       <Table.Cell>
                         <div className="flex items-center gap-2">
                           <Button onPress={() => startEdit(entry)} size="sm" variant="outline">

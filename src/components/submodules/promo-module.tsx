@@ -91,16 +91,16 @@ function formatDateRange(
   return `${start} - ${end}`;
 }
 
-function formatDiscount(type: string | null, value: number | null | undefined, locale: string) {
+function formatDiscount(
+  type: string | null,
+  value: number | null | undefined,
+  formatCurrency: ReturnType<typeof useI18n>["formatCurrency"],
+) {
   if (type === "percent") {
     return `${value ?? 0}%`;
   }
 
-  return new Intl.NumberFormat(locale, {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
+  return formatCurrency(value);
 }
 
 function promoStatusLabel(
@@ -122,7 +122,7 @@ function promoStatusLabel(
 }
 
 export function PromoModule({ storeId }: PromoModuleProps) {
-  const { locale, text } = useI18n();
+  const { formatCurrency, locale, text } = useI18n();
   const promoSchema = z.object({
     description: z.string().trim().max(200, text.modules.promo.validation.descriptionMax),
     discountType: z.enum(["nominal", "percent"]),
@@ -647,7 +647,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                     <Table.Cell>{promo.title ?? text.modules.promo.title}</Table.Cell>
                     <Table.Cell>{promoStatusLabel(promo.status, text)}</Table.Cell>
                     <Table.Cell>
-                      {formatDiscount(promo.discount_type, promo.discount_value, locale)}
+                      {formatDiscount(promo.discount_type, promo.discount_value, formatCurrency)}
                     </Table.Cell>
                     <Table.Cell>{formatDateRange(promo.start_at, promo.end_at, locale)}</Table.Cell>
                     <Table.Cell>{promo.description ?? text.common.states.notAdded}</Table.Cell>

@@ -55,7 +55,13 @@ import {
   isOrganizationAdmin,
   useOrganizationGate,
 } from "../../lib/organization";
-import { type Language, useI18n } from "../../lib/i18n";
+import {
+  SUPPORTED_CURRENCIES,
+  getMessages,
+  type Currency,
+  type Language,
+  useI18n,
+} from "../../lib/i18n";
 
 type ModuleDefinition = {
   id: keyof typeof moduleComponents;
@@ -147,6 +153,7 @@ type ProfileFormValues = {
 };
 
 const preferencesSchema = z.object({
+  currency: z.enum(SUPPORTED_CURRENCIES),
   language: z.enum(["id", "en"]),
 });
 
@@ -188,7 +195,7 @@ export const Route = createFileRoute("/stores/$storeSlug")({
 });
 
 function RouteComponent() {
-  const { language, setLanguage, text } = useI18n();
+  const { currency, language, setCurrency, setLanguage, text } = useI18n();
   const createStoreSchema = z.object({
     name: z.string().min(2, text.storeShell.schema.min).max(80, text.storeShell.schema.max),
   });
@@ -241,6 +248,7 @@ function RouteComponent() {
     reset: resetPreferences,
   } = useForm<PreferencesFormValues>({
     defaultValues: {
+      currency,
       language,
     },
     resolver: zodResolver(preferencesSchema),
@@ -360,8 +368,17 @@ function RouteComponent() {
       label: text.common.languageNames.en,
     },
   ];
+  const currencyOptions: ReadonlyArray<{
+    id: Currency;
+    label: string;
+  }> = SUPPORTED_CURRENCIES.map((value) => ({
+    id: value,
+    label: `${value} · ${text.common.currencyNames[value]}`,
+  }));
   const currentLanguageOption =
     languageOptions.find((option) => option.id === language) ?? languageOptions[0];
+  const currentCurrencyOption =
+    currencyOptions.find((option) => option.id === currency) ?? currencyOptions[0];
 
   function openProfileModal() {
     setProfileError(null);
@@ -374,6 +391,7 @@ function RouteComponent() {
   function openPreferencesModal() {
     setPreferencesMessage(null);
     resetPreferences({
+      currency,
       language,
     });
     setIsPreferencesModalOpen(true);
@@ -488,7 +506,8 @@ function RouteComponent() {
   const savePreferences = async (values: PreferencesFormValues) => {
     setIsSavingPreferences(true);
     setLanguage(values.language);
-    setPreferencesMessage(text.storeShell.preferences.saved);
+    setCurrency(values.currency);
+    setPreferencesMessage(getMessages(values.language).storeShell.preferences.saved);
     setIsSavingPreferences(false);
     setIsPreferencesModalOpen(false);
     return true;
@@ -697,6 +716,11 @@ function RouteComponent() {
                               currentLanguageOption.label,
                             )}
                           </p>
+                          <p className="text-xs text-stone-500">
+                            {text.storeShell.preferences.currentCurrency(
+                              currentCurrencyOption.label,
+                            )}
+                          </p>
                         </div>
                       </div>
                     </Dropdown.Item>
@@ -856,6 +880,54 @@ function RouteComponent() {
                       <div className="space-y-2">
                         <label
                           className="block text-sm font-medium text-stone-700"
+                          htmlFor="preferences-currency"
+                        >
+                          {text.common.labels.currency}
+                        </label>
+                        <Controller
+                          control={preferencesControl}
+                          name="currency"
+                          render={({ field }) => (
+                            <Select
+                              aria-label={text.common.labels.currency}
+                              className="w-full"
+                              id="preferences-currency"
+                              selectedKey={field.value}
+                              onSelectionChange={(key) => {
+                                if (typeof key === "string") {
+                                  field.onChange(key);
+                                }
+                              }}
+                            >
+                              <Select.Trigger className="w-full">
+                                <Select.Value />
+                                <Select.Indicator />
+                              </Select.Trigger>
+                              <Select.Popover>
+                                <ListBox>
+                                  {currencyOptions.map((option) => (
+                                    <ListBox.Item
+                                      id={option.id}
+                                      key={option.id}
+                                      textValue={option.label}
+                                    >
+                                      {option.label}
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                </ListBox>
+                              </Select.Popover>
+                            </Select>
+                          )}
+                        />
+                        <p className="text-sm text-stone-500">
+                          {text.storeShell.preferences.currencyHelper}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          className="block text-sm font-medium text-stone-700"
                           htmlFor="preferences-language"
                         >
                           {text.common.labels.language}
@@ -897,7 +969,7 @@ function RouteComponent() {
                           )}
                         />
                         <p className="text-sm text-stone-500">
-                          {text.storeShell.preferences.helper}
+                          {text.storeShell.preferences.languageHelper}
                         </p>
                       </div>
 

@@ -1,10 +1,14 @@
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
 export type Language = "en" | "id";
+export const SUPPORTED_CURRENCIES = ["IDR", "USD", "SGD", "EUR", "GBP", "JPY"] as const;
+export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 
 type DateFormatOptions = Intl.DateTimeFormatOptions;
 
 const LANGUAGE_STORAGE_KEY = "inapos.language";
+const CURRENCY_STORAGE_KEY = "inapos.currency";
+const DEFAULT_CURRENCY: Currency = "IDR";
 
 const en = {
   common: {
@@ -52,6 +56,7 @@ const en = {
       amount: "Amount",
       category: "Category",
       city: "City",
+      currency: "Currency",
       customer: "Customer",
       date: "Date",
       details: "Details",
@@ -81,6 +86,14 @@ const en = {
     languageNames: {
       en: "English",
       id: "Bahasa Indonesia",
+    },
+    currencyNames: {
+      EUR: "Euro",
+      GBP: "British pound",
+      IDR: "Indonesian rupiah",
+      JPY: "Japanese yen",
+      SGD: "Singapore dollar",
+      USD: "US dollar",
     },
     states: {
       active: "Active",
@@ -244,8 +257,11 @@ const en = {
     loading: "Getting your store ready...",
     missingStoreTitle: "Your store isn't ready yet",
     preferences: {
+      currentCurrency: (label: string) => `Current currency: ${label}`,
       currentLanguage: (label: string) => `Current language: ${label}`,
-      helper: "This choice is saved on this device.",
+      currencyHelper: "Prices and totals will be shown in this currency on this device.",
+      helper: "These choices are saved on this device.",
+      languageHelper: "Choose the language you want to use on this device.",
       saved: "Saved on this device.",
       successTitle: "Preferences updated",
       title: "Preferences",
@@ -995,6 +1011,7 @@ const id: Messages = {
       amount: "Jumlah",
       category: "Kategori",
       city: "Kota",
+      currency: "Mata uang",
       customer: "Pelanggan",
       date: "Tanggal",
       details: "Detail",
@@ -1024,6 +1041,14 @@ const id: Messages = {
     languageNames: {
       en: "English",
       id: "Bahasa Indonesia",
+    },
+    currencyNames: {
+      EUR: "Euro",
+      GBP: "Pound Inggris",
+      IDR: "Rupiah Indonesia",
+      JPY: "Yen Jepang",
+      SGD: "Dolar Singapura",
+      USD: "Dolar AS",
     },
     states: {
       active: "Aktif",
@@ -1188,8 +1213,11 @@ const id: Messages = {
     loading: "Sedang menyiapkan toko Anda...",
     missingStoreTitle: "Toko Anda belum siap",
     preferences: {
+      currentCurrency: (label: string) => `Mata uang saat ini: ${label}`,
       currentLanguage: (label: string) => `Bahasa saat ini: ${label}`,
+      currencyHelper: "Harga dan total akan ditampilkan dengan mata uang ini di perangkat ini.",
       helper: "Pilihan ini disimpan di perangkat ini.",
+      languageHelper: "Pilih bahasa yang ingin Anda pakai di perangkat ini.",
       saved: "Disimpan di perangkat ini.",
       successTitle: "Preferensi diperbarui",
       title: "Preferensi",
@@ -1886,11 +1914,13 @@ const messages: Record<Language, Messages> = {
 };
 
 type I18nContextValue = {
+  currency: Currency;
   formatCurrency: (value: number | null | undefined) => string;
   formatDate: (value: string | Date | null | undefined, options?: DateFormatOptions) => string;
   formatNumber: (value: number | null | undefined) => string;
   language: Language;
   locale: string;
+  setCurrency: (value: Currency) => void;
   setLanguage: (value: Language) => void;
   text: Messages;
 };
@@ -1906,11 +1936,25 @@ function readLanguagePreference(): Language {
   return value === "id" || value === "en" ? value : "en";
 }
 
+function isCurrency(value: string | null): value is Currency {
+  return value !== null && SUPPORTED_CURRENCIES.some((currency) => currency === value);
+}
+
+function readCurrencyPreference(): Currency {
+  if (typeof window === "undefined") {
+    return DEFAULT_CURRENCY;
+  }
+
+  const value = window.localStorage.getItem(CURRENCY_STORAGE_KEY);
+  return isCurrency(value) ? value : DEFAULT_CURRENCY;
+}
+
 function resolveLocale(language: Language) {
   return language === "id" ? "id-ID" : "en-US";
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
+  const [currency, setCurrency] = useState<Currency>(readCurrencyPreference);
   const [language, setLanguage] = useState<Language>(readLanguagePreference);
   const locale = resolveLocale(language);
 
@@ -1923,12 +1967,20 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+  }, [currency]);
+
   const value = useMemo<I18nContextValue>(
     () => ({
+      currency,
       formatCurrency(input) {
         return new Intl.NumberFormat(locale, {
-          currency: "IDR",
-          maximumFractionDigits: 0,
+          currency,
           style: "currency",
         }).format(input ?? 0);
       },
@@ -1945,10 +1997,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       },
       language,
       locale,
+      setCurrency,
       setLanguage,
       text: messages[language],
     }),
-    [language, locale],
+    [currency, language, locale],
   );
 
   return <I18nContext value={value}>{children}</I18nContext>;
@@ -1964,4 +2017,8 @@ export function useI18n() {
   return value;
 }
 
-export { LANGUAGE_STORAGE_KEY };
+export function getMessages(language: Language) {
+  return messages[language];
+}
+
+export { CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY, LANGUAGE_STORAGE_KEY };

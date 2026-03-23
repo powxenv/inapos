@@ -84,14 +84,6 @@ function formatDate(value: string | null | undefined, locale: string) {
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined, locale: string) {
-  return new Intl.NumberFormat(locale, {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 function purchaseStatusLabel(
   value: string | null | undefined,
   text: ReturnType<typeof useI18n>["text"],
@@ -110,7 +102,7 @@ function purchaseStatusLabel(
 }
 
 export function PurchasesModule({ storeId }: PurchasesModuleProps) {
-  const { locale, text } = useI18n();
+  const { formatCurrency, locale, text } = useI18n();
   const purchaseSchema = z.object({
     invoiceNumber: z.string().trim().max(80, text.modules.purchases.validation.invoiceMax),
     purchasedAt: z.string().trim().min(1, text.modules.purchases.validation.purchasedAt),
@@ -609,7 +601,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                       {purchase.supplier_name ?? text.common.states.noSupplier}
                     </Table.Cell>
                     <Table.Cell>{purchaseStatusLabel(purchase.status, text)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(purchase.total_amount, locale)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(purchase.total_amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(purchase)} size="sm" variant="outline">

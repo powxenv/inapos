@@ -2,7 +2,7 @@ import { Button, Input } from "@heroui/react";
 import { useI18n } from "../../lib/i18n";
 
 export function StoreSettingsModule() {
-  const { text } = useI18n();
+  const { currency, text } = useI18n();
 
   return (
     <div className="space-y-4">
@@ -26,7 +26,7 @@ export function StoreSettingsModule() {
           <p className="text-sm font-medium text-stone-700">
             {text.modules.storeSettings.currency}
           </p>
-          <Input defaultValue={text.modules.storeSettings.defaults.currency} />
+          <Input readOnly value={text.common.currencyNames[currency]} />
         </div>
         <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
           <p className="text-sm font-medium text-stone-700">

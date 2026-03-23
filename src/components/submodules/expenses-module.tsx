@@ -86,14 +86,6 @@ function formatDate(value: string | null | undefined, locale: string) {
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined, locale: string) {
-  return new Intl.NumberFormat(locale, {
-    currency: "IDR",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value ?? 0);
-}
-
 function expenseCategoryLabel(
   value: string | null | undefined,
   text: ReturnType<typeof useI18n>["text"],
@@ -116,7 +108,7 @@ function expenseCategoryLabel(
 }
 
 export function ExpensesModule({ storeId }: ExpensesModuleProps) {
-  const { locale, text } = useI18n();
+  const { formatCurrency, locale, text } = useI18n();
   const expenseSchema = z.object({
     amount: z
       .string()
@@ -329,7 +321,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.today_total, locale)}
+              {formatCurrency(summary?.today_total)}
             </p>
           </Card.Content>
         </Card>
@@ -341,7 +333,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.month_total, locale)}
+              {formatCurrency(summary?.month_total)}
             </p>
           </Card.Content>
         </Card>
@@ -592,7 +584,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                     <Table.Cell>{formatDate(expense.paid_at, locale)}</Table.Cell>
                     <Table.Cell>{expense.title ?? text.modules.expenses.title}</Table.Cell>
                     <Table.Cell>{expenseCategoryLabel(expense.category, text)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(expense.amount, locale)}</Table.Cell>
+                    <Table.Cell>{formatCurrency(expense.amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(expense)} size="sm" variant="outline">
