@@ -38,9 +38,13 @@ type EditingCustomer = {
 };
 
 const customerSchema = z.object({
-  address: z.string().trim().max(200, "Alamat maksimal 200 karakter."),
-  name: z.string().trim().min(1, "Nama pelanggan wajib diisi.").max(120, "Nama pelanggan maksimal 120 karakter."),
-  phone: z.string().trim().max(30, "Nomor telepon maksimal 30 karakter."),
+  address: z.string().trim().max(200, "Use 200 characters or fewer."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Enter the customer name.")
+    .max(120, "Use 120 characters or fewer."),
+  phone: z.string().trim().max(30, "Use 30 characters or fewer."),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -118,7 +122,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
   function startEdit(customer: CustomerRow) {
     setEditingCustomer({
       id: customer.id,
-      name: customer.name ?? "Pelanggan",
+      name: customer.name ?? "Customer",
     });
     setFormError(null);
     reset({
@@ -181,7 +185,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan pelanggan.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this customer.");
     }
   }
 
@@ -199,22 +203,24 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus pelanggan.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this customer.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Pelanggan</h3>
-        <p className="text-sm text-stone-500">Simpan pelanggan tetap agar transaksi berikutnya lebih cepat.</p>
+        <h3 className="text-lg font-semibold">Customers</h3>
+        <p className="text-sm text-stone-500">
+          Keep your regular customers here so future sales are faster.
+        </p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -227,26 +233,28 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari pelanggan"
+              aria-label="Search customers"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nama, telepon, atau alamat"
+              placeholder="Search by name, phone number, or address"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Tambah pelanggan
+              Add customer
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingCustomer ? "Ubah pelanggan" : "Tambah pelanggan"}>
+                <Modal.Dialog aria-label={editingCustomer ? "Edit customer" : "Add customer"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingCustomer ? `Ubah pelanggan: ${editingCustomer.name}` : "Tambah pelanggan"}
+                          {editingCustomer
+                            ? `Edit customer: ${editingCustomer.name}`
+                            : "Add customer"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -257,8 +265,11 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                           })}
                         >
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-stone-700" htmlFor="customer-name">
-                              Nama pelanggan
+                            <label
+                              className="block text-sm font-medium text-stone-700"
+                              htmlFor="customer-name"
+                            >
+                              Customer name
                             </label>
                             <Controller
                               control={control}
@@ -274,21 +285,26 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                     id="customer-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: Ibu Rina"
+                                    placeholder="For example: Rina"
                                     value={field.value}
                                   />
                                 </InputGroup>
                               )}
                             />
                             {formState.errors.name?.message ? (
-                              <p className="text-sm text-red-600">{formState.errors.name.message}</p>
+                              <p className="text-sm text-red-600">
+                                {formState.errors.name.message}
+                              </p>
                             ) : null}
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="customer-phone">
-                                Nomor telepon (optional)
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="customer-phone"
+                              >
+                                Phone number (optional)
                               </label>
                               <Controller
                                 control={control}
@@ -299,19 +315,24 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                     id="customer-phone"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="08..."
+                                    placeholder="+62..."
                                     value={field.value}
                                   />
                                 )}
                               />
                               {formState.errors.phone?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.phone.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.phone.message}
+                                </p>
                               ) : null}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="customer-address">
-                                Alamat (optional)
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="customer-address"
+                              >
+                                Address (optional)
                               </label>
                               <Controller
                                 control={control}
@@ -322,13 +343,15 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                                     id="customer-address"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: Jl. Melati No. 8"
+                                    placeholder="For example: 8 Melati Street"
                                     value={field.value}
                                   />
                                 )}
                               />
                               {formState.errors.address?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.address.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.address.message}
+                                </p>
                               ) : null}
                             </div>
                           </div>
@@ -342,10 +365,10 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingCustomer ? "Simpan perubahan" : "Simpan pelanggan"}
+                              {editingCustomer ? "Save changes" : "Save customer"}
                             </Button>
                           </div>
                         </form>
@@ -358,19 +381,19 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredCustomers.length} dari {customers.length} pelanggan
+          {filteredCustomers.length} of {customers.length} customers
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel pelanggan toko">
+          <Table.Content aria-label="Customer list">
             <Table.Header>
-              <Table.Column isRowHeader>Nama</Table.Column>
-              <Table.Column>Telepon</Table.Column>
-              <Table.Column>Alamat</Table.Column>
-              <Table.Column>Total belanja</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column isRowHeader>Name</Table.Column>
+              <Table.Column>Phone</Table.Column>
+              <Table.Column>Address</Table.Column>
+              <Table.Column>Total spent</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredCustomers.length > 0 ? (
@@ -384,32 +407,33 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(customer)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus pelanggan?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this customer?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {customer.name ?? "Pelanggan ini"} akan dihapus dari daftar pelanggan.
+                                  {customer.name ?? "This customer"} will be removed from your
+                                  customer list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === customer.id}
                                     onPress={() => void deleteCustomer(customer.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -423,7 +447,7 @@ export function CustomersModule({ storeId }: CustomersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {customersQuery.isPending ? "Memuat pelanggan..." : "Belum ada pelanggan untuk toko ini."}
+                    {customersQuery.isPending ? "Loading customers..." : "No customers yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

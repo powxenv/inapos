@@ -85,18 +85,14 @@ export function readPreferredModel(provider: AiProvider) {
   }
 
   const key =
-    provider === "openrouter"
-      ? OPENROUTER_MODEL_PREFERENCE_KEY
-      : OLLAMA_MODEL_PREFERENCE_KEY;
+    provider === "openrouter" ? OPENROUTER_MODEL_PREFERENCE_KEY : OLLAMA_MODEL_PREFERENCE_KEY;
 
   return window.localStorage.getItem(key) ?? "";
 }
 
 export function savePreferredModel(provider: AiProvider, value: string) {
   const key =
-    provider === "openrouter"
-      ? OPENROUTER_MODEL_PREFERENCE_KEY
-      : OLLAMA_MODEL_PREFERENCE_KEY;
+    provider === "openrouter" ? OPENROUTER_MODEL_PREFERENCE_KEY : OLLAMA_MODEL_PREFERENCE_KEY;
 
   window.localStorage.setItem(key, value);
 }
@@ -105,7 +101,7 @@ export async function getOpenRouterFreeModels() {
   const response = await fetch("https://openrouter.ai/api/v1/models");
 
   if (!response.ok) {
-    throw new Error("Gagal memuat daftar model gratis OpenRouter.");
+    throw new Error("We couldn't load the available assistant options.");
   }
 
   const parsed = openRouterModelsResponseSchema.parse(await response.json());
@@ -138,7 +134,7 @@ export async function getAiProviderStatus() {
 
 export async function saveOpenRouterApiKey(apiKey: string) {
   if (!isTauriRuntime()) {
-    throw new Error("Penyimpanan API key hanya tersedia di desktop app.");
+    throw new Error("This option is only available in the desktop app.");
   }
 
   const response = await aiHttpFetch("/openrouter-api-key", {
@@ -156,7 +152,7 @@ export async function saveOpenRouterApiKey(apiKey: string) {
 
 export async function clearOpenRouterApiKey() {
   if (!isTauriRuntime()) {
-    throw new Error("Penyimpanan API key hanya tersedia di desktop app.");
+    throw new Error("This option is only available in the desktop app.");
   }
 
   const response = await aiHttpFetch("/openrouter-api-key", {

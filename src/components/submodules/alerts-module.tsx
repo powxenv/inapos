@@ -40,10 +40,13 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
               ELSE 'warning'
             END AS severity,
             CASE
-              WHEN COALESCE(inventory_items.on_hand, 0) <= 0 THEN products.name || ' habis'
-              ELSE products.name || ' menipis'
+              WHEN COALESCE(inventory_items.on_hand, 0) <= 0 THEN products.name || ' is out of stock'
+              ELSE products.name || ' is running low'
             END AS title,
-            'Sisa ' || COALESCE(inventory_items.on_hand, 0) || ' ' || COALESCE(products.unit, '') || ' dari batas restok ' || COALESCE(inventory_items.reorder_point, 0) AS detail
+            'Only ' || COALESCE(inventory_items.on_hand, 0) || CASE
+              WHEN COALESCE(products.unit, '') = '' THEN ''
+              ELSE ' ' || products.unit
+            END || ' left. Reorder point is ' || COALESCE(inventory_items.reorder_point, 0) AS detail
           FROM products
           LEFT JOIN inventory_items
             ON inventory_items.product_id = products.id
@@ -56,8 +59,8 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
           SELECT
             'order' AS kind,
             'warning' AS severity,
-            'Ada pesanan belum selesai' AS title,
-            COUNT(*) || ' pesanan masih berstatus draft, diproses, atau siap diambil.' AS detail
+            'Orders still in progress' AS title,
+            COUNT(*) || ' orders still need attention.' AS detail
           FROM sales
           WHERE store_id = ?
             AND status IN ('draft', 'ordered', 'ready')
@@ -73,9 +76,9 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Peringatan</h3>
+        <h3 className="text-lg font-semibold">Alerts</h3>
         <p className="text-sm text-stone-500">
-          Fokus ke hal yang perlu dicek sekarang, seperti stok bermasalah, pesanan terbuka, atau sinkronisasi gagal.
+          Start here when something needs attention, like low stock or unfinished orders.
         </p>
       </div>
 
@@ -83,9 +86,9 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Sinkronisasi bermasalah</Alert.Title>
+            <Alert.Title>Updates are having trouble</Alert.Title>
             <Alert.Description>
-              {syncError.message || "PowerSync belum berhasil menyelesaikan sinkronisasi."}
+              {syncError.message || "We couldn't update this device right now."}
             </Alert.Description>
           </Alert.Content>
         </Alert>
@@ -99,11 +102,11 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
                 <div className="space-y-1">
                   <Card.Title className="text-base">{item.title}</Card.Title>
                   <Card.Description className="text-sm text-stone-500">
-                    {item.kind === "stock" ? "Stok" : "Operasional"}
+                    {item.kind === "stock" ? "Stock" : "Orders"}
                   </Card.Description>
                 </div>
                 <Chip color={severityColor(item.severity)}>
-                  {item.severity === "danger" ? "Penting" : "Perlu dicek"}
+                  {item.severity === "danger" ? "Urgent" : "Check soon"}
                 </Chip>
               </Card.Header>
               <Card.Content>
@@ -114,7 +117,7 @@ export function AlertsModule({ storeId }: AlertsModuleProps) {
         ) : (
           <Card className="border border-stone-200 shadow-none">
             <Card.Content className="py-6">
-              <p className="text-sm text-stone-600">Belum ada peringatan penting untuk toko ini.</p>
+              <p className="text-sm text-stone-600">Nothing urgent right now.</p>
             </Card.Content>
           </Card>
         )}

@@ -50,13 +50,17 @@ const expenseSchema = z.object({
   amount: z
     .string()
     .trim()
-    .min(1, "Nominal wajib diisi.")
+    .min(1, "Enter an amount.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: "Nominal harus lebih dari 0.",
+      message: "Use an amount greater than 0.",
     }),
-  category: z.string().trim().max(60, "Kategori maksimal 60 karakter."),
-  paidAt: z.string().trim().min(1, "Tanggal wajib diisi."),
-  title: z.string().trim().min(1, "Keperluan wajib diisi.").max(120, "Keperluan maksimal 120 karakter."),
+  category: z.string().trim().max(60, "Use 60 characters or fewer."),
+  paidAt: z.string().trim().min(1, "Choose a date."),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Enter what this was for.")
+    .max(120, "Use 120 characters or fewer."),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -69,13 +73,13 @@ const defaultValues: ExpenseFormValues = {
 };
 
 const expenseCategoryOptions = [
-  { id: "listrik", label: "Listrik" },
-  { id: "air", label: "Air" },
+  { id: "listrik", label: "Electricity" },
+  { id: "air", label: "Water" },
   { id: "transport", label: "Transport" },
-  { id: "kemasan", label: "Kemasan" },
-  { id: "gaji", label: "Gaji" },
-  { id: "perawatan", label: "Perawatan" },
-  { id: "lainnya", label: "Lainnya" },
+  { id: "kemasan", label: "Packaging" },
+  { id: "gaji", label: "Wages" },
+  { id: "perawatan", label: "Maintenance" },
+  { id: "lainnya", label: "Other" },
 ] as const;
 
 function normalizeText(value: string) {
@@ -99,6 +103,14 @@ function formatRupiah(value: number | null | undefined) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
+}
+
+function expenseCategoryLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return expenseCategoryOptions.find((option) => option.id === value)?.label ?? value;
 }
 
 export function ExpensesModule({ storeId }: ExpensesModuleProps) {
@@ -171,7 +183,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
   function startEdit(expense: ExpenseRow) {
     setEditingExpense({
       id: expense.id,
-      title: expense.title ?? "Pengeluaran",
+      title: expense.title ?? "Expense",
     });
     setFormError(null);
     reset({
@@ -250,7 +262,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan pengeluaran.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this expense.");
     }
   }
 
@@ -268,16 +280,16 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus pengeluaran.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this expense.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Pengeluaran</h3>
+        <h3 className="text-lg font-semibold">Expenses</h3>
         <p className="text-sm text-stone-500">
-          Catat biaya operasional agar toko mudah melihat pengeluaran harian dan bulanan.
+          Keep everyday costs in one place so spending is easy to follow.
         </p>
       </div>
 
@@ -285,7 +297,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -294,23 +306,27 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Hari ini</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Today</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(summary?.today_total)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(summary?.today_total)}
+            </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Bulan ini</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">This month</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(summary?.month_total)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(summary?.month_total)}
+            </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Catatan tersimpan</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Saved entries</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">{summary?.count ?? 0}</p>
@@ -325,28 +341,26 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari pengeluaran"
+              aria-label="Search expenses"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari keperluan atau kategori"
+              placeholder="Search by purpose or category"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Tambah pengeluaran
+              Add expense
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingExpense ? "Ubah pengeluaran" : "Tambah pengeluaran"}>
+                <Modal.Dialog aria-label={editingExpense ? "Edit expense" : "Add expense"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingExpense
-                            ? `Ubah pengeluaran: ${editingExpense.title}`
-                            : "Tambah pengeluaran"}
+                          {editingExpense ? `Edit expense: ${editingExpense.title}` : "Add expense"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -357,8 +371,11 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                           })}
                         >
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-stone-700" htmlFor="expense-title">
-                              Keperluan
+                            <label
+                              className="block text-sm font-medium text-stone-700"
+                              htmlFor="expense-title"
+                            >
+                              What was it for?
                             </label>
                             <Controller
                               control={control}
@@ -374,35 +391,40 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                     id="expense-title"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: Bayar listrik"
+                                    placeholder="For example: Electricity bill"
                                     value={field.value}
                                   />
                                 </InputGroup>
                               )}
                             />
                             {formState.errors.title?.message ? (
-                              <p className="text-sm text-red-600">{formState.errors.title.message}</p>
+                              <p className="text-sm text-red-600">
+                                {formState.errors.title.message}
+                              </p>
                             ) : null}
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="expense-category">
-                                Kategori (optional)
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="expense-category"
+                              >
+                                Category (optional)
                               </label>
                               <Controller
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Kategori pengeluaran"
+                                    aria-label="Choose an expense category"
                                     className="w-full"
                                     id="expense-category"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Pilih kategori"
+                                    placeholder="Choose a category"
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -411,7 +433,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">Tanpa kategori</ListBox.Item>
+                                        <ListBox.Item id="">No category</ListBox.Item>
                                         {expenseCategoryOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
                                             {option.label}
@@ -425,8 +447,11 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="expense-amount">
-                                Nominal
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="expense-amount"
+                              >
+                                Amount
                               </label>
                               <Controller
                                 control={control}
@@ -446,13 +471,18 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                 )}
                               />
                               {formState.errors.amount?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.amount.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.amount.message}
+                                </p>
                               ) : null}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="expense-date">
-                                Tanggal
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="expense-date"
+                              >
+                                Date
                               </label>
                               <Controller
                                 control={control}
@@ -470,7 +500,9 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                 )}
                               />
                               {formState.errors.paidAt?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.paidAt.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.paidAt.message}
+                                </p>
                               ) : null}
                             </div>
                           </div>
@@ -484,10 +516,10 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingExpense ? "Simpan perubahan" : "Simpan pengeluaran"}
+                              {editingExpense ? "Save changes" : "Save expense"}
                             </Button>
                           </div>
                         </form>
@@ -500,19 +532,19 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredExpenses.length} dari {expenses.length} pengeluaran
+          {filteredExpenses.length} of {expenses.length} expenses
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel pengeluaran toko">
+          <Table.Content aria-label="Expense list">
             <Table.Header>
-              <Table.Column isRowHeader>Tanggal</Table.Column>
-              <Table.Column>Keperluan</Table.Column>
-              <Table.Column>Kategori</Table.Column>
-              <Table.Column>Nominal</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column isRowHeader>Date</Table.Column>
+              <Table.Column>Purpose</Table.Column>
+              <Table.Column>Category</Table.Column>
+              <Table.Column>Amount</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredExpenses.length > 0 ? (
@@ -520,38 +552,39 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                   <Table.Row key={expense.id}>
                     <Table.Cell>{formatDate(expense.paid_at)}</Table.Cell>
                     <Table.Cell>{expense.title ?? "-"}</Table.Cell>
-                    <Table.Cell>{expense.category ?? "-"}</Table.Cell>
+                    <Table.Cell>{expenseCategoryLabel(expense.category)}</Table.Cell>
                     <Table.Cell>{formatRupiah(expense.amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(expense)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus pengeluaran?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this expense?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {expense.title ?? "Pengeluaran ini"} akan dihapus dari catatan pengeluaran.
+                                  {expense.title ?? "This expense"} will be removed from your
+                                  expense list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === expense.id}
                                     onPress={() => void deleteExpense(expense.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -565,7 +598,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {expensesQuery.isPending ? "Memuat pengeluaran..." : "Belum ada pengeluaran untuk toko ini."}
+                    {expensesQuery.isPending ? "Loading expenses..." : "No expenses yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

@@ -47,16 +47,16 @@ type EditingPurchase = {
 };
 
 const purchaseSchema = z.object({
-  invoiceNumber: z.string().trim().max(80, "Nomor invoice maksimal 80 karakter."),
-  purchasedAt: z.string().trim().min(1, "Tanggal beli wajib diisi."),
+  invoiceNumber: z.string().trim().max(80, "Use 80 characters or fewer."),
+  purchasedAt: z.string().trim().min(1, "Choose a date."),
   status: z.enum(["draft", "ordered", "received"]),
-  supplierId: z.string().trim().max(100, "Supplier tidak valid."),
+  supplierId: z.string().trim().max(100, "Choose a valid supplier."),
   totalAmount: z
     .string()
     .trim()
-    .min(1, "Total belanja wajib diisi.")
+    .min(1, "Enter a total.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Total belanja harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
 });
 
@@ -72,8 +72,8 @@ const defaultValues: PurchaseFormValues = {
 
 const purchaseStatusOptions = [
   { id: "draft", label: "Draft" },
-  { id: "ordered", label: "Dipesan" },
-  { id: "received", label: "Diterima" },
+  { id: "ordered", label: "Ordered" },
+  { id: "received", label: "Received" },
 ] as const;
 
 function normalizeText(value: string) {
@@ -97,6 +97,14 @@ function formatRupiah(value: number | null | undefined) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
+}
+
+function purchaseStatusLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return purchaseStatusOptions.find((option) => option.id === value)?.label ?? value;
 }
 
 export function PurchasesModule({ storeId }: PurchasesModuleProps) {
@@ -175,12 +183,14 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
   function startEdit(purchase: PurchaseRow) {
     setEditingPurchase({
       id: purchase.id,
-      label: purchase.invoice_number ?? purchase.supplier_name ?? "Belanja stok",
+      label: purchase.invoice_number ?? purchase.supplier_name ?? "Purchase",
     });
     setFormError(null);
     reset({
       invoiceNumber: purchase.invoice_number ?? "",
-      purchasedAt: purchase.purchased_at ? purchase.purchased_at.slice(0, 10) : defaultValues.purchasedAt,
+      purchasedAt: purchase.purchased_at
+        ? purchase.purchased_at.slice(0, 10)
+        : defaultValues.purchasedAt,
       status:
         purchase.status === "ordered" || purchase.status === "received" ? purchase.status : "draft",
       supplierId: purchase.supplier_id ?? "",
@@ -263,7 +273,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan pembelian.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this purchase.");
     }
   }
 
@@ -281,22 +291,22 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus pembelian.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this purchase.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Belanja stok</h3>
-        <p className="text-sm text-stone-500">Catat pembelian stok agar histori belanja tetap rapi.</p>
+        <h3 className="text-lg font-semibold">Purchases</h3>
+        <p className="text-sm text-stone-500">Keep a clear record of stock purchases.</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -309,28 +319,28 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari pembelian"
+              aria-label="Search purchases"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari invoice, pemasok, atau status"
+              placeholder="Search by invoice, supplier, or status"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Catat pembelian
+              Add purchase
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingPurchase ? "Ubah pembelian" : "Catat pembelian"}>
+                <Modal.Dialog aria-label={editingPurchase ? "Edit purchase" : "Add purchase"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
                           {editingPurchase
-                            ? `Ubah pembelian: ${editingPurchase.label}`
-                            : "Catat pembelian"}
+                            ? `Edit purchase: ${editingPurchase.label}`
+                            : "Add purchase"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -345,7 +355,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="purchase-invoice-number"
                             >
-                              Nomor invoice (optional)
+                              Invoice number (optional)
                             </label>
                             <Controller
                               control={control}
@@ -380,21 +390,21 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-supplier"
                               >
-                                Pemasok (optional)
+                                Supplier (optional)
                               </label>
                               <Controller
                                 control={control}
                                 name="supplierId"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Pilih pemasok"
+                                    aria-label="Choose a supplier"
                                     className="w-full"
                                     id="purchase-supplier"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Pilih pemasok"
+                                    placeholder="Choose a supplier"
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -403,10 +413,10 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">Tanpa pemasok</ListBox.Item>
+                                        <ListBox.Item id="">No supplier</ListBox.Item>
                                         {supplierOptions.map((supplier) => (
                                           <ListBox.Item id={supplier.id} key={supplier.id}>
-                                            {supplier.name ?? "Pemasok tanpa nama"}
+                                            {supplier.name ?? "Unnamed supplier"}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -428,14 +438,14 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 name="status"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Status pembelian"
+                                    aria-label="Choose a purchase status"
                                     className="w-full"
                                     id="purchase-status"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "draft")
                                     }
-                                    placeholder="Pilih status"
+                                    placeholder="Choose a status"
                                     selectedKey={field.value}
                                   >
                                     <Select.Trigger className="w-full">
@@ -461,7 +471,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-total-amount"
                               >
-                                Total belanja
+                                Total
                               </label>
                               <Controller
                                 control={control}
@@ -492,7 +502,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-date"
                               >
-                                Tanggal beli
+                                Date
                               </label>
                               <Controller
                                 control={control}
@@ -526,10 +536,10 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingPurchase ? "Simpan perubahan" : "Simpan pembelian"}
+                              {editingPurchase ? "Save changes" : "Save purchase"}
                             </Button>
                           </div>
                         </form>
@@ -542,20 +552,20 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredPurchases.length} dari {purchases.length} pembelian
+          {filteredPurchases.length} of {purchases.length} purchases
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel pembelian toko">
+          <Table.Content aria-label="Purchase list">
             <Table.Header>
-              <Table.Column isRowHeader>Tanggal</Table.Column>
+              <Table.Column isRowHeader>Date</Table.Column>
               <Table.Column>Invoice</Table.Column>
-              <Table.Column>Pemasok</Table.Column>
+              <Table.Column>Supplier</Table.Column>
               <Table.Column>Status</Table.Column>
               <Table.Column>Total</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredPurchases.length > 0 ? (
@@ -564,38 +574,41 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                     <Table.Cell>{formatDate(purchase.purchased_at)}</Table.Cell>
                     <Table.Cell>{purchase.invoice_number ?? "-"}</Table.Cell>
                     <Table.Cell>{purchase.supplier_name ?? "-"}</Table.Cell>
-                    <Table.Cell>{purchase.status ?? "-"}</Table.Cell>
+                    <Table.Cell>{purchaseStatusLabel(purchase.status)}</Table.Cell>
                     <Table.Cell>{formatRupiah(purchase.total_amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(purchase)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus pembelian?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this purchase?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  Catatan pembelian {purchase.invoice_number ?? purchase.supplier_name ?? "ini"} akan dihapus.
+                                  {purchase.invoice_number ??
+                                    purchase.supplier_name ??
+                                    "This purchase"}{" "}
+                                  will be removed from your purchase list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === purchase.id}
                                     onPress={() => void deletePurchase(purchase.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -609,7 +622,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={6}>
-                    {purchasesQuery.isPending ? "Memuat pembelian..." : "Belum ada catatan pembelian untuk toko ini."}
+                    {purchasesQuery.isPending ? "Loading purchases..." : "No purchases yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

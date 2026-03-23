@@ -13,13 +13,13 @@ import { UserIcon } from "@phosphor-icons/react/dist/csr/User";
 
 const signUpSchema = z
   .object({
-    name: z.string().min(1, "Nama wajib diisi."),
-    email: z.email("Format email tidak valid."),
-    password: z.string().min(8, "Kata sandi minimal 8 karakter."),
-    confirmPassword: z.string().min(1, "Konfirmasi kata sandi wajib diisi."),
+    name: z.string().min(1, "Enter your name."),
+    email: z.email("Enter a valid email address."),
+    password: z.string().min(8, "Use at least 8 characters."),
+    confirmPassword: z.string().min(1, "Enter your password again."),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Konfirmasi kata sandi belum sama.",
+    message: "The passwords do not match.",
     path: ["confirmPassword"],
   });
 
@@ -69,7 +69,7 @@ function RouteComponent() {
       if (error) {
         setError("root", {
           type: "server",
-          message: error.message ?? "Gagal membuat akun.",
+          message: error.message ?? "We couldn't create your account.",
         });
         return;
       }
@@ -78,7 +78,7 @@ function RouteComponent() {
     } catch (error) {
       setError("root", {
         type: "server",
-        message: error instanceof Error ? error.message : "Gagal membuat akun.",
+        message: error instanceof Error ? error.message : "We couldn't create your account.",
       });
     }
   });
@@ -87,14 +87,14 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Daftar</h1>
-          <p className="text-sm text-stone-500">Buat akun baru untuk mengakses aplikasi.</p>
+          <h1 className="text-2xl font-semibold text-stone-900">Create account</h1>
+          <p className="text-sm text-stone-500">Set up your account and get started.</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-name">
-              Nama
+              Your name
             </label>
             <Controller
               control={control}
@@ -106,13 +106,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Nama"
+                    aria-label="Your name"
                     autoComplete="name"
                     className="w-full"
                     id="sign-up-name"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Nama pemilik atau kasir"
+                    placeholder="Your full name"
                     value={field.value}
                   />
                 </InputGroup>
@@ -125,7 +125,7 @@ function RouteComponent() {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-email">
-              Email
+              Email address
             </label>
             <Controller
               control={control}
@@ -137,13 +137,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Email"
+                    aria-label="Email address"
                     autoComplete="email"
                     className="w-full"
                     id="sign-up-email"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="nama@toko.com"
+                    placeholder="you@yourstore.com"
                     type="email"
                     value={field.value}
                   />
@@ -157,7 +157,7 @@ function RouteComponent() {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="sign-up-password">
-              Kata sandi
+              Password
             </label>
             <Controller
               control={control}
@@ -169,21 +169,19 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Kata sandi"
+                    aria-label="Password"
                     autoComplete="new-password"
                     className="w-full"
                     id="sign-up-password"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Buat kata sandi"
+                    placeholder="Create a password"
                     type={isPasswordVisible ? "text" : "password"}
                     value={field.value}
                   />
                   <InputGroup.Suffix className="pr-0">
                     <Button
-                      aria-label={
-                        isPasswordVisible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
-                      }
+                      aria-label={isPasswordVisible ? "Hide password" : "Show password"}
                       onPress={() => setIsPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
@@ -210,7 +208,7 @@ function RouteComponent() {
               className="block text-sm font-medium text-stone-700"
               htmlFor="sign-up-confirm-password"
             >
-              Konfirmasi kata sandi
+              Confirm password
             </label>
             <Controller
               control={control}
@@ -222,23 +220,19 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Konfirmasi kata sandi"
+                    aria-label="Confirm password"
                     autoComplete="new-password"
                     className="w-full"
                     id="sign-up-confirm-password"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Ulangi kata sandi"
+                    placeholder="Enter the password again"
                     type={isConfirmPasswordVisible ? "text" : "password"}
                     value={field.value}
                   />
                   <InputGroup.Suffix className="pr-0">
                     <Button
-                      aria-label={
-                        isConfirmPasswordVisible
-                          ? "Sembunyikan konfirmasi kata sandi"
-                          : "Tampilkan konfirmasi kata sandi"
-                      }
+                      aria-label={isConfirmPasswordVisible ? "Hide password" : "Show password"}
                       onPress={() => setIsConfirmPasswordVisible((value) => !value)}
                       size="sm"
                       type="button"
@@ -264,14 +258,14 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Pendaftaran gagal</Alert.Title>
+                <Alert.Title>Account setup failed</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Buat akun
+            Create account
           </Button>
 
           <div className="pt-1 text-sm">
@@ -279,7 +273,7 @@ function RouteComponent() {
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/sign-in"
             >
-              Sudah punya akun? Masuk
+              Already have an account? Sign in
             </Link>
           </div>
         </form>

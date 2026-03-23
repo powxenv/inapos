@@ -33,7 +33,7 @@ import {
 } from "../../lib/ollama";
 
 const openRouterApiKeySchema = z.object({
-  apiKey: z.string().trim().min(1, "API key OpenRouter wajib diisi."),
+  apiKey: z.string().trim().min(1, "Enter your sign-in key."),
 });
 
 type OpenRouterApiKeyFormValues = z.infer<typeof openRouterApiKeySchema>;
@@ -71,22 +71,26 @@ function savePreferredOpenRouterModel(value: string) {
   savePreferredModel("openrouter", value);
 }
 
-function buildStatusMessage(provider: AiProvider, status: OllamaStatus | null, providerStatus: AiProviderStatus | null) {
+function buildStatusMessage(
+  provider: AiProvider,
+  status: OllamaStatus | null,
+  providerStatus: AiProviderStatus | null,
+) {
   if (provider === "openrouter") {
     return providerStatus?.openrouterConfigured
-      ? "API key sudah tersimpan di database lokal aplikasi."
-      : "Masukkan API key OpenRouter untuk mulai memakai model cloud.";
+      ? "Your sign-in key is saved on this device."
+      : "Add your sign-in key to use the online assistant.";
   }
 
   if (!status) {
-    return "Status Ollama belum tersedia.";
+    return "This device is not ready yet.";
   }
 
   if (status.ollamaRunning) {
-    return "Ollama lokal aktif dan siap dipakai.";
+    return "The assistant on this device is ready.";
   }
 
-  return status.reason ?? "Ollama belum aktif di desktop app ini.";
+  return status.reason ?? "The assistant on this device is not ready yet.";
 }
 
 export function AiModelsModule() {
@@ -96,7 +100,9 @@ export function AiModelsModule() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<AiProvider>(readPreferredAiProvider);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState(readPreferredOllamaModel);
-  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(readPreferredOpenRouterModel);
+  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(
+    readPreferredOpenRouterModel,
+  );
   const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
   const [openRouterModelsError, setOpenRouterModelsError] = useState<string | null>(null);
   const [isLoadingOpenRouterModels, setIsLoadingOpenRouterModels] = useState(false);
@@ -142,7 +148,9 @@ export function AiModelsModule() {
       setStatus(nextStatus);
       setProviderStatus(nextProviderStatus);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "Gagal memeriksa status AI.");
+      setStatusError(
+        error instanceof Error ? error.message : "We couldn't check the assistant setup.",
+      );
       setStatus(null);
       setProviderStatus(null);
     } finally {
@@ -160,7 +168,7 @@ export function AiModelsModule() {
     } catch (error) {
       setOpenRouterModels([]);
       setOpenRouterModelsError(
-        error instanceof Error ? error.message : "Gagal memuat model gratis OpenRouter.",
+        error instanceof Error ? error.message : "We couldn't load the available options.",
       );
     } finally {
       setIsLoadingOpenRouterModels(false);
@@ -190,7 +198,9 @@ export function AiModelsModule() {
           }
         }
       } catch (error) {
-        setPullError(error instanceof Error ? error.message : "Gagal membaca progress download model.");
+        setPullError(
+          error instanceof Error ? error.message : "We couldn't check the download progress.",
+        );
         if (intervalId !== null) {
           window.clearInterval(intervalId);
         }
@@ -238,7 +248,7 @@ export function AiModelsModule() {
 
     const installed = new Set(openRouterModels.map((model) => model.id));
     const preferred = readPreferredOpenRouterModel();
-    const nextModel = installed.has(preferred) ? preferred : openRouterModels[0]?.id ?? "";
+    const nextModel = installed.has(preferred) ? preferred : (openRouterModels[0]?.id ?? "");
 
     if (!nextModel) {
       return;
@@ -271,11 +281,11 @@ export function AiModelsModule() {
         done: false,
         error: null,
         model: modelName,
-        status: "Memulai download model...",
+        status: "Starting your download...",
         total: null,
       });
     } catch (error) {
-      setPullError(error instanceof Error ? error.message : "Gagal memulai download model.");
+      setPullError(error instanceof Error ? error.message : "We couldn't start the download.");
     }
   }
 
@@ -305,13 +315,12 @@ export function AiModelsModule() {
     try {
       const nextStatus = await saveOpenRouterApiKey(apiKey);
       setProviderStatus(nextStatus);
-      setProviderMessage("API key OpenRouter berhasil disimpan di database lokal aplikasi.");
+      setProviderMessage("Your sign-in key has been saved on this device.");
       reset({
         apiKey: "",
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Gagal menyimpan API key OpenRouter.";
+      const message = error instanceof Error ? error.message : "We couldn't save your sign-in key.";
       setError("root", {
         type: "server",
         message,
@@ -329,13 +338,13 @@ export function AiModelsModule() {
     try {
       const nextStatus = await clearOpenRouterApiKey();
       setProviderStatus(nextStatus);
-      setProviderMessage("API key OpenRouter berhasil dihapus dari database lokal aplikasi.");
+      setProviderMessage("Your sign-in key has been removed from this device.");
       reset({
         apiKey: "",
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Gagal menghapus API key OpenRouter.";
+        error instanceof Error ? error.message : "We couldn't remove your sign-in key.";
       setProviderError(message);
     } finally {
       setIsClearingApiKey(false);
@@ -345,26 +354,29 @@ export function AiModelsModule() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Model AI</h3>
-        <p className="text-sm text-stone-500">Pilih sumber AI dan model yang ingin dipakai.</p>
+        <h3 className="text-lg font-semibold">Assistant setup</h3>
+        <p className="text-sm text-stone-500">
+          Choose how the assistant should work for this store.
+        </p>
       </div>
 
       <Card className="border border-stone-200 shadow-none">
         <Card.Content className="space-y-4 p-4">
           <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-            <Switch
-              isSelected={selectedProvider === "openrouter"}
-              onChange={handleProviderToggle}
-            >
+            <Switch isSelected={selectedProvider === "openrouter"} onChange={handleProviderToggle}>
               <Switch.Control>
                 <Switch.Thumb />
               </Switch.Control>
               <Switch.Content>
                 <div>
                   <p className="font-medium text-stone-950">
-                    {selectedProvider === "openrouter" ? "OpenRouter aktif" : "Ollama aktif"}
+                    {selectedProvider === "openrouter"
+                      ? "Online assistant is on"
+                      : "This device is on"}
                   </p>
-                  <p className="text-sm text-stone-500">Aktifkan untuk pakai cloud. Nonaktif untuk pakai lokal.</p>
+                  <p className="text-sm text-stone-500">
+                    Turn this on to use the online assistant. Turn it off to use this device.
+                  </p>
                 </div>
               </Switch.Content>
             </Switch>
@@ -376,7 +388,7 @@ export function AiModelsModule() {
           <div className="flex flex-wrap gap-2">
             <Button onPress={() => void loadStatus()} variant="outline">
               <ArrowClockwiseIcon aria-hidden size={16} />
-              Refresh status
+              Check again
             </Button>
             {selectedProvider === "openrouter" ? (
               <Button
@@ -385,20 +397,22 @@ export function AiModelsModule() {
                 variant="outline"
               >
                 <ArrowClockwiseIcon aria-hidden size={16} />
-                Refresh model
+                Refresh options
               </Button>
             ) : null}
           </div>
         </Card.Content>
       </Card>
 
-      {isLoading ? <p className="text-sm text-stone-500">Memeriksa status AI...</p> : null}
+      {isLoading ? (
+        <p className="text-sm text-stone-500">Checking your assistant setup...</p>
+      ) : null}
 
       {statusError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Gagal memeriksa status AI</Alert.Title>
+            <Alert.Title>We couldn’t check the setup</Alert.Title>
             <Alert.Description>{statusError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -408,20 +422,25 @@ export function AiModelsModule() {
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Model</Card.Title>
+              <Card.Title>Assistant option</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Model gratis</span>
-                <span className="text-sm font-medium text-stone-950">{openRouterModels.length}</span>
+                <span className="text-sm text-stone-500">Available options</span>
+                <span className="text-sm font-medium text-stone-950">
+                  {openRouterModels.length}
+                </span>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-stone-700" htmlFor="openrouter-model">
-                  Model default
+                <label
+                  className="block text-sm font-medium text-stone-700"
+                  htmlFor="openrouter-model"
+                >
+                  Default option
                 </label>
                 <Select
-                  aria-label="Pilih model OpenRouter gratis"
+                  aria-label="Choose a default online assistant option"
                   className="w-full"
                   id="openrouter-model"
                   isDisabled={!openRouterModels.length}
@@ -463,7 +482,7 @@ export function AiModelsModule() {
                 <Alert status="danger">
                   <Alert.Indicator />
                   <Alert.Content>
-                    <Alert.Title>Gagal memuat model</Alert.Title>
+                    <Alert.Title>We couldn’t load the options</Alert.Title>
                     <Alert.Description>{openRouterModelsError}</Alert.Description>
                   </Alert.Content>
                 </Alert>
@@ -473,20 +492,23 @@ export function AiModelsModule() {
 
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>API key</Card.Title>
+              <Card.Title>Sign-in key</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
                 <span className="text-sm text-stone-500">Status</span>
                 <span className="text-sm font-medium text-stone-950">
-                  {providerStatus?.openrouterConfigured ? "Tersimpan" : "Belum ada"}
+                  {providerStatus?.openrouterConfigured ? "Saved" : "Not added"}
                 </span>
               </div>
 
               <form className="space-y-3" onSubmit={saveApiKey}>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-stone-700" htmlFor="openrouter-api-key">
-                    API key
+                  <label
+                    className="block text-sm font-medium text-stone-700"
+                    htmlFor="openrouter-api-key"
+                  >
+                    Sign-in key
                   </label>
                   <Controller
                     control={control}
@@ -498,7 +520,7 @@ export function AiModelsModule() {
                         </InputGroup.Prefix>
                         <InputGroup.Input
                           aria-invalid={fieldState.invalid}
-                          aria-label="API key OpenRouter"
+                          aria-label="Assistant sign-in key"
                           autoComplete="off"
                           className="w-full"
                           id="openrouter-api-key"
@@ -510,9 +532,7 @@ export function AiModelsModule() {
                         />
                         <InputGroup.Suffix className="pr-0">
                           <Button
-                            aria-label={
-                              isApiKeyVisible ? "Sembunyikan API key" : "Tampilkan API key"
-                            }
+                            aria-label={isApiKeyVisible ? "Hide sign-in key" : "Show sign-in key"}
                             className="min-w-0 px-2 text-stone-500 hover:text-stone-900"
                             onPress={() => setIsApiKeyVisible((value) => !value)}
                             size="sm"
@@ -538,7 +558,7 @@ export function AiModelsModule() {
                   <Alert status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>Penyimpanan API key gagal</Alert.Title>
+                      <Alert.Title>We couldn’t save the key</Alert.Title>
                       <Alert.Description>{errors.root.message}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -548,7 +568,7 @@ export function AiModelsModule() {
                   <Alert status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>Gagal</Alert.Title>
+                      <Alert.Title>That didn’t work</Alert.Title>
                       <Alert.Description>{providerError}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -558,7 +578,7 @@ export function AiModelsModule() {
                   <Alert status="success">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>Tersimpan</Alert.Title>
+                      <Alert.Title>Saved</Alert.Title>
                       <Alert.Description>{providerMessage}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -566,7 +586,7 @@ export function AiModelsModule() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button isPending={isSubmitting} type="submit">
-                    Simpan API key
+                    Save key
                   </Button>
                   <Button
                     isDisabled={!providerStatus?.openrouterConfigured}
@@ -575,7 +595,7 @@ export function AiModelsModule() {
                     type="button"
                     variant="outline"
                   >
-                    Hapus API key
+                    Remove key
                   </Button>
                 </div>
               </form>
@@ -588,7 +608,7 @@ export function AiModelsModule() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Download model gagal</Alert.Title>
+            <Alert.Title>Download failed</Alert.Title>
             <Alert.Description>{pullError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -600,15 +620,17 @@ export function AiModelsModule() {
           <Alert.Content>
             <Alert.Title>
               {pullProgress.active
-                ? `Mengunduh ${pullProgress.model}`
+                ? "Downloading your option"
                 : pullProgress.error
-                  ? `Download ${pullProgress.model} gagal`
-                  : `${pullProgress.model} selesai diunduh`}
+                  ? "Download failed"
+                  : "Download complete"}
             </Alert.Title>
             <Alert.Description>
               {pullProgress.error ??
                 pullProgress.status ??
-                (progressPercent !== null ? `Progress ${progressPercent}%` : "Menunggu progress dari Ollama...")}
+                (progressPercent !== null
+                  ? `Progress ${progressPercent}%`
+                  : "Waiting for progress...")}
               {progressPercent !== null && pullProgress.active ? ` (${progressPercent}%)` : ""}
             </Alert.Description>
           </Alert.Content>
@@ -619,7 +641,7 @@ export function AiModelsModule() {
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Runtime</Card.Title>
+              <Card.Title>This device</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
@@ -627,13 +649,13 @@ export function AiModelsModule() {
                 <span className="text-sm font-medium text-stone-950">{status.platform}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Ollama</span>
+                <span className="text-sm text-stone-500">On-device helper</span>
                 <span className="text-sm font-medium text-stone-950">
                   {status.ollamaInstalled
                     ? status.ollamaRunning
-                      ? "Aktif"
-                      : "Terpasang"
-                    : "Belum ada"}
+                      ? "Ready"
+                      : "Installed"
+                    : "Not set up"}
                 </span>
               </div>
               {status.reason ? (
@@ -644,7 +666,7 @@ export function AiModelsModule() {
               {!status.ollamaInstalled && status.isDesktop ? (
                 <Button onPress={() => void handleInstallOllama()}>
                   <DownloadSimpleIcon aria-hidden size={16} />
-                  Install Ollama
+                  Set up on this device
                 </Button>
               ) : null}
             </Card.Content>
@@ -652,22 +674,22 @@ export function AiModelsModule() {
 
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Model</Card.Title>
+              <Card.Title>Assistant option</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
                 <span className="text-sm text-stone-500">Default</span>
                 <span className="text-sm font-medium text-stone-950">
-                  {selectedOllamaModel || "Belum dipilih"}
+                  {selectedOllamaModel || "Not chosen yet"}
                 </span>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-stone-700" htmlFor="ollama-model">
-                  Model lokal
+                  On-device option
                 </label>
                 <Select
-                  aria-label="Pilih model Ollama"
+                  aria-label="Choose an assistant option for this device"
                   className="w-full"
                   id="ollama-model"
                   isDisabled={!installedModels.length}
@@ -690,7 +712,9 @@ export function AiModelsModule() {
                         <ListBox.Item id={model.name} key={model.name} textValue={model.name}>
                           <div className="flex w-full items-center justify-between gap-3">
                             <span>{model.name}</span>
-                            <span className="text-xs text-stone-500">{formatBytes(model.size)}</span>
+                            <span className="text-xs text-stone-500">
+                              {formatBytes(model.size)}
+                            </span>
                           </div>
                           <ListBox.ItemIndicator />
                         </ListBox.Item>
@@ -704,12 +728,14 @@ export function AiModelsModule() {
                 <Button
                   isDisabled={Boolean(pullProgress?.active)}
                   onPress={() => void handleDownloadModel(recommendedOllamaModels[0].name)}
-                  variant={installedNames.has(recommendedOllamaModels[0].name) ? "outline" : "primary"}
+                  variant={
+                    installedNames.has(recommendedOllamaModels[0].name) ? "outline" : "primary"
+                  }
                 >
                   <DownloadSimpleIcon aria-hidden size={16} />
                   {installedNames.has(recommendedOllamaModels[0].name)
-                    ? "Download ulang"
-                    : `Download ${recommendedOllamaModels[0].name}`}
+                    ? "Download again"
+                    : "Download recommended option"}
                 </Button>
                 {installedNames.has(recommendedOllamaModels[0].name) ? (
                   <Button
@@ -720,7 +746,7 @@ export function AiModelsModule() {
                         : "outline"
                     }
                   >
-                    Pakai default
+                    Set as default
                   </Button>
                 ) : null}
               </div>

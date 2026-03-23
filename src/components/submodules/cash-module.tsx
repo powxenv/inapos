@@ -55,14 +55,14 @@ const cashEntrySchema = z.object({
   amount: z
     .string()
     .trim()
-    .min(1, "Nominal wajib diisi.")
+    .min(1, "Enter an amount.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: "Nominal harus lebih dari 0.",
+      message: "Use an amount greater than 0.",
     }),
   entryType: z.enum(["in", "out"]),
-  happenedAt: z.string().trim().min(1, "Tanggal wajib diisi."),
-  note: z.string().trim().max(200, "Catatan maksimal 200 karakter."),
-  title: z.string().trim().min(1, "Keterangan wajib diisi.").max(120, "Keterangan maksimal 120 karakter."),
+  happenedAt: z.string().trim().min(1, "Choose a date."),
+  note: z.string().trim().max(200, "Use 200 characters or fewer."),
+  title: z.string().trim().min(1, "Enter a short title.").max(120, "Use 120 characters or fewer."),
 });
 
 type CashEntryFormValues = z.infer<typeof cashEntrySchema>;
@@ -76,8 +76,8 @@ const defaultValues: CashEntryFormValues = {
 };
 
 const cashTypeOptions = [
-  { id: "in", label: "Kas masuk" },
-  { id: "out", label: "Kas keluar" },
+  { id: "in", label: "Cash in" },
+  { id: "out", label: "Cash out" },
 ] as const;
 
 function normalizeText(value: string) {
@@ -108,14 +108,14 @@ function cashTypeMeta(entryType: string | null) {
     return {
       color: "danger" as const,
       icon: ArrowUpIcon,
-      label: "Kas keluar",
+      label: "Cash out",
     };
   }
 
   return {
     color: "success" as const,
     icon: ArrowDownIcon,
-    label: "Kas masuk",
+    label: "Cash in",
   };
 }
 
@@ -275,7 +275,7 @@ export function CashModule({ storeId }: CashModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan kas.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this cash entry.");
     }
   }
 
@@ -293,16 +293,16 @@ export function CashModule({ storeId }: CashModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus transaksi kas.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this cash entry.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Kas</h3>
+        <h3 className="text-lg font-semibold">Cash</h3>
         <p className="text-sm text-stone-500">
-          Catat uang masuk dan keluar supaya saldo kas toko mudah dipantau setiap hari.
+          Track money coming in and going out so your cash balance stays clear.
         </p>
       </div>
 
@@ -310,7 +310,7 @@ export function CashModule({ storeId }: CashModuleProps) {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -319,7 +319,7 @@ export function CashModule({ storeId }: CashModuleProps) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Saldo kas</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Cash balance</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">{formatRupiah(summary?.balance)}</p>
@@ -327,7 +327,7 @@ export function CashModule({ storeId }: CashModuleProps) {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Masuk hari ini</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Money in today</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
@@ -337,7 +337,7 @@ export function CashModule({ storeId }: CashModuleProps) {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Keluar hari ini</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Money out today</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
@@ -347,10 +347,12 @@ export function CashModule({ storeId }: CashModuleProps) {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Transaksi tercatat</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Saved entries</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{summary?.transaction_count ?? 0}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {summary?.transaction_count ?? 0}
+            </p>
           </Card.Content>
         </Card>
       </div>
@@ -362,26 +364,26 @@ export function CashModule({ storeId }: CashModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari transaksi kas"
+              aria-label="Search cash entries"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari keterangan atau catatan"
+              placeholder="Search by title or note"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Catat kas
+              Add entry
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingEntry ? "Ubah kas" : "Catat kas"}>
+                <Modal.Dialog aria-label={editingEntry ? "Edit cash entry" : "Add cash entry"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingEntry ? `Ubah transaksi: ${editingEntry.title}` : "Catat transaksi kas"}
+                          {editingEntry ? `Edit entry: ${editingEntry.title}` : "Add cash entry"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -392,8 +394,11 @@ export function CashModule({ storeId }: CashModuleProps) {
                           })}
                         >
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-stone-700" htmlFor="cash-title">
-                              Keterangan
+                            <label
+                              className="block text-sm font-medium text-stone-700"
+                              htmlFor="cash-title"
+                            >
+                              Title
                             </label>
                             <Controller
                               control={control}
@@ -409,35 +414,40 @@ export function CashModule({ storeId }: CashModuleProps) {
                                     id="cash-title"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: Penjualan tunai"
+                                    placeholder="For example: Cash sale"
                                     value={field.value}
                                   />
                                 </InputGroup>
                               )}
                             />
                             {formState.errors.title?.message ? (
-                              <p className="text-sm text-red-600">{formState.errors.title.message}</p>
+                              <p className="text-sm text-red-600">
+                                {formState.errors.title.message}
+                              </p>
                             ) : null}
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="cash-type">
-                                Jenis transaksi
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="cash-type"
+                              >
+                                Entry type
                               </label>
                               <Controller
                                 control={control}
                                 name="entryType"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Jenis transaksi kas"
+                                    aria-label="Choose an entry type"
                                     className="w-full"
                                     id="cash-type"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "in")
                                     }
-                                    placeholder="Pilih jenis transaksi"
+                                    placeholder="Choose a type"
                                     selectedKey={field.value}
                                   >
                                     <Select.Trigger className="w-full">
@@ -459,8 +469,11 @@ export function CashModule({ storeId }: CashModuleProps) {
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="cash-amount">
-                                Nominal
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="cash-amount"
+                              >
+                                Amount
                               </label>
                               <Controller
                                 control={control}
@@ -480,13 +493,18 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 )}
                               />
                               {formState.errors.amount?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.amount.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.amount.message}
+                                </p>
                               ) : null}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="cash-date">
-                                Tanggal
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="cash-date"
+                              >
+                                Date
                               </label>
                               <Controller
                                 control={control}
@@ -504,13 +522,18 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 )}
                               />
                               {formState.errors.happenedAt?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.happenedAt.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.happenedAt.message}
+                                </p>
                               ) : null}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="cash-note">
-                                Catatan (optional)
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="cash-note"
+                              >
+                                Note (optional)
                               </label>
                               <Controller
                                 control={control}
@@ -521,13 +544,15 @@ export function CashModule({ storeId }: CashModuleProps) {
                                     id="cash-note"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: dari pelanggan grosir"
+                                    placeholder="For example: Paid by wholesale customer"
                                     value={field.value}
                                   />
                                 )}
                               />
                               {formState.errors.note?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.note.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.note.message}
+                                </p>
                               ) : null}
                             </div>
                           </div>
@@ -541,10 +566,10 @@ export function CashModule({ storeId }: CashModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingEntry ? "Simpan perubahan" : "Simpan transaksi"}
+                              {editingEntry ? "Save changes" : "Save entry"}
                             </Button>
                           </div>
                         </form>
@@ -557,20 +582,20 @@ export function CashModule({ storeId }: CashModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredEntries.length} dari {entries.length} transaksi
+          {filteredEntries.length} of {entries.length} entries
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel kas toko">
+          <Table.Content aria-label="Cash entries">
             <Table.Header>
-              <Table.Column isRowHeader>Tanggal</Table.Column>
-              <Table.Column>Keterangan</Table.Column>
-              <Table.Column>Jenis</Table.Column>
-              <Table.Column>Catatan</Table.Column>
-              <Table.Column>Nominal</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column isRowHeader>Date</Table.Column>
+              <Table.Column>Title</Table.Column>
+              <Table.Column>Type</Table.Column>
+              <Table.Column>Note</Table.Column>
+              <Table.Column>Amount</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredEntries.length > 0 ? (
@@ -594,32 +619,33 @@ export function CashModule({ storeId }: CashModuleProps) {
                         <div className="flex items-center gap-2">
                           <Button onPress={() => startEdit(entry)} size="sm" variant="outline">
                             <PencilSimpleIcon aria-hidden size={16} />
-                            Ubah
+                            Edit
                           </Button>
                           <AlertDialog>
                             <Button size="sm" variant="tertiary">
                               <TrashIcon aria-hidden size={16} />
-                              Hapus
+                              Delete
                             </Button>
                             <AlertDialog.Backdrop>
                               <AlertDialog.Container placement="center" size="sm">
                                 <AlertDialog.Dialog>
                                   <AlertDialog.Header>
-                                    <AlertDialog.Heading>Hapus transaksi kas?</AlertDialog.Heading>
+                                    <AlertDialog.Heading>Delete this entry?</AlertDialog.Heading>
                                   </AlertDialog.Header>
                                   <AlertDialog.Body>
-                                    {entry.title ?? "Transaksi ini"} akan dihapus dari buku kas.
+                                    {entry.title ?? "This entry"} will be removed from your cash
+                                    list.
                                   </AlertDialog.Body>
                                   <AlertDialog.Footer>
                                     <Button slot="close" variant="tertiary">
-                                      Batal
+                                      Cancel
                                     </Button>
                                     <Button
                                       isPending={pendingDeleteId === entry.id}
                                       onPress={() => void deleteEntry(entry.id)}
                                       variant="danger"
                                     >
-                                      Hapus
+                                      Delete
                                     </Button>
                                   </AlertDialog.Footer>
                                 </AlertDialog.Dialog>
@@ -634,7 +660,7 @@ export function CashModule({ storeId }: CashModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={6}>
-                    {entriesQuery.isPending ? "Memuat buku kas..." : "Belum ada transaksi kas untuk toko ini."}
+                    {entriesQuery.isPending ? "Loading cash entries..." : "No cash entries yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

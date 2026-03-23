@@ -9,10 +9,7 @@ import { z } from "zod";
 import { createRandomOrganizationSlug, useOrganizationGate } from "../../lib/organization";
 
 const setupStoreSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Nama toko minimal 2 karakter.")
-    .max(80, "Nama toko maksimal 80 karakter."),
+  name: z.string().min(2, "Use at least 2 characters.").max(80, "Use 80 characters or fewer."),
 });
 
 type SetupStoreFormValues = z.infer<typeof setupStoreSchema>;
@@ -65,7 +62,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Menyiapkan toko..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Getting your store ready..."}</p>
       </main>
     );
   }
@@ -81,7 +78,7 @@ function RouteComponent() {
     if (error) {
       setError("root", {
         type: "server",
-        message: error.message ?? "Gagal membuat toko.",
+        message: error.message ?? "We couldn't create your store.",
       });
       return;
     }
@@ -96,9 +93,9 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Buat toko</h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Name your store</h1>
           <p className="text-sm text-stone-500">
-            Masukkan nama toko untuk mulai menggunakan aplikasi.
+            Pick the name people should see when they use this store.
           </p>
         </div>
 
@@ -106,7 +103,7 @@ function RouteComponent() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Data toko gagal dimuat</Alert.Title>
+              <Alert.Title>We couldn't load your store details</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -115,7 +112,7 @@ function RouteComponent() {
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-stone-700" htmlFor="setup-store-name">
-              Nama toko
+              Store name
             </label>
             <Controller
               control={control}
@@ -127,13 +124,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Nama toko"
+                    aria-label="Store name"
                     autoComplete="organization"
                     className="w-full"
                     id="setup-store-name"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="Warung Maju Jaya"
+                    placeholder="Sunrise Corner Store"
                     value={field.value}
                   />
                 </InputGroup>
@@ -142,9 +139,7 @@ function RouteComponent() {
             {errors.name?.message ? (
               <p className="text-sm text-red-600">{errors.name.message}</p>
             ) : (
-              <p className="text-sm text-stone-500">
-                Nama ini akan tampil sebagai toko aktif di dashboard.
-              </p>
+              <p className="text-sm text-stone-500">This name will appear across the app.</p>
             )}
           </div>
 
@@ -152,14 +147,14 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Pembuatan toko gagal</Alert.Title>
+                <Alert.Title>We couldn't create your store</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Buat toko dan lanjutkan
+            Continue
           </Button>
         </form>
       </div>

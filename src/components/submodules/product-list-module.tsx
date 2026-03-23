@@ -39,29 +39,25 @@ type ProductRow = {
 };
 
 const productSchema = z.object({
-  barcode: z.string().trim().max(50, "Barcode maksimal 50 karakter."),
-  category: z.string().trim().max(60, "Kategori maksimal 60 karakter."),
+  barcode: z.string().trim().max(50, "Use 50 characters or fewer."),
+  category: z.string().trim().max(60, "Use 60 characters or fewer."),
   costPrice: z
     .string()
     .trim()
-    .min(1, "Harga modal wajib diisi.")
+    .min(1, "Enter a cost price.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Harga modal harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Nama barang wajib diisi.")
-    .max(120, "Nama barang maksimal 120 karakter."),
+  name: z.string().trim().min(1, "Enter an item name.").max(120, "Use 120 characters or fewer."),
   sellingPrice: z
     .string()
     .trim()
-    .min(1, "Harga jual wajib diisi.")
+    .min(1, "Enter a selling price.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Harga jual harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
-  sku: z.string().trim().max(50, "SKU maksimal 50 karakter."),
-  unit: z.string().trim().max(30, "Satuan maksimal 30 karakter."),
+  sku: z.string().trim().max(50, "Use 50 characters or fewer."),
+  unit: z.string().trim().max(30, "Use 30 characters or fewer."),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -82,12 +78,12 @@ const defaultValues: ProductFormValues = {
 };
 
 const productCategoryOptions = [
-  { id: "sembako", label: "Sembako" },
-  { id: "minuman", label: "Minuman" },
-  { id: "makanan-ringan", label: "Makanan ringan" },
-  { id: "kebersihan", label: "Kebersihan" },
-  { id: "perawatan-rumah", label: "Perawatan rumah" },
-  { id: "lainnya", label: "Lainnya" },
+  { id: "sembako", label: "Groceries" },
+  { id: "minuman", label: "Drinks" },
+  { id: "makanan-ringan", label: "Snacks" },
+  { id: "kebersihan", label: "Cleaning" },
+  { id: "perawatan-rumah", label: "Home care" },
+  { id: "lainnya", label: "Other" },
 ] as const;
 
 const productUnitOptions = [
@@ -115,20 +111,25 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function productCategoryLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return productCategoryOptions.find((option) => option.id === value)?.label ?? value;
+}
+
 export function ProductListModule({ storeId }: ProductListModuleProps) {
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
-  const [editingProduct, setEditingProduct] = useState<EditingProduct | null>(
-    null,
-  );
+  const [editingProduct, setEditingProduct] = useState<EditingProduct | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const { control, formState, handleSubmit, reset } =
-    useForm<ProductFormValues>({
-      defaultValues,
-      resolver: zodResolver(productSchema),
-    });
+  const { control, formState, handleSubmit, reset } = useForm<ProductFormValues>({
+    defaultValues,
+    resolver: zodResolver(productSchema),
+  });
   const [productsQuery] = useQueries<[ProductRow]>({
     queries: [
       {
@@ -181,7 +182,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
   function startEdit(product: ProductRow) {
     setEditingProduct({
       id: product.id,
-      name: product.name ?? "Barang",
+      name: product.name ?? "Item",
     });
     setFormError(null);
     reset({
@@ -283,9 +284,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(
-        error instanceof Error ? error.message : "Gagal menyimpan barang.",
-      );
+      setFormError(error instanceof Error ? error.message : "We couldn't save this item.");
     }
   }
 
@@ -303,19 +302,15 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(
-        error instanceof Error ? error.message : "Gagal menghapus barang.",
-      );
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this item.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Daftar barang</h3>
-        <p className="text-sm text-stone-500">
-          Tambah, ubah, dan hapus barang dari SQLite PowerSync untuk toko ini.
-        </p>
+        <h3 className="text-lg font-semibold">Items</h3>
+        <p className="text-sm text-stone-500">Add and update the items you sell in this store.</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -325,30 +320,26 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari barang"
+              aria-label="Search items"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nama, SKU, barcode, atau kategori"
+              placeholder="Search by name, code, barcode, or category"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Tambah barang
+              Add item
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog
-                  aria-label={editingProduct ? "Ubah barang" : "Tambah barang"}
-                >
+                <Modal.Dialog aria-label={editingProduct ? "Edit item" : "Add item"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingProduct
-                            ? `Ubah barang: ${editingProduct.name}`
-                            : "Tambah barang"}
+                          {editingProduct ? `Edit item: ${editingProduct.name}` : "Add item"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -363,16 +354,13 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="product-name"
                             >
-                              Nama barang
+                              Item name
                             </label>
                             <Controller
                               control={control}
                               name="name"
                               render={({ field, fieldState }) => (
-                                <InputGroup
-                                  className="w-full"
-                                  isInvalid={fieldState.invalid}
-                                >
+                                <InputGroup className="w-full" isInvalid={fieldState.invalid}>
                                   <InputGroup.Prefix className="text-stone-400">
                                     <PackageIcon aria-hidden size={18} />
                                   </InputGroup.Prefix>
@@ -382,7 +370,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     id="product-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: Beras 5kg"
+                                    placeholder="For example: Rice 5 kg"
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -401,7 +389,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-selling-price"
                               >
-                                Harga jual
+                                Selling price
                               </label>
                               <Controller
                                 control={control}
@@ -432,7 +420,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-cost-price"
                               >
-                                Harga modal
+                                Cost price
                               </label>
                               <Controller
                                 control={control}
@@ -463,21 +451,21 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-unit"
                               >
-                                Satuan (optional)
+                                Unit (optional)
                               </label>
                               <Controller
                                 control={control}
                                 name="unit"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Satuan barang"
+                                    aria-label="Choose a unit"
                                     className="w-full"
                                     id="product-unit"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Pilih satuan"
+                                    placeholder="Choose a unit"
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -486,7 +474,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">Tanpa satuan</ListBox.Item>
+                                        <ListBox.Item id="">No unit</ListBox.Item>
                                         {productUnitOptions.map((unit) => (
                                           <ListBox.Item id={unit.id} key={unit.id}>
                                             {unit.label}
@@ -565,21 +553,21 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-category"
                               >
-                                Kategori (optional)
+                                Category (optional)
                               </label>
                               <Controller
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Kategori barang"
+                                    aria-label="Choose a category"
                                     className="w-full"
                                     id="product-category"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Pilih kategori"
+                                    placeholder="Choose a category"
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -588,7 +576,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">Tanpa kategori</ListBox.Item>
+                                        <ListBox.Item id="">No category</ListBox.Item>
                                         {productCategoryOptions.map((category) => (
                                           <ListBox.Item id={category.id} key={category.id}>
                                             {category.label}
@@ -611,7 +599,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                             <Alert status="danger">
                               <Alert.Indicator />
                               <Alert.Content>
-                                <Alert.Title>Aksi tidak berhasil</Alert.Title>
+                                <Alert.Title>That didn’t work</Alert.Title>
                                 <Alert.Description>{formError}</Alert.Description>
                               </Alert.Content>
                             </Alert>
@@ -626,12 +614,10 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingProduct
-                                ? "Simpan perubahan"
-                                : "Simpan barang"}
+                              {editingProduct ? "Save changes" : "Save item"}
                             </Button>
                           </div>
                         </form>
@@ -644,22 +630,22 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredProducts.length} dari {products.length} barang
+          {filteredProducts.length} of {products.length} items
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Daftar barang toko">
+          <Table.Content aria-label="Item list">
             <Table.Header>
-              <Table.Column isRowHeader>Nama</Table.Column>
+              <Table.Column isRowHeader>Name</Table.Column>
               <Table.Column>SKU</Table.Column>
-              <Table.Column>Kategori</Table.Column>
-              <Table.Column>Satuan</Table.Column>
-              <Table.Column>Harga modal</Table.Column>
-              <Table.Column>Harga jual</Table.Column>
+              <Table.Column>Category</Table.Column>
+              <Table.Column>Unit</Table.Column>
+              <Table.Column>Cost price</Table.Column>
+              <Table.Column>Selling price</Table.Column>
               <Table.Column>Status</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredProducts.length > 0 ? (
@@ -667,61 +653,48 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                   <Table.Row key={product.id}>
                     <Table.Cell>
                       <div className="space-y-1">
-                        <p className="font-medium text-stone-900">
-                          {product.name ?? "-"}
-                        </p>
+                        <p className="font-medium text-stone-900">{product.name ?? "-"}</p>
                         {product.barcode ? (
-                          <p className="text-xs text-stone-500">
-                            {product.barcode}
-                          </p>
+                          <p className="text-xs text-stone-500">{product.barcode}</p>
                         ) : null}
                       </div>
                     </Table.Cell>
                     <Table.Cell>{product.sku ?? "-"}</Table.Cell>
-                    <Table.Cell>{product.category ?? "-"}</Table.Cell>
+                    <Table.Cell>{productCategoryLabel(product.category)}</Table.Cell>
                     <Table.Cell>{product.unit ?? "-"}</Table.Cell>
                     <Table.Cell>{formatRupiah(product.cost_price)}</Table.Cell>
-                    <Table.Cell>
-                      {formatRupiah(product.selling_price)}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {product.is_active === 0 ? "Nonaktif" : "Aktif"}
-                    </Table.Cell>
+                    <Table.Cell>{formatRupiah(product.selling_price)}</Table.Cell>
+                    <Table.Cell>{product.is_active === 0 ? "Hidden" : "Active"}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
-                        <Button
-                          onPress={() => startEdit(product)}
-                          size="sm"
-                          variant="outline"
-                        >
+                        <Button onPress={() => startEdit(product)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus barang?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this item?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {product.name ?? "Barang"} akan dihapus dari daftar barang untuk
-                                  toko ini.
+                                  {product.name ?? "This item"} will be removed from your item list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === product.id}
                                     onPress={() => void deleteProduct(product.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -735,9 +708,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={8}>
-                    {productsQuery.isPending
-                      ? "Memuat daftar barang..."
-                      : "Belum ada barang untuk toko ini."}
+                    {productsQuery.isPending ? "Loading items..." : "No items yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

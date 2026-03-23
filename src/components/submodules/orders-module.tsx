@@ -48,16 +48,16 @@ type EditingOrder = {
 };
 
 const orderSchema = z.object({
-  customerId: z.string().trim().max(100, "Pelanggan tidak valid."),
-  orderDate: z.string().trim().min(1, "Tanggal wajib diisi."),
+  customerId: z.string().trim().max(100, "Choose a valid customer."),
+  orderDate: z.string().trim().min(1, "Choose a date."),
   paymentMethod: z.enum(["cash", "transfer", "qris", "tempo"]),
   status: z.enum(["draft", "ordered", "ready", "completed", "cancelled"]),
   totalAmount: z
     .string()
     .trim()
-    .min(1, "Total wajib diisi.")
+    .min(1, "Enter a total.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Total harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
 });
 
@@ -72,22 +72,25 @@ const defaultValues: OrderFormValues = {
 };
 
 const paymentMethodOptions = [
-  { id: "cash", label: "Tunai" },
-  { id: "transfer", label: "Transfer" },
+  { id: "cash", label: "Cash" },
+  { id: "transfer", label: "Bank transfer" },
   { id: "qris", label: "QRIS" },
-  { id: "tempo", label: "Tempo" },
+  { id: "tempo", label: "Pay later" },
 ] as const;
 
 const orderStatusOptions = [
   { id: "draft", label: "Draft" },
-  { id: "ordered", label: "Diproses" },
-  { id: "ready", label: "Siap diambil" },
-  { id: "completed", label: "Selesai" },
-  { id: "cancelled", label: "Dibatalkan" },
+  { id: "ordered", label: "In progress" },
+  { id: "ready", label: "Ready for pickup" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
 ] as const;
 
 function createOrderNumber() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 12);
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, "")
+    .slice(0, 12);
   return `ORD-${stamp}`;
 }
 
@@ -112,6 +115,22 @@ function formatRupiah(value: number | null | undefined) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
+}
+
+function paymentMethodLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return paymentMethodOptions.find((option) => option.id === value)?.label ?? value;
+}
+
+function orderStatusLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return orderStatusOptions.find((option) => option.id === value)?.label ?? value;
 }
 
 export function OrdersModule({ storeId }: OrdersModuleProps) {
@@ -289,7 +308,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan pesanan.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this order.");
     }
   }
 
@@ -307,22 +326,22 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus pesanan.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this order.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Pesanan</h3>
-        <p className="text-sm text-stone-500">Lihat dan ubah status pesanan yang sedang diproses toko.</p>
+        <h3 className="text-lg font-semibold">Orders</h3>
+        <p className="text-sm text-stone-500">Keep track of orders and update their progress.</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -335,26 +354,26 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari pesanan"
+              aria-label="Search orders"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nomor, pelanggan, status, atau pembayaran"
+              placeholder="Search by order number, customer, status, or payment"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Pesanan baru
+              New order
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingOrder ? "Ubah pesanan" : "Pesanan baru"}>
+                <Modal.Dialog aria-label={editingOrder ? "Edit order" : "New order"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingOrder ? `Ubah pesanan: ${editingOrder.label}` : "Pesanan baru"}
+                          {editingOrder ? `Edit order: ${editingOrder.label}` : "New order"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -365,22 +384,25 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                           })}
                         >
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-stone-700" htmlFor="order-customer">
-                              Pelanggan (optional)
+                            <label
+                              className="block text-sm font-medium text-stone-700"
+                              htmlFor="order-customer"
+                            >
+                              Customer (optional)
                             </label>
                             <Controller
                               control={control}
                               name="customerId"
                               render={({ field }) => (
                                 <Select
-                                  aria-label="Pilih pelanggan"
+                                  aria-label="Choose a customer"
                                   className="w-full"
                                   id="order-customer"
                                   onBlur={field.onBlur}
                                   onSelectionChange={(key) =>
                                     field.onChange(typeof key === "string" ? key : "")
                                   }
-                                  placeholder="Pilih pelanggan"
+                                  placeholder="Choose a customer"
                                   selectedKey={field.value || null}
                                 >
                                   <Select.Trigger className="w-full">
@@ -389,10 +411,10 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                   </Select.Trigger>
                                   <Select.Popover>
                                     <ListBox>
-                                      <ListBox.Item id="">Tanpa pelanggan</ListBox.Item>
+                                      <ListBox.Item id="">No customer</ListBox.Item>
                                       {customerOptions.map((customer) => (
                                         <ListBox.Item id={customer.id} key={customer.id}>
-                                          {customer.name ?? "Pelanggan tanpa nama"}
+                                          {customer.name ?? "Unnamed customer"}
                                         </ListBox.Item>
                                       ))}
                                     </ListBox>
@@ -404,7 +426,10 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
 
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="order-status">
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="order-status"
+                              >
                                 Status
                               </label>
                               <Controller
@@ -412,7 +437,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 name="status"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Status pesanan"
+                                    aria-label="Choose an order status"
                                     className="w-full"
                                     id="order-status"
                                     onBlur={field.onBlur}
@@ -440,15 +465,18 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="order-payment">
-                                Pembayaran
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="order-payment"
+                              >
+                                Payment
                               </label>
                               <Controller
                                 control={control}
                                 name="paymentMethod"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Metode pembayaran"
+                                    aria-label="Choose a payment method"
                                     className="w-full"
                                     id="order-payment"
                                     onBlur={field.onBlur}
@@ -476,7 +504,10 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="order-total">
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="order-total"
+                              >
                                 Total
                               </label>
                               <Controller
@@ -502,13 +533,18 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 )}
                               />
                               {formState.errors.totalAmount?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.totalAmount.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.totalAmount.message}
+                                </p>
                               ) : null}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium text-stone-700" htmlFor="order-date">
-                                Tanggal
+                              <label
+                                className="block text-sm font-medium text-stone-700"
+                                htmlFor="order-date"
+                              >
+                                Date
                               </label>
                               <Controller
                                 control={control}
@@ -526,7 +562,9 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                                 )}
                               />
                               {formState.errors.orderDate?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.orderDate.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.orderDate.message}
+                                </p>
                               ) : null}
                             </div>
                           </div>
@@ -540,10 +578,10 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingOrder ? "Simpan perubahan" : "Simpan pesanan"}
+                              {editingOrder ? "Save changes" : "Save order"}
                             </Button>
                           </div>
                         </form>
@@ -556,21 +594,21 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredOrders.length} dari {orders.length} pesanan
+          {filteredOrders.length} of {orders.length} orders
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel pesanan toko">
+          <Table.Content aria-label="Order list">
             <Table.Header>
-              <Table.Column isRowHeader>No. Pesanan</Table.Column>
-              <Table.Column>Tanggal</Table.Column>
-              <Table.Column>Pelanggan</Table.Column>
+              <Table.Column isRowHeader>Order number</Table.Column>
+              <Table.Column>Date</Table.Column>
+              <Table.Column>Customer</Table.Column>
               <Table.Column>Status</Table.Column>
-              <Table.Column>Pembayaran</Table.Column>
+              <Table.Column>Payment</Table.Column>
               <Table.Column>Total</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredOrders.length > 0 ? (
@@ -579,39 +617,40 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
                     <Table.Cell>{order.receipt_number ?? "-"}</Table.Cell>
                     <Table.Cell>{formatDate(order.created_at)}</Table.Cell>
                     <Table.Cell>{order.customer_name ?? "-"}</Table.Cell>
-                    <Table.Cell>{order.status ?? "-"}</Table.Cell>
-                    <Table.Cell>{order.payment_method ?? "-"}</Table.Cell>
+                    <Table.Cell>{orderStatusLabel(order.status)}</Table.Cell>
+                    <Table.Cell>{paymentMethodLabel(order.payment_method)}</Table.Cell>
                     <Table.Cell>{formatRupiah(order.total_amount)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(order)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus pesanan?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this order?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {order.receipt_number ?? "Pesanan ini"} akan dihapus dari daftar pesanan.
+                                  {order.receipt_number ?? "This order"} will be removed from your
+                                  order list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === order.id}
                                     onPress={() => void deleteOrder(order.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -625,7 +664,7 @@ export function OrdersModule({ storeId }: OrdersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={7}>
-                    {ordersQuery.isPending ? "Memuat pesanan..." : "Belum ada pesanan untuk toko ini."}
+                    {ordersQuery.isPending ? "Loading orders..." : "No orders yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

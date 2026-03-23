@@ -73,77 +73,77 @@ type ModuleGroupDefinition = {
 const moduleGroups: readonly ModuleGroupDefinition[] = [
   {
     id: "overview",
-    label: "Ringkasan",
-    title: "Hal utama untuk memantau kondisi toko",
+    label: "Overview",
+    title: "Keep an eye on what matters most",
     modules: [
-      { id: "dashboard", label: "Dasbor", title: "Dasbor" },
-      { id: "alerts", label: "Peringatan", title: "Peringatan" },
+      { id: "dashboard", label: "Dashboard", title: "Dashboard" },
+      { id: "alerts", label: "Alerts", title: "Alerts" },
       {
         id: "today-activity",
-        label: "Aktivitas Hari Ini",
-        title: "Aktivitas Hari Ini",
+        label: "Today",
+        title: "Today",
       },
     ],
   },
   {
     id: "sales",
-    label: "Penjualan",
-    title: "Menu yang dipakai saat jualan",
+    label: "Sales",
+    title: "Everything you need while serving customers",
     modules: [
-      { id: "cashier", label: "Kasir", title: "Kasir" },
-      { id: "orders", label: "Pesanan", title: "Pesanan" },
-      { id: "customers", label: "Pelanggan", title: "Pelanggan" },
-      { id: "promo", label: "Promo", title: "Promo" },
+      { id: "cashier", label: "Checkout", title: "Checkout" },
+      { id: "orders", label: "Orders", title: "Orders" },
+      { id: "customers", label: "Customers", title: "Customers" },
+      { id: "promo", label: "Offers", title: "Offers" },
     ],
   },
   {
     id: "products",
-    label: "Barang",
-    title: "Pengelolaan barang dan stok sehari-hari",
+    label: "Products",
+    title: "Manage your items and stock day to day",
     modules: [
       {
         id: "product-list",
-        label: "Daftar Barang",
-        title: "Daftar Barang",
+        label: "Items",
+        title: "Items",
       },
-      { id: "stock", label: "Stok", title: "Stok" },
+      { id: "stock", label: "Stock", title: "Stock" },
       {
         id: "purchases",
-        label: "Belanja Stok",
-        title: "Belanja Stok",
+        label: "Purchases",
+        title: "Purchases",
       },
-      { id: "suppliers", label: "Pemasok", title: "Pemasok" },
+      { id: "suppliers", label: "Suppliers", title: "Suppliers" },
     ],
   },
   {
     id: "finance",
-    label: "Keuangan",
-    title: "Pencatatan uang masuk dan keluar",
+    label: "Money",
+    title: "Track money in, money out, and your results",
     modules: [
-      { id: "cash", label: "Kas", title: "Kas" },
-      { id: "expenses", label: "Pengeluaran", title: "Pengeluaran" },
-      { id: "reports", label: "Laporan", title: "Laporan" },
+      { id: "cash", label: "Cash", title: "Cash" },
+      { id: "expenses", label: "Expenses", title: "Expenses" },
+      { id: "reports", label: "Reports", title: "Reports" },
     ],
   },
   {
     id: "store",
-    label: "Toko",
-    title: "Pengaturan dasar dan alat bantu toko",
+    label: "Store",
+    title: "Store details, your team, and helpful tools",
     modules: [
-      { id: "users", label: "Pengguna", title: "Pengguna" },
+      { id: "users", label: "Team", title: "Team" },
       {
         id: "devices-sync",
-        label: "Perangkat & Sinkronisasi",
-        title: "Perangkat & Sinkronisasi",
+        label: "This Device",
+        title: "This Device",
         adminOnly: true,
       },
       {
         id: "store-settings",
-        label: "Pengaturan Toko",
-        title: "Pengaturan Toko",
+        label: "Store Details",
+        title: "Store Details",
         adminOnly: true,
       },
-      { id: "ai-models", label: "Model AI", title: "Model AI" },
+      { id: "ai-models", label: "Assistant Setup", title: "Assistant Setup" },
     ],
   },
 ];
@@ -171,16 +171,17 @@ const moduleComponents = {
 };
 
 const createStoreSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Nama toko minimal 2 karakter.")
-    .max(80, "Nama toko maksimal 80 karakter."),
+  name: z.string().min(2, "Use at least 2 characters.").max(80, "Use 80 characters or fewer."),
 });
 
 type CreateStoreFormValues = z.infer<typeof createStoreSchema>;
 
 const profileSchema = z.object({
-  name: z.string().trim().min(2, "Nama minimal 2 karakter.").max(80, "Nama maksimal 80 karakter."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Use at least 2 characters.")
+    .max(80, "Use 80 characters or fewer."),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -204,22 +205,22 @@ const appModes: readonly {
   label: string;
 }[] = [
   {
-    description: "Tampilan lengkap untuk melihat seluruh modul toko.",
+    description: "See the full store in one place.",
     icon: MonitorIcon,
     id: "full",
-    label: "Mode lengkap",
+    label: "Full view",
   },
   {
-    description: "Fokus hanya ke layar kasir agar lebih ringkas saat jualan.",
+    description: "Keep the screen focused on sales.",
     icon: StorefrontIcon,
     id: "cashier",
-    label: "Mode kasir",
+    label: "Checkout view",
   },
   {
-    description: "Tampilkan asisten chat saja untuk tanya dan minta bantuan cepat.",
+    description: "Open only the assistant for quick help.",
     icon: ChatCircleDotsIcon,
     id: "chat",
-    label: "Mode chat",
+    label: "Chat view",
   },
 ] as const;
 
@@ -229,12 +230,12 @@ const languageOptions: readonly {
   label: string;
 }[] = [
   {
-    description: "Bahasa utama aplikasi saat ini.",
+    description: "Use Indonesian across the app.",
     id: "id",
     label: "Bahasa Indonesia",
   },
   {
-    description: "Disimpan untuk preferensi berikutnya.",
+    description: "Use English across the app.",
     id: "en",
     label: "English",
   },
@@ -270,9 +271,8 @@ function RouteComponent() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
   const [appMode, setAppMode] = useState<AppMode>(readAppMode);
-  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>(
-    readLanguagePreference,
-  );
+  const [languagePreference, setLanguagePreference] =
+    useState<LanguagePreference>(readLanguagePreference);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false);
@@ -316,7 +316,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Memuat sesi pengguna..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Getting your store ready..."}</p>
       </main>
     );
   }
@@ -336,12 +336,12 @@ function RouteComponent() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Toko tidak siap</Alert.Title>
+              <Alert.Title>Your store isn't ready yet</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
           <Button fullWidth onPress={() => void gate.retry()}>
-            Coba lagi
+            Try again
           </Button>
         </div>
       </main>
@@ -417,7 +417,7 @@ function RouteComponent() {
     setIsSigningOut(false);
 
     if (error) {
-      console.error("Gagal keluar dari aplikasi.", error);
+      console.error("We couldn't sign you out.", error);
       return;
     }
 
@@ -454,7 +454,7 @@ function RouteComponent() {
     setIsCreatingStore(false);
 
     if (error || !data?.slug) {
-      setCreateStoreError(error?.message ?? "Gagal membuat toko baru.");
+      setCreateStoreError(error?.message ?? "We couldn't create that store.");
       return null;
     }
 
@@ -479,7 +479,7 @@ function RouteComponent() {
     setIsSavingProfile(false);
 
     if (error) {
-      setProfileError(error.message ?? "Gagal menyimpan profil.");
+      setProfileError(error.message ?? "We couldn't save your details.");
       return false;
     }
 
@@ -492,7 +492,7 @@ function RouteComponent() {
     setIsSavingPreferences(true);
     setLanguagePreference(values.language);
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, values.language);
-    setPreferencesMessage("Preferensi disimpan di perangkat ini.");
+    setPreferencesMessage("Saved on this device.");
     setIsSavingPreferences(false);
     setIsPreferencesModalOpen(false);
     return true;
@@ -512,7 +512,7 @@ function RouteComponent() {
               </Dropdown.Trigger>
               <Dropdown.Popover>
                 <Dropdown.Menu
-                  aria-label="Pilih toko"
+                  aria-label="Choose a store"
                   onAction={(key) => void handleStoreAction(key)}
                 >
                   <Dropdown.Section>
@@ -542,15 +542,15 @@ function RouteComponent() {
                 variant="outline"
               >
                 <PlusIcon aria-hidden size={16} />
-                Buat toko baru
+                New store
               </Button>
               <Modal.Backdrop>
                 <Modal.Container placement="center" size="sm">
-                  <Modal.Dialog aria-label="Buat toko baru">
+                  <Modal.Dialog aria-label="Create a new store">
                     {({ close }) => (
                       <>
                         <Modal.Header>
-                          <Modal.Heading>Buat toko baru</Modal.Heading>
+                          <Modal.Heading>Create a new store</Modal.Heading>
                         </Modal.Header>
                         <Modal.Body>
                           <form
@@ -567,7 +567,7 @@ function RouteComponent() {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="modal-store-name"
                               >
-                                Nama toko
+                                Store name
                               </label>
                               <Controller
                                 control={control}
@@ -579,12 +579,12 @@ function RouteComponent() {
                                     </InputGroup.Prefix>
                                     <InputGroup.Input
                                       aria-invalid={fieldState.invalid}
-                                      aria-label="Nama toko"
+                                      aria-label="Store name"
                                       className="w-full"
                                       id="modal-store-name"
                                       onBlur={field.onBlur}
                                       onChange={field.onChange}
-                                      placeholder="Warung Cabang Baru"
+                                      placeholder="New branch store"
                                       value={field.value}
                                     />
                                   </InputGroup>
@@ -599,7 +599,7 @@ function RouteComponent() {
                               <Alert status="danger">
                                 <Alert.Indicator />
                                 <Alert.Content>
-                                  <Alert.Title>Pembuatan toko gagal</Alert.Title>
+                                  <Alert.Title>We couldn’t create that store</Alert.Title>
                                   <Alert.Description>{createStoreError}</Alert.Description>
                                 </Alert.Content>
                               </Alert>
@@ -607,10 +607,10 @@ function RouteComponent() {
 
                             <div className="flex justify-end gap-2">
                               <Button slot="close" type="button" variant="tertiary">
-                                Batal
+                                Cancel
                               </Button>
                               <Button isPending={isCreatingStore} type="submit">
-                                Buat toko
+                                Create store
                               </Button>
                             </div>
                           </form>
@@ -633,7 +633,7 @@ function RouteComponent() {
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[260px]">
                 <Dropdown.Menu
-                  aria-label="Pilih mode tampilan"
+                  aria-label="Choose a view"
                   selectedKeys={new Set([appMode])}
                   selectionMode="single"
                   onAction={handleModeAction}
@@ -669,34 +669,36 @@ function RouteComponent() {
                 </Button>
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[240px]">
-                <Dropdown.Menu aria-label="Menu profil" onAction={handleProfileAction}>
+                <Dropdown.Menu aria-label="Profile menu" onAction={handleProfileAction}>
                   <Dropdown.Section>
-                    <Dropdown.Item id="profile" textValue="Edit profil">
+                    <Dropdown.Item id="profile" textValue="Edit profile">
                       <div className="flex items-center gap-3">
                         <PencilSimpleIcon aria-hidden className="text-stone-500" size={16} />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-stone-900">Edit profil</p>
-                          <p className="text-xs text-stone-500">Ubah nama akun yang tampil.</p>
-                        </div>
-                      </div>
-                    </Dropdown.Item>
-                    <Dropdown.Item id="preferences" textValue="Preferensi">
-                      <div className="flex items-center gap-3">
-                        <GlobeIcon aria-hidden className="text-stone-500" size={16} />
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-stone-900">Preferensi</p>
+                          <p className="text-sm font-medium text-stone-900">Edit profile</p>
                           <p className="text-xs text-stone-500">
-                            Bahasa saat ini: {currentLanguageOption.label}
+                            Update the name shown in the app.
                           </p>
                         </div>
                       </div>
                     </Dropdown.Item>
-                    <Dropdown.Item id="logout" textValue="Keluar" variant="danger">
+                    <Dropdown.Item id="preferences" textValue="Preferences">
+                      <div className="flex items-center gap-3">
+                        <GlobeIcon aria-hidden className="text-stone-500" size={16} />
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-stone-900">Preferences</p>
+                          <p className="text-xs text-stone-500">
+                            Current language: {currentLanguageOption.label}
+                          </p>
+                        </div>
+                      </div>
+                    </Dropdown.Item>
+                    <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
                       <div className="flex items-center gap-3">
                         <SignOutIcon aria-hidden className="text-stone-500" size={16} />
                         <div className="text-left">
-                          <p className="text-sm font-medium">Keluar</p>
-                          <p className="text-xs text-stone-500">Akhiri sesi di perangkat ini.</p>
+                          <p className="text-sm font-medium">Sign out</p>
+                          <p className="text-xs text-stone-500">Sign out on this device.</p>
                         </div>
                       </div>
                     </Dropdown.Item>
@@ -711,7 +713,7 @@ function RouteComponent() {
           <Alert className="mb-4" status="success">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Preferensi diperbarui</Alert.Title>
+              <Alert.Title>Preferences updated</Alert.Title>
               <Alert.Description>{preferencesMessage}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -723,11 +725,11 @@ function RouteComponent() {
           onOpenChange={setIsProfileModalOpen}
         >
           <Modal.Container placement="center" size="sm">
-            <Modal.Dialog aria-label="Edit profil">
+            <Modal.Dialog aria-label="Edit profile">
               {({ close }) => (
                 <>
                   <Modal.Header>
-                    <Modal.Heading>Edit profil</Modal.Heading>
+                    <Modal.Heading>Edit profile</Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
                     <form
@@ -740,8 +742,11 @@ function RouteComponent() {
                       })}
                     >
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-stone-700" htmlFor="profile-name">
-                          Nama
+                        <label
+                          className="block text-sm font-medium text-stone-700"
+                          htmlFor="profile-name"
+                        >
+                          Name
                         </label>
                         <Controller
                           control={profileControl}
@@ -757,7 +762,7 @@ function RouteComponent() {
                                 id="profile-name"
                                 onBlur={field.onBlur}
                                 onChange={field.onChange}
-                                placeholder="Nama pengguna"
+                                placeholder="Your name"
                                 value={field.value}
                               />
                             </InputGroup>
@@ -769,7 +774,10 @@ function RouteComponent() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-stone-700" htmlFor="profile-email">
+                        <label
+                          className="block text-sm font-medium text-stone-700"
+                          htmlFor="profile-email"
+                        >
                           Email
                         </label>
                         <Input className="w-full" disabled id="profile-email" value={user.email} />
@@ -779,7 +787,7 @@ function RouteComponent() {
                         <Alert status="danger">
                           <Alert.Indicator />
                           <Alert.Content>
-                            <Alert.Title>Profil gagal diperbarui</Alert.Title>
+                            <Alert.Title>We couldn’t save your details</Alert.Title>
                             <Alert.Description>{profileError}</Alert.Description>
                           </Alert.Content>
                         </Alert>
@@ -794,10 +802,10 @@ function RouteComponent() {
                           type="button"
                           variant="tertiary"
                         >
-                          Batal
+                          Cancel
                         </Button>
                         <Button isPending={isSavingProfile} type="submit">
-                          Simpan
+                          Save
                         </Button>
                       </div>
                     </form>
@@ -814,11 +822,11 @@ function RouteComponent() {
           onOpenChange={setIsPreferencesModalOpen}
         >
           <Modal.Container placement="center" size="sm">
-            <Modal.Dialog aria-label="Preferensi">
+            <Modal.Dialog aria-label="Preferences">
               {({ close }) => (
                 <>
                   <Modal.Header>
-                    <Modal.Heading>Preferensi</Modal.Heading>
+                    <Modal.Heading>Preferences</Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
                     <form
@@ -831,15 +839,18 @@ function RouteComponent() {
                       })}
                     >
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-stone-700" htmlFor="preferences-language">
-                          Bahasa
+                        <label
+                          className="block text-sm font-medium text-stone-700"
+                          htmlFor="preferences-language"
+                        >
+                          Language
                         </label>
                         <Controller
                           control={preferencesControl}
                           name="language"
                           render={({ field }) => (
                             <Select
-                              aria-label="Pilih bahasa"
+                              aria-label="Choose a language"
                               className="w-full"
                               id="preferences-language"
                               selectedKey={field.value}
@@ -856,7 +867,11 @@ function RouteComponent() {
                               <Select.Popover>
                                 <ListBox>
                                   {languageOptions.map((option) => (
-                                    <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
+                                    <ListBox.Item
+                                      id={option.id}
+                                      key={option.id}
+                                      textValue={option.label}
+                                    >
                                       {option.label}
                                       <ListBox.ItemIndicator />
                                     </ListBox.Item>
@@ -867,7 +882,7 @@ function RouteComponent() {
                           )}
                         />
                         <p className="text-sm text-stone-500">
-                          Preferensi ini disimpan lokal di perangkat. Antarmuka saat ini masih dominan berbahasa Indonesia.
+                          This choice is saved on this device.
                         </p>
                       </div>
 
@@ -880,10 +895,10 @@ function RouteComponent() {
                           type="button"
                           variant="tertiary"
                         >
-                          Batal
+                          Cancel
                         </Button>
                         <Button isPending={isSavingPreferences} type="submit">
-                          Simpan
+                          Save
                         </Button>
                       </div>
                     </form>
@@ -894,24 +909,23 @@ function RouteComponent() {
           </Modal.Container>
         </Modal.Backdrop>
 
-        <AlertDialog.Backdrop
-          isOpen={isSignOutDialogOpen}
-          onOpenChange={setIsSignOutDialogOpen}
-        >
+        <AlertDialog.Backdrop isOpen={isSignOutDialogOpen} onOpenChange={setIsSignOutDialogOpen}>
           <AlertDialog.Container placement="center" size="sm">
-            <AlertDialog.Dialog aria-label="Keluar dari aplikasi">
+            <AlertDialog.Dialog aria-label="Sign out of the app">
               <AlertDialog.Header>
-                <AlertDialog.Heading>Keluar dari aplikasi?</AlertDialog.Heading>
+                <AlertDialog.Heading>Sign out?</AlertDialog.Heading>
               </AlertDialog.Header>
-              <AlertDialog.Body>
-                Sesi akun {user.email} akan diakhiri di perangkat ini.
-              </AlertDialog.Body>
+              <AlertDialog.Body>{user.email} will be signed out on this device.</AlertDialog.Body>
               <AlertDialog.Footer>
-                <Button onPress={() => setIsSignOutDialogOpen(false)} type="button" variant="tertiary">
-                  Batal
+                <Button
+                  onPress={() => setIsSignOutDialogOpen(false)}
+                  type="button"
+                  variant="tertiary"
+                >
+                  Cancel
                 </Button>
                 <Button isPending={isSigningOut} onPress={() => void handleSignOut()}>
-                  Keluar
+                  Sign out
                 </Button>
               </AlertDialog.Footer>
             </AlertDialog.Dialog>
@@ -921,20 +935,20 @@ function RouteComponent() {
         {appMode === "cashier" ? (
           <div className="space-y-4">
             <div className="space-y-1">
-              <h2 className="text-xl font-semibold">Mode kasir</h2>
+              <h2 className="text-xl font-semibold">Checkout view</h2>
               <p className="text-sm text-stone-500">
-                Tampilan disederhanakan agar fokus ke proses penjualan tanpa gangguan modul lain.
+                This view keeps the screen focused on selling, without extra distractions.
               </p>
             </div>
             <Tabs className="w-full" defaultSelectedKey="cashier">
               <Tabs.ListContainer>
-                <Tabs.List aria-label="Mode kasir" className="w-fit">
+                <Tabs.List aria-label="Checkout view" className="w-fit">
                   <Tabs.Tab id="cashier" key="cashier">
-                    Kasir
+                    Checkout
                     <Tabs.Indicator />
                   </Tabs.Tab>
                   <Tabs.Tab id="transactions" key="transactions">
-                    Transaksi
+                    Orders
                     <Tabs.Indicator />
                   </Tabs.Tab>
                 </Tabs.List>
@@ -951,143 +965,141 @@ function RouteComponent() {
           </div>
         ) : null}
 
-        {appMode === "chat" ? (
-          <AssistantModule minimal storeId={organization.id} />
-        ) : null}
+        {appMode === "chat" ? <AssistantModule minimal storeId={organization.id} /> : null}
 
         {appMode === "full" ? (
           <Tabs className="w-full" defaultSelectedKey={visibleModuleGroups[0]?.id}>
-          <Tabs.ListContainer>
-            <Tabs.List aria-label="Modul utama" className="w-fit">
-              {visibleModuleGroups.map((group) => (
-                <Tabs.Tab key={group.id} id={group.id}>
-                  {group.label}
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="Main sections" className="w-fit">
+                {visibleModuleGroups.map((group) => (
+                  <Tabs.Tab key={group.id} id={group.id}>
+                    {group.label}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                ))}
+                <Tabs.Tab id="assistant" key="assistant">
+                  Assistant
                   <Tabs.Indicator />
                 </Tabs.Tab>
-              ))}
-              <Tabs.Tab id="assistant" key="assistant">
-                Asisten
-                <Tabs.Indicator />
-              </Tabs.Tab>
-            </Tabs.List>
-          </Tabs.ListContainer>
+              </Tabs.List>
+            </Tabs.ListContainer>
 
-          {visibleModuleGroups.map((group) => (
-            <Tabs.Panel key={group.id} className="w-full pt-4" id={group.id}>
+            {visibleModuleGroups.map((group) => (
+              <Tabs.Panel key={group.id} className="w-full pt-4" id={group.id}>
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold">{group.title}</h2>
+                </div>
+
+                <Tabs
+                  className="w-full"
+                  defaultSelectedKey={group.modules[0]?.id}
+                  orientation="vertical"
+                  variant="secondary"
+                >
+                  <Tabs.ListContainer>
+                    <Tabs.List aria-label={`${group.label} sections`} className="min-w-[250px]">
+                      {group.modules.map((module) => (
+                        <Tabs.Tab className="justify-start" key={module.id} id={module.id}>
+                          {module.label}
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                      ))}
+                    </Tabs.List>
+                  </Tabs.ListContainer>
+
+                  {group.modules.map((module) => (
+                    <Tabs.Panel key={module.id} className="px-4" id={module.id}>
+                      {(() => {
+                        if (module.id === "users") {
+                          return (
+                            <UsersModule
+                              currentUserId={user.id}
+                              onOrganizationChange={gate.refresh}
+                              organization={organization}
+                              userRole={currentRole}
+                            />
+                          );
+                        }
+
+                        if (module.id === "dashboard") {
+                          return <DashboardModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "alerts") {
+                          return <AlertsModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "today-activity") {
+                          return <TodayActivityModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "cashier") {
+                          return <CashierModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "orders") {
+                          return <OrdersModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "customers") {
+                          return <CustomersModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "promo") {
+                          return <PromoModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "product-list") {
+                          return <ProductListModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "stock") {
+                          return <StockModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "purchases") {
+                          return <PurchasesModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "suppliers") {
+                          return <SuppliersModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "cash") {
+                          return <CashModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "expenses") {
+                          return <ExpensesModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "reports") {
+                          return <ReportsModule storeId={organization.id} />;
+                        }
+
+                        if (module.id === "ai-models") {
+                          return <AiModelsModule />;
+                        }
+
+                        if (module.id === "assistant") {
+                          return <AssistantModule storeId={organization.id} />;
+                        }
+
+                        const ModuleComponent = moduleComponents[module.id];
+                        return <ModuleComponent />;
+                      })()}
+                    </Tabs.Panel>
+                  ))}
+                </Tabs>
+              </Tabs.Panel>
+            ))}
+
+            <Tabs.Panel className="w-full pt-4" id="assistant">
               <div className="mb-4">
-                <h2 className="text-xl font-semibold">{group.title}</h2>
+                <h2 className="text-xl font-semibold">Assistant</h2>
               </div>
-
-              <Tabs
-                className="w-full"
-                defaultSelectedKey={group.modules[0]?.id}
-                orientation="vertical"
-                variant="secondary"
-              >
-                <Tabs.ListContainer>
-                  <Tabs.List aria-label={`Sub-modul ${group.label}`} className="min-w-[250px]">
-                    {group.modules.map((module) => (
-                      <Tabs.Tab className="justify-start" key={module.id} id={module.id}>
-                        {module.label}
-                        <Tabs.Indicator />
-                      </Tabs.Tab>
-                    ))}
-                  </Tabs.List>
-                </Tabs.ListContainer>
-
-                {group.modules.map((module) => (
-                  <Tabs.Panel key={module.id} className="px-4" id={module.id}>
-                    {(() => {
-                      if (module.id === "users") {
-                        return (
-                          <UsersModule
-                            currentUserId={user.id}
-                            onOrganizationChange={gate.refresh}
-                            organization={organization}
-                            userRole={currentRole}
-                          />
-                        );
-                      }
-
-                      if (module.id === "dashboard") {
-                        return <DashboardModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "alerts") {
-                        return <AlertsModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "today-activity") {
-                        return <TodayActivityModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "cashier") {
-                        return <CashierModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "orders") {
-                        return <OrdersModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "customers") {
-                        return <CustomersModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "promo") {
-                        return <PromoModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "product-list") {
-                        return <ProductListModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "stock") {
-                        return <StockModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "purchases") {
-                        return <PurchasesModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "suppliers") {
-                        return <SuppliersModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "cash") {
-                        return <CashModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "expenses") {
-                        return <ExpensesModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "reports") {
-                        return <ReportsModule storeId={organization.id} />;
-                      }
-
-                      if (module.id === "ai-models") {
-                        return <AiModelsModule />;
-                      }
-
-                      if (module.id === "assistant") {
-                        return <AssistantModule storeId={organization.id} />;
-                      }
-
-                      const ModuleComponent = moduleComponents[module.id];
-                      return <ModuleComponent />;
-                    })()}
-                  </Tabs.Panel>
-                ))}
-              </Tabs>
+              <AssistantModule storeId={organization.id} />
             </Tabs.Panel>
-          ))}
-
-          <Tabs.Panel className="w-full pt-4" id="assistant">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Asisten</h2>
-            </div>
-            <AssistantModule storeId={organization.id} />
-          </Tabs.Panel>
           </Tabs>
         ) : null}
       </div>

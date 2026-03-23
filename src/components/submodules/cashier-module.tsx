@@ -35,13 +35,16 @@ type CartItem = {
 };
 
 const paymentMethodOptions = [
-  { id: "cash", label: "Tunai" },
-  { id: "transfer", label: "Transfer" },
+  { id: "cash", label: "Cash" },
+  { id: "transfer", label: "Bank transfer" },
   { id: "qris", label: "QRIS" },
 ] as const;
 
 function createReceiptNumber() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(2, 12);
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, "")
+    .slice(2, 12);
   return `TRX-${stamp}`;
 }
 
@@ -130,7 +133,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
         ...currentCart,
         {
           id: product.id,
-          name: product.name ?? "Barang",
+          name: product.name ?? "Item",
           price: product.selling_price ?? 0,
           quantity: 1,
           stock: product.stock,
@@ -172,7 +175,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
   async function submitSale() {
     if (cart.length === 0) {
-      setCheckoutError("Tambahkan minimal satu barang ke keranjang.");
+      setCheckoutError("Add at least one item before saving this sale.");
       return;
     }
 
@@ -272,22 +275,24 @@ export function CashierModule({ storeId }: CashierModuleProps) {
       setIsSubmitting(false);
     } catch (error) {
       setIsSubmitting(false);
-      setCheckoutError(error instanceof Error ? error.message : "Gagal menyimpan transaksi.");
+      setCheckoutError(error instanceof Error ? error.message : "We couldn't save this sale.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Kasir</h3>
-        <p className="text-sm text-stone-500">Pilih barang, atur qty, lalu simpan transaksi dari satu layar.</p>
+        <h3 className="text-lg font-semibold">Checkout</h3>
+        <p className="text-sm text-stone-500">
+          Search for items, add them to the basket, and save the sale from one screen.
+        </p>
       </div>
 
       {checkoutError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Transaksi belum tersimpan</Alert.Title>
+            <Alert.Title>We couldn’t save this sale</Alert.Title>
             <Alert.Description>{checkoutError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -301,14 +306,14 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 <MagnifyingGlassIcon aria-hidden size={18} />
               </InputGroup.Prefix>
               <InputGroup.Input
-                aria-label="Cari barang untuk kasir"
+                aria-label="Search items for checkout"
                 className="w-full"
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari barang, SKU, atau satuan"
+                placeholder="Search by item name, code, or unit"
                 value={search}
               />
             </InputGroup>
-            <p className="text-sm text-stone-500">{filteredProducts.length} barang tersedia</p>
+            <p className="text-sm text-stone-500">{filteredProducts.length} items found</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -318,14 +323,14 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                   <Card.Header className="space-y-1">
                     <Card.Title className="text-base">{product.name ?? "-"}</Card.Title>
                     <Card.Description className="text-sm text-stone-500">
-                      {product.sku ?? "Tanpa SKU"}
+                      {product.sku ?? "No code"}
                     </Card.Description>
                   </Card.Header>
                   <Card.Content className="space-y-3">
                     <div className="text-sm text-stone-600">
                       <p>{formatRupiah(product.selling_price)}</p>
                       <p>
-                        Stok: {product.stock ?? 0} {product.unit ?? ""}
+                        In stock: {product.stock ?? 0} {product.unit ?? ""}
                       </p>
                     </div>
                     <Button
@@ -335,7 +340,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                       variant="outline"
                     >
                       <PlusIcon aria-hidden size={16} />
-                      Tambah
+                      Add
                     </Button>
                   </Card.Content>
                 </Card>
@@ -344,8 +349,10 @@ export function CashierModule({ storeId }: CashierModuleProps) {
               <Alert>
                 <Alert.Indicator />
                 <Alert.Content>
-                  <Alert.Title>Barang tidak ditemukan</Alert.Title>
-                  <Alert.Description>Coba kata kunci lain atau buat barang baru dulu.</Alert.Description>
+                  <Alert.Title>No items found</Alert.Title>
+                  <Alert.Description>
+                    Try a different search or add a new item first.
+                  </Alert.Description>
                 </Alert.Content>
               </Alert>
             )}
@@ -355,22 +362,27 @@ export function CashierModule({ storeId }: CashierModuleProps) {
         <div className="space-y-4">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header className="space-y-1">
-              <Card.Title className="text-base">Keranjang</Card.Title>
+              <Card.Title className="text-base">Basket</Card.Title>
               <Card.Description className="text-sm text-stone-500">
-                Ringkasan transaksi yang akan disimpan.
+                This is what will be saved when you finish the sale.
               </Card.Description>
             </Card.Header>
             <Card.Content className="space-y-4">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-stone-700" htmlFor="cashier-customer">
-                    Pelanggan (optional)
+                  <label
+                    className="block text-sm font-medium text-stone-700"
+                    htmlFor="cashier-customer"
+                  >
+                    Customer (optional)
                   </label>
                   <Select
-                    aria-label="Pilih pelanggan"
+                    aria-label="Choose a customer"
                     className="w-full"
                     id="cashier-customer"
-                    onSelectionChange={(key) => setSelectedCustomerId(typeof key === "string" ? key : "")}
+                    onSelectionChange={(key) =>
+                      setSelectedCustomerId(typeof key === "string" ? key : "")
+                    }
                     selectedKey={selectedCustomerId || null}
                   >
                     <Select.Trigger className="w-full">
@@ -379,10 +391,10 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                     </Select.Trigger>
                     <Select.Popover>
                       <ListBox>
-                        <ListBox.Item id="">Tanpa pelanggan</ListBox.Item>
+                        <ListBox.Item id="">No customer</ListBox.Item>
                         {customers.map((customer) => (
                           <ListBox.Item id={customer.id} key={customer.id}>
-                            {customer.name ?? "Pelanggan tanpa nama"}
+                            {customer.name ?? "Unnamed customer"}
                           </ListBox.Item>
                         ))}
                       </ListBox>
@@ -391,14 +403,19 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-stone-700" htmlFor="cashier-payment">
-                    Metode pembayaran
+                  <label
+                    className="block text-sm font-medium text-stone-700"
+                    htmlFor="cashier-payment"
+                  >
+                    Payment method
                   </label>
                   <Select
-                    aria-label="Pilih pembayaran"
+                    aria-label="Choose a payment method"
                     className="w-full"
                     id="cashier-payment"
-                    onSelectionChange={(key) => setPaymentMethod(typeof key === "string" ? key : "cash")}
+                    onSelectionChange={(key) =>
+                      setPaymentMethod(typeof key === "string" ? key : "cash")
+                    }
                     selectedKey={paymentMethod}
                   >
                     <Select.Trigger className="w-full">
@@ -420,12 +437,12 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
               <Table>
                 <Table.ScrollContainer>
-                  <Table.Content aria-label="Keranjang kasir">
+                  <Table.Content aria-label="Checkout basket">
                     <Table.Header>
-                      <Table.Column isRowHeader>Barang</Table.Column>
+                      <Table.Column isRowHeader>Item</Table.Column>
                       <Table.Column>Qty</Table.Column>
                       <Table.Column>Subtotal</Table.Column>
-                      <Table.Column>Aksi</Table.Column>
+                      <Table.Column>Actions</Table.Column>
                     </Table.Header>
                     <Table.Body>
                       {cart.length > 0 ? (
@@ -436,13 +453,25 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                             <Table.Cell>{formatRupiah(item.price * item.quantity)}</Table.Cell>
                             <Table.Cell>
                               <div className="flex items-center gap-2">
-                                <Button onPress={() => updateCartQuantity(item.id, -1)} size="sm" variant="tertiary">
+                                <Button
+                                  onPress={() => updateCartQuantity(item.id, -1)}
+                                  size="sm"
+                                  variant="tertiary"
+                                >
                                   <MinusIcon aria-hidden size={16} />
                                 </Button>
-                                <Button onPress={() => updateCartQuantity(item.id, 1)} size="sm" variant="outline">
+                                <Button
+                                  onPress={() => updateCartQuantity(item.id, 1)}
+                                  size="sm"
+                                  variant="outline"
+                                >
                                   <PlusIcon aria-hidden size={16} />
                                 </Button>
-                                <Button onPress={() => removeFromCart(item.id)} size="sm" variant="tertiary">
+                                <Button
+                                  onPress={() => removeFromCart(item.id)}
+                                  size="sm"
+                                  variant="tertiary"
+                                >
                                   <TrashIcon aria-hidden size={16} />
                                 </Button>
                               </div>
@@ -451,7 +480,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                         ))
                       ) : (
                         <Table.Row>
-                          <Table.Cell colSpan={4}>Belum ada barang di keranjang.</Table.Cell>
+                          <Table.Cell colSpan={4}>Your basket is empty.</Table.Cell>
                         </Table.Row>
                       )}
                     </Table.Body>
@@ -470,7 +499,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 </Card>
                 <Card className="border border-stone-200 shadow-none">
                   <Card.Header>
-                    <Card.Title className="text-sm font-medium text-stone-600">Item</Card.Title>
+                    <Card.Title className="text-sm font-medium text-stone-600">Lines</Card.Title>
                   </Card.Header>
                   <Card.Content>
                     <p className="text-xl font-semibold text-stone-950">{cart.length}</p>
@@ -478,7 +507,9 @@ export function CashierModule({ storeId }: CashierModuleProps) {
                 </Card>
                 <Card className="border border-stone-200 shadow-none">
                   <Card.Header>
-                    <Card.Title className="text-sm font-medium text-stone-600">Qty total</Card.Title>
+                    <Card.Title className="text-sm font-medium text-stone-600">
+                      Total quantity
+                    </Card.Title>
                   </Card.Header>
                   <Card.Content>
                     <p className="text-xl font-semibold text-stone-950">
@@ -490,7 +521,7 @@ export function CashierModule({ storeId }: CashierModuleProps) {
 
               <Button fullWidth isPending={isSubmitting} onPress={() => void submitSale()}>
                 <ShoppingCartIcon aria-hidden size={16} />
-                Simpan transaksi
+                Save sale
               </Button>
             </Card.Content>
           </Card>

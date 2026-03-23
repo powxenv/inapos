@@ -33,8 +33,8 @@ export type OllamaStatus = z.infer<typeof ollamaStatusSchema>;
 
 export const recommendedOllamaModels = [
   {
-    description: "Paling ringan untuk memulai chat lokal di desktop dengan resource rendah.",
-    minimumRequirement: "Rekomendasi minimum: RAM 8 GB, CPU 4 core, ruang kosong 3 GB.",
+    description: "A lighter option for getting started on this device.",
+    minimumRequirement: "Suggested minimum: 8 GB memory, 4 CPU cores, and 3 GB free space.",
     name: "qwen3.5:0.8b",
     sizeLabel: "~1 GB",
   },
@@ -53,7 +53,7 @@ export async function getOllamaStatus() {
       ollamaInstalled: false,
       ollamaRunning: false,
       platform: "web",
-      reason: "Asisten AI hanya tersedia di desktop app.",
+      reason: "The assistant is only available in the desktop app.",
     });
   }
 
@@ -63,7 +63,7 @@ export async function getOllamaStatus() {
 
 export async function startOllamaPull(model: string) {
   if (!isTauriRuntime()) {
-    throw new Error("Download model hanya tersedia di desktop app.");
+    throw new Error("Downloads are only available in the desktop app.");
   }
 
   await invoke("start_ollama_pull", { model });

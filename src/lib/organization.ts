@@ -84,7 +84,7 @@ export function slugifyOrganizationName(value: string) {
 }
 
 export function createRandomOrganizationSlug(name: string) {
-  const base = slugifyOrganizationName(name) || "toko";
+  const base = slugifyOrganizationName(name) || "store";
   const randomPart = Math.random().toString(36).slice(2, 8);
 
   return `${base}-${randomPart}`.slice(0, 48);
@@ -141,7 +141,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       .then(async ({ error }: { error?: { message?: string } | null }) => {
         if (error) {
           activationAttemptRef.current = null;
-          setActivationErrorMessage(error.message ?? "Gagal memilih toko aktif.");
+          setActivationErrorMessage(error.message ?? "We couldn't open this store.");
           setIsActivating(false);
           return;
         }
@@ -157,7 +157,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
       .catch((error: unknown) => {
         activationAttemptRef.current = null;
         setActivationErrorMessage(
-          error instanceof Error ? error.message : "Gagal memilih toko aktif.",
+          error instanceof Error ? error.message : "We couldn't open this store.",
         );
         setIsActivating(false);
       });
@@ -183,7 +183,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   if (session.isPending || organizations.isPending || activeOrganization.isPending) {
     return {
       status: "loading",
-      message: "Memeriksa akses toko...",
+      message: "Checking your store access...",
     };
   }
 
@@ -200,7 +200,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
         session.error?.message ??
         organizations.error?.message ??
         activeOrganization.error?.message ??
-        "Gagal memuat data toko.",
+        "We couldn't load your store details.",
       retry,
     };
   }
@@ -221,7 +221,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   ) {
     return {
       status: "error",
-      message: "Toko tidak ditemukan atau Anda tidak memiliki akses ke toko ini.",
+      message: "This store couldn't be found, or you don't have access to it.",
       retry,
     };
   }
@@ -239,7 +239,7 @@ export function useOrganizationGate(requestedOrganizationSlug?: string): Organiz
   if ((organizations.data?.length ?? 0) > 0 || isActivating) {
     return {
       status: "activating",
-      message: "Menyiapkan toko aktif...",
+      message: "Opening your store...",
     };
   }
 

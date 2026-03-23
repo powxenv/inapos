@@ -8,7 +8,7 @@ import { Link, Navigate, createFileRoute } from "@tanstack/react-router";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
 
 const forgotPasswordSchema = z.object({
-  email: z.email("Format email tidak valid."),
+  email: z.email("Enter a valid email address."),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
@@ -52,16 +52,18 @@ function RouteComponent() {
       if (error) {
         setError("root", {
           type: "server",
-          message: error.message ?? "Gagal mengirim tautan reset.",
+          message: error.message ?? "We couldn't send the reset link.",
         });
         return;
       }
 
-      setNoticeMessage("Tautan reset kata sandi sudah dikirim ke email tersebut.");
+      setNoticeMessage(
+        "If that email is in your account, you'll get a password reset link shortly.",
+      );
     } catch (error) {
       setError("root", {
         type: "server",
-        message: error instanceof Error ? error.message : "Gagal mengirim tautan reset.",
+        message: error instanceof Error ? error.message : "We couldn't send the reset link.",
       });
     }
   });
@@ -70,9 +72,9 @@ function RouteComponent() {
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-stone-900">Lupa kata sandi</h1>
+          <h1 className="text-2xl font-semibold text-stone-900">Reset password</h1>
           <p className="text-sm text-stone-500">
-            Masukkan email akun untuk menerima tautan reset kata sandi.
+            Enter the email address you use for this account and we'll send you a reset link.
           </p>
         </div>
 
@@ -82,7 +84,7 @@ function RouteComponent() {
               className="block text-sm font-medium text-stone-700"
               htmlFor="forgot-password-email"
             >
-              Email
+              Email address
             </label>
             <Controller
               control={control}
@@ -94,13 +96,13 @@ function RouteComponent() {
                   </InputGroup.Prefix>
                   <InputGroup.Input
                     aria-invalid={fieldState.invalid}
-                    aria-label="Email"
+                    aria-label="Email address"
                     autoComplete="email"
                     className="w-full"
                     id="forgot-password-email"
                     onBlur={field.onBlur}
                     onChange={field.onChange}
-                    placeholder="nama@toko.com"
+                    placeholder="you@yourstore.com"
                     type="email"
                     value={field.value}
                   />
@@ -116,7 +118,7 @@ function RouteComponent() {
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Permintaan gagal</Alert.Title>
+                <Alert.Title>That didn’t work</Alert.Title>
                 <Alert.Description>{errors.root.message}</Alert.Description>
               </Alert.Content>
             </Alert>
@@ -126,14 +128,14 @@ function RouteComponent() {
             <Alert status="success">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title>Email terkirim</Alert.Title>
+                <Alert.Title>Check your email</Alert.Title>
                 <Alert.Description>{noticeMessage}</Alert.Description>
               </Alert.Content>
             </Alert>
           ) : null}
 
           <Button fullWidth isPending={isSubmitting} type="submit">
-            Kirim tautan reset
+            Send reset link
           </Button>
 
           <div className="pt-1 text-sm">
@@ -141,7 +143,7 @@ function RouteComponent() {
               className="block text-stone-600 transition hover:text-stone-900"
               to="/auth/sign-in"
             >
-              Kembali ke halaman masuk
+              Back to sign in
             </Link>
           </div>
         </form>

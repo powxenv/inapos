@@ -40,10 +40,14 @@ type EditingSupplier = {
 };
 
 const supplierSchema = z.object({
-  city: z.string().trim().max(60, "Kota maksimal 60 karakter."),
-  name: z.string().trim().min(1, "Nama pemasok wajib diisi.").max(120, "Nama pemasok maksimal 120 karakter."),
-  paymentTerm: z.string().trim().max(30, "Termin pembayaran maksimal 30 karakter."),
-  phone: z.string().trim().max(30, "Nomor telepon maksimal 30 karakter."),
+  city: z.string().trim().max(60, "Use 60 characters or fewer."),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Enter the supplier name.")
+    .max(120, "Use 120 characters or fewer."),
+  paymentTerm: z.string().trim().max(30, "Use 30 characters or fewer."),
+  phone: z.string().trim().max(30, "Use 30 characters or fewer."),
 });
 
 type SupplierFormValues = z.infer<typeof supplierSchema>;
@@ -56,15 +60,23 @@ const defaultValues: SupplierFormValues = {
 };
 
 const paymentTermOptions = [
-  { id: "cash", label: "Tunai" },
-  { id: "7-hari", label: "7 hari" },
-  { id: "14-hari", label: "14 hari" },
-  { id: "30-hari", label: "30 hari" },
+  { id: "cash", label: "Cash" },
+  { id: "7-hari", label: "7 days" },
+  { id: "14-hari", label: "14 days" },
+  { id: "30-hari", label: "30 days" },
 ] as const;
 
 function normalizeText(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function paymentTermLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return paymentTermOptions.find((option) => option.id === value)?.label ?? value;
 }
 
 export function SuppliersModule({ storeId }: SuppliersModuleProps) {
@@ -121,7 +133,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
   function startEdit(supplier: SupplierRow) {
     setEditingSupplier({
       id: supplier.id,
-      name: supplier.name ?? "Pemasok",
+      name: supplier.name ?? "Supplier",
     });
     setFormError(null);
     reset({
@@ -195,7 +207,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan pemasok.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this supplier.");
     }
   }
 
@@ -213,22 +225,24 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus pemasok.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this supplier.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Pemasok</h3>
-        <p className="text-sm text-stone-500">Kelola pemasok utama untuk kebutuhan belanja stok.</p>
+        <h3 className="text-lg font-semibold">Suppliers</h3>
+        <p className="text-sm text-stone-500">
+          Keep your main suppliers here so reordering stays simple.
+        </p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -241,26 +255,28 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Cari pemasok"
+              aria-label="Search suppliers"
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nama, telepon, kota, atau termin"
+              placeholder="Search by name, phone number, city, or payment terms"
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Tambah pemasok
+              Add supplier
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingSupplier ? "Ubah pemasok" : "Tambah pemasok"}>
+                <Modal.Dialog aria-label={editingSupplier ? "Edit supplier" : "Add supplier"}>
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingSupplier ? `Ubah pemasok: ${editingSupplier.name}` : "Tambah pemasok"}
+                          {editingSupplier
+                            ? `Edit supplier: ${editingSupplier.name}`
+                            : "Add supplier"}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -275,7 +291,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="supplier-name"
                             >
-                              Nama pemasok
+                              Supplier name
                             </label>
                             <Controller
                               control={control}
@@ -291,14 +307,16 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     id="supplier-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Contoh: CV Sumber Jaya"
+                                    placeholder="For example: Sumber Jaya"
                                     value={field.value}
                                   />
                                 </InputGroup>
                               )}
                             />
                             {formState.errors.name?.message ? (
-                              <p className="text-sm text-red-600">{formState.errors.name.message}</p>
+                              <p className="text-sm text-red-600">
+                                {formState.errors.name.message}
+                              </p>
                             ) : null}
                           </div>
 
@@ -308,7 +326,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-phone"
                               >
-                                Nomor telepon (optional)
+                                Phone number (optional)
                               </label>
                               <Controller
                                 control={control}
@@ -319,13 +337,15 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     id="supplier-phone"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="08..."
+                                    placeholder="+62..."
                                     value={field.value}
                                   />
                                 )}
                               />
                               {formState.errors.phone?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.phone.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.phone.message}
+                                </p>
                               ) : null}
                             </div>
 
@@ -334,7 +354,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-city"
                               >
-                                Kota (optional)
+                                City (optional)
                               </label>
                               <Controller
                                 control={control}
@@ -351,7 +371,9 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 )}
                               />
                               {formState.errors.city?.message ? (
-                                <p className="text-sm text-red-600">{formState.errors.city.message}</p>
+                                <p className="text-sm text-red-600">
+                                  {formState.errors.city.message}
+                                </p>
                               ) : null}
                             </div>
 
@@ -360,21 +382,21 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-payment-term"
                               >
-                                Termin pembayaran (optional)
+                                Payment terms (optional)
                               </label>
                               <Controller
                                 control={control}
                                 name="paymentTerm"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Termin pembayaran"
+                                    aria-label="Choose payment terms"
                                     className="w-full"
                                     id="supplier-payment-term"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Pilih termin"
+                                    placeholder="Choose payment terms"
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -383,7 +405,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">Tanpa termin</ListBox.Item>
+                                        <ListBox.Item id="">No payment terms</ListBox.Item>
                                         {paymentTermOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
                                             {option.label}
@@ -411,10 +433,10 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingSupplier ? "Simpan perubahan" : "Simpan pemasok"}
+                              {editingSupplier ? "Save changes" : "Save supplier"}
                             </Button>
                           </div>
                         </form>
@@ -427,19 +449,19 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredSuppliers.length} dari {suppliers.length} pemasok
+          {filteredSuppliers.length} of {suppliers.length} suppliers
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel pemasok toko">
+          <Table.Content aria-label="Supplier list">
             <Table.Header>
-              <Table.Column isRowHeader>Nama</Table.Column>
-              <Table.Column>Telepon</Table.Column>
-              <Table.Column>Kota</Table.Column>
-              <Table.Column>Termin</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column isRowHeader>Name</Table.Column>
+              <Table.Column>Phone</Table.Column>
+              <Table.Column>City</Table.Column>
+              <Table.Column>Terms</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredSuppliers.length > 0 ? (
@@ -448,37 +470,38 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                     <Table.Cell>{supplier.name ?? "-"}</Table.Cell>
                     <Table.Cell>{supplier.phone ?? "-"}</Table.Cell>
                     <Table.Cell>{supplier.city ?? "-"}</Table.Cell>
-                    <Table.Cell>{supplier.payment_term ?? "-"}</Table.Cell>
+                    <Table.Cell>{paymentTermLabel(supplier.payment_term)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(supplier)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Ubah
+                          Edit
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Hapus
+                            Delete
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Hapus pemasok?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>Delete this supplier?</AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {supplier.name ?? "Pemasok ini"} akan dihapus dari daftar pemasok.
+                                  {supplier.name ?? "This supplier"} will be removed from your
+                                  supplier list.
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Batal
+                                    Cancel
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === supplier.id}
                                     onPress={() => void deleteSupplier(supplier.id)}
                                     variant="danger"
                                   >
-                                    Hapus
+                                    Delete
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -492,7 +515,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {suppliersQuery.isPending ? "Memuat pemasok..." : "Belum ada pemasok untuk toko ini."}
+                    {suppliersQuery.isPending ? "Loading suppliers..." : "No suppliers yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

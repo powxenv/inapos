@@ -21,7 +21,7 @@ async function readAiHttpError(response: Response) {
   } catch {}
 
   const fallback = await response.text().catch(() => "");
-  return fallback.trim() || "Permintaan AI gagal.";
+  return fallback.trim() || "We couldn't complete that request.";
 }
 
 export function buildAiHttpUrl(path: string) {
@@ -30,7 +30,7 @@ export function buildAiHttpUrl(path: string) {
 
 export async function aiHttpFetch(path: string, init?: RequestInit) {
   if (!isTauriRuntime()) {
-    throw new Error("Fitur AI hanya tersedia di desktop app.");
+    throw new Error("The assistant is only available in the desktop app.");
   }
 
   let lastError: unknown = null;
@@ -55,7 +55,5 @@ export async function aiHttpFetch(path: string, init?: RequestInit) {
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Server AI lokal belum siap.");
+  throw lastError instanceof Error ? lastError : new Error("The assistant isn't ready yet.");
 }

@@ -12,7 +12,7 @@ function RouteComponent() {
   if (gate.status === "loading" || gate.status === "activating") {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-stone-500">{gate.message ?? "Memuat sesi pengguna..."}</p>
+        <p className="text-sm text-stone-500">{gate.message ?? "Getting things ready..."}</p>
       </main>
     );
   }
@@ -32,12 +32,12 @@ function RouteComponent() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Data toko belum siap</Alert.Title>
+              <Alert.Title>Your store isn't ready yet</Alert.Title>
               <Alert.Description>{gate.message}</Alert.Description>
             </Alert.Content>
           </Alert>
           <Button fullWidth onPress={() => void gate.retry()}>
-            Coba lagi
+            Try again
           </Button>
         </div>
       </main>

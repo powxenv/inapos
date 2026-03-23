@@ -60,17 +60,17 @@ const stockSchema = z.object({
   onHand: z
     .string()
     .trim()
-    .min(1, "Stok saat ini wajib diisi.")
+    .min(1, "Enter the current stock.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Stok saat ini harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
-  productId: z.string().trim().min(1, "Pilih barang terlebih dahulu."),
+  productId: z.string().trim().min(1, "Choose an item."),
   reorderPoint: z
     .string()
     .trim()
-    .min(1, "Batas restok wajib diisi.")
+    .min(1, "Enter a reorder point.")
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Batas restok harus angka 0 atau lebih.",
+      message: "Use 0 or more.",
     }),
 });
 
@@ -86,25 +86,25 @@ function stockStatus(onHand: number, reorderPoint: number) {
   if (onHand <= 0) {
     return {
       color: "danger" as const,
-      label: "Habis",
+      label: "Out of stock",
     };
   }
 
   if (onHand <= reorderPoint) {
     return {
       color: "warning" as const,
-      label: "Menipis",
+      label: "Running low",
     };
   }
 
   return {
     color: "success" as const,
-    label: "Aman",
+    label: "In stock",
   };
 }
 
 function productOptionLabel(product: ProductOptionRow) {
-  const name = product.name ?? "Barang tanpa nama";
+  const name = product.name ?? "Unnamed item";
   return product.sku ? `${name} · ${product.sku}` : name;
 }
 
@@ -221,7 +221,7 @@ export function StockModule({ storeId }: StockModuleProps) {
     setEditingInventory({
       inventoryId: row.inventory_id,
       productId: row.product_id,
-      productName: row.product_name ?? "Barang",
+      productName: row.product_name ?? "Item",
     });
     setFormError(null);
     reset({
@@ -277,7 +277,7 @@ export function StockModule({ storeId }: StockModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "Gagal menyimpan stok.");
+      setFormError(error instanceof Error ? error.message : "We couldn't save this stock update.");
     }
   }
 
@@ -295,16 +295,16 @@ export function StockModule({ storeId }: StockModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "Gagal menghapus stok.");
+      setFormError(error instanceof Error ? error.message : "We couldn't delete this stock entry.");
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Stok</h3>
+        <h3 className="text-lg font-semibold">Stock</h3>
         <p className="text-sm text-stone-500">
-          Pantau stok per barang dan atur batas restok untuk toko ini.
+          Check stock levels and decide when each item should be reordered.
         </p>
       </div>
 
@@ -312,7 +312,7 @@ export function StockModule({ storeId }: StockModuleProps) {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -321,7 +321,7 @@ export function StockModule({ storeId }: StockModuleProps) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Total barang</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Tracked items</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">{summary?.tracked_count ?? 0}</p>
@@ -329,21 +329,23 @@ export function StockModule({ storeId }: StockModuleProps) {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">Stok menipis</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Running low</Card.Title>
             <Chip color="warning">{summary?.low_count ?? 0}</Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">Habis</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Out of stock</Card.Title>
             <Chip color="danger">{summary?.empty_count ?? 0}</Chip>
           </Card.Header>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
-            <Card.Title className="text-sm font-medium text-stone-600">Barang aman</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">Looking good</Card.Title>
             <Chip color="success">
-              {(summary?.tracked_count ?? 0) - (summary?.low_count ?? 0) - (summary?.empty_count ?? 0)}
+              {(summary?.tracked_count ?? 0) -
+                (summary?.low_count ?? 0) -
+                (summary?.empty_count ?? 0)}
             </Chip>
           </Card.Header>
         </Card>
@@ -355,32 +357,32 @@ export function StockModule({ storeId }: StockModuleProps) {
             <MagnifyingGlassIcon aria-hidden size={18} />
           </InputGroup.Prefix>
           <InputGroup.Input
-            aria-label="Cari stok"
+            aria-label="Search stock"
             className="w-full"
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari barang, SKU, atau satuan"
+            placeholder="Search by item name, code, or unit"
             value={search}
           />
         </InputGroup>
         <p className="text-sm text-stone-500">
-          {filteredRows.length} dari {inventoryRows.length} barang
+          {filteredRows.length} of {inventoryRows.length} items
         </p>
       </div>
 
       <Modal state={modalState}>
         <Button className="hidden" onPress={openCreateModal}>
-          Atur stok
+          Update stock
         </Button>
         <Modal.Backdrop>
           <Modal.Container placement="center" size="lg">
-            <Modal.Dialog aria-label={editingInventory ? "Ubah stok" : "Sesuaikan stok"}>
+            <Modal.Dialog aria-label={editingInventory ? "Edit stock" : "Update stock"}>
               {({ close }) => (
                 <>
                   <Modal.Header>
                     <Modal.Heading>
                       {editingInventory
-                        ? `Ubah stok: ${editingInventory.productName}`
-                        : "Sesuaikan stok"}
+                        ? `Edit stock: ${editingInventory.productName}`
+                        : "Update stock"}
                     </Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
@@ -396,7 +398,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                             className="block text-sm font-medium text-stone-700"
                             htmlFor="stock-product-id"
                           >
-                            Barang
+                            Item
                           </label>
                           <Controller
                             control={control}
@@ -404,7 +406,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                             render={({ field, fieldState }) => (
                               <Select
                                 aria-invalid={fieldState.invalid}
-                                aria-label="Pilih barang"
+                                aria-label="Choose an item"
                                 className="w-full"
                                 id="stock-product-id"
                                 isDisabled={Boolean(editingInventory)}
@@ -412,7 +414,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                                 onSelectionChange={(key) =>
                                   field.onChange(typeof key === "string" ? key : "")
                                 }
-                                placeholder="Pilih barang"
+                                placeholder="Choose an item"
                                 selectedKey={field.value || null}
                               >
                                 <Select.Trigger className="w-full">
@@ -443,7 +445,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                             className="block text-sm font-medium text-stone-700"
                             htmlFor="stock-on-hand"
                           >
-                            Stok saat ini
+                            Current stock
                           </label>
                           <Controller
                             control={control}
@@ -463,7 +465,9 @@ export function StockModule({ storeId }: StockModuleProps) {
                             )}
                           />
                           {formState.errors.onHand?.message ? (
-                            <p className="text-sm text-red-600">{formState.errors.onHand.message}</p>
+                            <p className="text-sm text-red-600">
+                              {formState.errors.onHand.message}
+                            </p>
                           ) : null}
                         </div>
 
@@ -472,7 +476,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                             className="block text-sm font-medium text-stone-700"
                             htmlFor="stock-reorder-point"
                           >
-                            Batas restok
+                            Reorder point
                           </label>
                           <Controller
                             control={control}
@@ -510,10 +514,10 @@ export function StockModule({ storeId }: StockModuleProps) {
                           type="button"
                           variant="tertiary"
                         >
-                          Batal
+                          Cancel
                         </Button>
                         <Button isPending={isSaving} type="submit">
-                          {editingInventory ? "Simpan perubahan" : "Simpan stok"}
+                          {editingInventory ? "Save changes" : "Save stock"}
                         </Button>
                       </div>
                     </form>
@@ -527,15 +531,15 @@ export function StockModule({ storeId }: StockModuleProps) {
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Tabel stok toko">
+          <Table.Content aria-label="Stock list">
             <Table.Header>
-              <Table.Column isRowHeader>Barang</Table.Column>
+              <Table.Column isRowHeader>Item</Table.Column>
               <Table.Column>SKU</Table.Column>
-              <Table.Column>Stok</Table.Column>
-              <Table.Column>Batas restok</Table.Column>
-              <Table.Column>Satuan</Table.Column>
+              <Table.Column>Stock</Table.Column>
+              <Table.Column>Reorder point</Table.Column>
+              <Table.Column>Unit</Table.Column>
               <Table.Column>Status</Table.Column>
-              <Table.Column className="w-[160px]">Aksi</Table.Column>
+              <Table.Column className="w-[160px]">Actions</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredRows.length > 0 ? (
@@ -554,28 +558,31 @@ export function StockModule({ storeId }: StockModuleProps) {
                       </Table.Cell>
                       <Table.Cell>
                         <div className="flex items-center gap-2">
-                        <Button onPress={() => startEdit(row)} size="sm" variant="outline">
-                          <PencilSimpleIcon aria-hidden size={16} />
-                          Atur stok
-                        </Button>
+                          <Button onPress={() => startEdit(row)} size="sm" variant="outline">
+                            <PencilSimpleIcon aria-hidden size={16} />
+                            Update stock
+                          </Button>
                           {row.inventory_id ? (
                             <AlertDialog>
                               <Button size="sm" variant="tertiary">
                                 <TrashIcon aria-hidden size={16} />
-                                Hapus
+                                Delete
                               </Button>
                               <AlertDialog.Backdrop>
                                 <AlertDialog.Container placement="center" size="sm">
                                   <AlertDialog.Dialog>
                                     <AlertDialog.Header>
-                                      <AlertDialog.Heading>Hapus stok?</AlertDialog.Heading>
+                                      <AlertDialog.Heading>
+                                        Delete this stock entry?
+                                      </AlertDialog.Heading>
                                     </AlertDialog.Header>
                                     <AlertDialog.Body>
-                                      Catatan stok untuk {row.product_name ?? "barang ini"} akan dihapus.
+                                      The stock entry for {row.product_name ?? "this item"} will be
+                                      removed.
                                     </AlertDialog.Body>
                                     <AlertDialog.Footer>
                                       <Button slot="close" variant="tertiary">
-                                        Batal
+                                        Cancel
                                       </Button>
                                       <Button
                                         isPending={pendingDeleteId === row.inventory_id}
@@ -586,7 +593,7 @@ export function StockModule({ storeId }: StockModuleProps) {
                                         }}
                                         variant="danger"
                                       >
-                                        Hapus
+                                        Delete
                                       </Button>
                                     </AlertDialog.Footer>
                                   </AlertDialog.Dialog>
@@ -602,7 +609,7 @@ export function StockModule({ storeId }: StockModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={7}>
-                    {inventoryQuery.isPending ? "Memuat data stok..." : "Belum ada data stok."}
+                    {inventoryQuery.isPending ? "Loading stock..." : "No stock entries yet."}
                   </Table.Cell>
                 </Table.Row>
               )}

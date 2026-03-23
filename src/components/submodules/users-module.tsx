@@ -21,7 +21,7 @@ type UsersModuleProps = {
 };
 
 const inviteUserSchema = z.object({
-  email: z.string().trim().min(1, "Email wajib diisi.").email("Format email tidak valid."),
+  email: z.string().trim().min(1, "Enter an email address.").email("Enter a valid email address."),
   role: z.enum(["admin", "member"]),
 });
 
@@ -36,7 +36,7 @@ function roleLabel(role: OrganizationRole) {
     return "Admin";
   }
 
-  return "Member";
+  return "Team member";
 }
 
 function formatInvitationExpiry(value: Date) {
@@ -97,14 +97,12 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "Gagal mengirim undangan.");
+      setFormError(error.message ?? "We couldn't create this invite.");
       return;
     }
 
     reset();
-    setSuccessMessage(
-      "Undangan tersimpan. Neon Auth beta belum mengirim email otomatis, jadi status undangan muncul di daftar pending.",
-    );
+    setSuccessMessage("The invite is ready. It will stay here until the person joins.");
     close();
     await refreshOrganization();
   }
@@ -122,7 +120,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "Gagal mengubah peran anggota.");
+      setFormError(error.message ?? "We couldn't change this role.");
       return;
     }
 
@@ -141,7 +139,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "Gagal mengeluarkan anggota.");
+      setFormError(error.message ?? "We couldn't remove this person.");
       return;
     }
 
@@ -159,7 +157,7 @@ export function UsersModule({
 
     if (error) {
       setPendingActionKey(null);
-      setFormError(error.message ?? "Gagal membatalkan undangan.");
+      setFormError(error.message ?? "We couldn't cancel this invite.");
       return;
     }
 
@@ -170,11 +168,11 @@ export function UsersModule({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Pengguna</h3>
+          <h3 className="text-lg font-semibold">Team</h3>
           <p className="text-sm text-stone-500">
             {canManageMembers
-              ? "Undang admin atau member baru, lalu atur peran pengguna toko ini."
-              : "Anda hanya dapat melihat daftar anggota toko ini."}
+              ? "Invite people to this store and choose what they can manage."
+              : "You can view the people in this store, but you can’t make changes."}
           </p>
         </div>
         {canManageMembers ? (
@@ -186,15 +184,15 @@ export function UsersModule({
                 reset();
               }}
             >
-              Tambah pengguna
+              Add person
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="sm">
-                <Modal.Dialog aria-label="Undang pengguna baru">
+                <Modal.Dialog aria-label="Invite someone new">
                   {({ close }) => (
                     <>
                       <Modal.Header>
-                        <Modal.Heading>Undang pengguna</Modal.Heading>
+                        <Modal.Heading>Invite someone</Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
                         <form
@@ -208,7 +206,7 @@ export function UsersModule({
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="invite-user-email"
                             >
-                              Email pengguna
+                              Email address
                             </label>
                             <Controller
                               control={control}
@@ -226,7 +224,7 @@ export function UsersModule({
                                     id="invite-user-email"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="pegawai@contoh.com"
+                                    placeholder="team@yourstore.com"
                                     type="email"
                                     value={field.value}
                                   />
@@ -241,7 +239,7 @@ export function UsersModule({
                           </div>
 
                           <div className="space-y-2">
-                            <p className="text-sm font-medium text-stone-700">Peran</p>
+                            <p className="text-sm font-medium text-stone-700">Role</p>
                             <div className="flex gap-2">
                               <Button
                                 onPress={() => setValue("role", "member")}
@@ -249,7 +247,7 @@ export function UsersModule({
                                 variant={inviteRole === "member" ? "primary" : "outline"}
                               >
                                 <UserIcon aria-hidden size={16} />
-                                Member
+                                Team member
                               </Button>
                               <Button
                                 onPress={() => setValue("role", "admin")}
@@ -266,7 +264,7 @@ export function UsersModule({
                             <Alert status="danger">
                               <Alert.Indicator />
                               <Alert.Content>
-                                <Alert.Title>Undangan gagal</Alert.Title>
+                                <Alert.Title>Invite failed</Alert.Title>
                                 <Alert.Description>{formError}</Alert.Description>
                               </Alert.Content>
                             </Alert>
@@ -274,10 +272,10 @@ export function UsersModule({
 
                           <div className="flex justify-end gap-2">
                             <Button slot="close" type="button" variant="tertiary">
-                              Batal
+                              Cancel
                             </Button>
                             <Button isPending={pendingActionKey === "invite"} type="submit">
-                              Kirim undangan
+                              Save invite
                             </Button>
                           </div>
                         </form>
@@ -295,7 +293,7 @@ export function UsersModule({
         <Alert>
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Undangan dibuat</Alert.Title>
+            <Alert.Title>Invite ready</Alert.Title>
             <Alert.Description>{successMessage}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -305,23 +303,23 @@ export function UsersModule({
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Aksi tidak berhasil</Alert.Title>
+            <Alert.Title>That didn’t work</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
       ) : null}
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-stone-500">Anggota toko</h4>
+        <h4 className="text-sm font-medium text-stone-500">People in this store</h4>
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Daftar anggota toko">
+            <Table.Content aria-label="Store members">
               <Table.Header>
-                <Table.Column isRowHeader>Nama</Table.Column>
+                <Table.Column isRowHeader>Name</Table.Column>
                 <Table.Column>Email</Table.Column>
-                <Table.Column>Peran</Table.Column>
+                <Table.Column>Role</Table.Column>
                 <Table.Column>Status</Table.Column>
-                <Table.Column>Aksi</Table.Column>
+                <Table.Column>Actions</Table.Column>
               </Table.Header>
               <Table.Body>
                 {members.map((member) => {
@@ -333,7 +331,7 @@ export function UsersModule({
                       <Table.Cell>{member.user.name}</Table.Cell>
                       <Table.Cell>{member.user.email}</Table.Cell>
                       <Table.Cell>{roleLabel(member.role)}</Table.Cell>
-                      <Table.Cell>{isCurrentUser ? "Aktif (Anda)" : "Aktif"}</Table.Cell>
+                      <Table.Cell>{isCurrentUser ? "Active (you)" : "Active"}</Table.Cell>
                       <Table.Cell>
                         <div className="flex flex-wrap gap-2">
                           {canEditRole ? (
@@ -345,7 +343,7 @@ export function UsersModule({
                                   size="sm"
                                   variant="outline"
                                 >
-                                  Jadikan admin
+                                  Make admin
                                 </Button>
                               ) : null}
                               {member.role !== "member" ? (
@@ -355,7 +353,7 @@ export function UsersModule({
                                   size="sm"
                                   variant="outline"
                                 >
-                                  Jadikan member
+                                  Make team member
                                 </Button>
                               ) : null}
                               <Button
@@ -364,14 +362,14 @@ export function UsersModule({
                                 size="sm"
                                 variant="danger"
                               >
-                                Keluarkan
+                                Remove
                               </Button>
                             </>
                           ) : (
                             <span className="text-sm text-stone-400">
                               {member.role === "owner"
-                                ? "Owner tidak dapat diubah"
-                                : "Hanya admin yang dapat mengelola"}
+                                ? "The owner can’t be changed"
+                                : "Only admins can make changes"}
                             </span>
                           )}
                         </div>
@@ -386,16 +384,16 @@ export function UsersModule({
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-stone-500">Undangan pending</h4>
+        <h4 className="text-sm font-medium text-stone-500">Pending invites</h4>
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Daftar undangan pengguna">
+            <Table.Content aria-label="Pending invites">
               <Table.Header>
                 <Table.Column isRowHeader>Email</Table.Column>
-                <Table.Column>Peran</Table.Column>
-                <Table.Column>Kedaluwarsa</Table.Column>
+                <Table.Column>Role</Table.Column>
+                <Table.Column>Expires</Table.Column>
                 <Table.Column>Status</Table.Column>
-                <Table.Column>Aksi</Table.Column>
+                <Table.Column>Actions</Table.Column>
               </Table.Header>
               <Table.Body>
                 {invitations.length > 0 ? (
@@ -413,11 +411,11 @@ export function UsersModule({
                             size="sm"
                             variant="outline"
                           >
-                            Batalkan
+                            Cancel invite
                           </Button>
                         ) : (
                           <span className="text-sm text-stone-400">
-                            Hanya admin yang dapat mengelola
+                            Only admins can make changes
                           </span>
                         )}
                       </Table.Cell>
@@ -425,7 +423,7 @@ export function UsersModule({
                   ))
                 ) : (
                   <Table.Row>
-                    <Table.Cell>Tidak ada undangan pending</Table.Cell>
+                    <Table.Cell>No pending invites</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>

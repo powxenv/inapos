@@ -48,24 +48,24 @@ const reportPeriods: readonly {
   label: string;
 }[] = [
   {
-    description: "Cocok untuk melihat performa hari ini.",
+    description: "Best for checking today at a glance.",
     id: "today",
-    label: "Hari ini",
+    label: "Today",
   },
   {
-    description: "Ringkas untuk evaluasi mingguan.",
+    description: "A quick look at the past week.",
     id: "7days",
-    label: "7 hari terakhir",
+    label: "Last 7 days",
   },
   {
-    description: "Melihat tren satu bulan berjalan.",
+    description: "See the bigger picture across the last month.",
     id: "30days",
-    label: "30 hari terakhir",
+    label: "Last 30 days",
   },
   {
-    description: "Mengikuti bulan kalender saat ini.",
+    description: "Shows the current calendar month.",
     id: "month",
-    label: "Bulan ini",
+    label: "This month",
   },
 ] as const;
 
@@ -79,6 +79,66 @@ function formatRupiah(value: number | null | undefined) {
 
 function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat("id-ID").format(value ?? 0);
+}
+
+function paymentMethodLabel(value: string | null | undefined) {
+  if (!value || value === "other") {
+    return "Other";
+  }
+
+  if (value === "cash") {
+    return "Cash";
+  }
+
+  if (value === "transfer") {
+    return "Bank transfer";
+  }
+
+  if (value === "qris") {
+    return "QRIS";
+  }
+
+  if (value === "tempo") {
+    return "Pay later";
+  }
+
+  return value;
+}
+
+function expenseCategoryLabel(value: string | null | undefined) {
+  if (!value || value === "other") {
+    return "Other";
+  }
+
+  if (value === "listrik") {
+    return "Electricity";
+  }
+
+  if (value === "air") {
+    return "Water";
+  }
+
+  if (value === "transport") {
+    return "Transport";
+  }
+
+  if (value === "kemasan") {
+    return "Packaging";
+  }
+
+  if (value === "gaji") {
+    return "Wages";
+  }
+
+  if (value === "perawatan") {
+    return "Maintenance";
+  }
+
+  if (value === "lainnya") {
+    return "Other";
+  }
+
+  return value;
 }
 
 function formatDate(value: Date) {
@@ -112,23 +172,31 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
   const [period, setPeriod] = useState<ReportPeriodId>("month");
   const range = useMemo(() => getReportRange(period), [period]);
   const selectedPeriod = reportPeriods.find((item) => item.id === period) ?? reportPeriods[3];
-  const [salesOverviewQuery, cogsQuery, expensesQuery, purchasesQuery, cashQuery, paymentBreakdownQuery, expenseBreakdownQuery, topProductsQuery] =
-    useQueries<
-      [
-        SalesOverviewRow,
-        SummaryRow,
-        SummaryRow,
-        SummaryRow,
-        CashOverviewRow,
-        BreakdownRow,
-        BreakdownRow,
-        TopProductRow,
-      ]
-    >({
-      queries: [
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+  const [
+    salesOverviewQuery,
+    cogsQuery,
+    expensesQuery,
+    purchasesQuery,
+    cashQuery,
+    paymentBreakdownQuery,
+    expenseBreakdownQuery,
+    topProductsQuery,
+  ] = useQueries<
+    [
+      SalesOverviewRow,
+      SummaryRow,
+      SummaryRow,
+      SummaryRow,
+      CashOverviewRow,
+      BreakdownRow,
+      BreakdownRow,
+      TopProductRow,
+    ]
+  >({
+    queries: [
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT
               COALESCE(SUM(total_amount), 0) AS value,
               COUNT(*) AS orders
@@ -137,11 +205,11 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
               AND status != 'cancelled'
               AND date(created_at) BETWEEN date(?) AND date(?)
           `,
-          queryKey: ["reports", storeId, period, "sales-overview"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "sales-overview"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT COALESCE(SUM(COALESCE(sale_items.quantity, 0) * COALESCE(products.cost_price, 0)), 0) AS value
             FROM sale_items
             INNER JOIN sales ON sales.id = sale_items.sale_id
@@ -150,31 +218,31 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
               AND sales.status != 'cancelled'
               AND date(sales.created_at) BETWEEN date(?) AND date(?)
           `,
-          queryKey: ["reports", storeId, period, "estimated-cogs"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "estimated-cogs"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT COALESCE(SUM(amount), 0) AS value
             FROM expenses
             WHERE store_id = ?
               AND date(paid_at) BETWEEN date(?) AND date(?)
           `,
-          queryKey: ["reports", storeId, period, "expenses"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "expenses"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT COALESCE(SUM(total_amount), 0) AS value
             FROM purchases
             WHERE store_id = ?
               AND date(purchased_at) BETWEEN date(?) AND date(?)
           `,
-          queryKey: ["reports", storeId, period, "purchases"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "purchases"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT
               COALESCE(SUM(CASE WHEN entry_type = 'in' THEN amount ELSE 0 END), 0) AS cash_in,
               COALESCE(SUM(CASE WHEN entry_type = 'out' THEN amount ELSE 0 END), 0) AS cash_out,
@@ -183,44 +251,44 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             WHERE store_id = ?
               AND date(happened_at) BETWEEN date(?) AND date(?)
           `,
-          queryKey: ["reports", storeId, period, "cash-overview"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "cash-overview"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT
-              COALESCE(payment_method, 'lainnya') AS label,
+              COALESCE(payment_method, 'other') AS label,
               COALESCE(SUM(total_amount), 0) AS value,
               COUNT(*) AS count
             FROM sales
             WHERE store_id = ?
               AND status != 'cancelled'
               AND date(created_at) BETWEEN date(?) AND date(?)
-            GROUP BY COALESCE(payment_method, 'lainnya')
+            GROUP BY COALESCE(payment_method, 'other')
             ORDER BY value DESC, label ASC
           `,
-          queryKey: ["reports", storeId, period, "payment-breakdown"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "payment-breakdown"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT
-              COALESCE(category, 'lainnya') AS label,
+              COALESCE(category, 'other') AS label,
               COALESCE(SUM(amount), 0) AS value,
               COUNT(*) AS count
             FROM expenses
             WHERE store_id = ?
               AND date(paid_at) BETWEEN date(?) AND date(?)
-            GROUP BY COALESCE(category, 'lainnya')
+            GROUP BY COALESCE(category, 'other')
             ORDER BY value DESC, label ASC
           `,
-          queryKey: ["reports", storeId, period, "expense-breakdown"],
-        },
-        {
-          parameters: [storeId, range.startDate, range.endDate],
-          query: `
+        queryKey: ["reports", storeId, period, "expense-breakdown"],
+      },
+      {
+        parameters: [storeId, range.startDate, range.endDate],
+        query: `
             SELECT
-              COALESCE(products.name, 'Barang tanpa nama') AS name,
+              COALESCE(products.name, 'Unnamed item') AS name,
               COALESCE(SUM(sale_items.quantity), 0) AS quantity,
               COALESCE(SUM(sale_items.subtotal), 0) AS revenue
             FROM sale_items
@@ -229,14 +297,14 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             WHERE sales.store_id = ?
               AND sales.status != 'cancelled'
               AND date(sales.created_at) BETWEEN date(?) AND date(?)
-            GROUP BY COALESCE(products.name, 'Barang tanpa nama')
+            GROUP BY COALESCE(products.name, 'Unnamed item')
             ORDER BY quantity DESC, revenue DESC, name ASC
             LIMIT 5
           `,
-          queryKey: ["reports", storeId, period, "top-products"],
-        },
-      ],
-    });
+        queryKey: ["reports", storeId, period, "top-products"],
+      },
+    ],
+  });
 
   const salesOverview = salesOverviewQuery.data?.[0];
   const cashOverview = cashQuery.data?.[0];
@@ -254,13 +322,13 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Laporan</h3>
+          <h3 className="text-lg font-semibold">Reports</h3>
           <p className="text-sm text-stone-500">
-            Lihat omzet, biaya, laba sederhana, dan kas tercatat untuk periode yang dipilih.
+            See sales, costs, and cash for the time you choose.
           </p>
         </div>
         <Select
-          aria-label="Pilih periode laporan"
+          aria-label="Choose a report period"
           className="w-full sm:w-[220px]"
           selectedKey={period}
           onSelectionChange={(key) => {
@@ -291,8 +359,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         <Alert.Content>
           <Alert.Title>{selectedPeriod.label}</Alert.Title>
           <Alert.Description>
-            Laba di bawah ini masih bersifat sederhana. HPP dihitung dari harga modal barang saat ini,
-            bukan snapshot harga modal saat transaksi terjadi.
+            The profit numbers below are estimates. Item costs are based on the current cost saved
+            for each item.
           </Alert.Description>
         </Alert.Content>
       </Alert>
@@ -301,10 +369,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <Card.Title className="text-sm font-medium text-stone-600">
-                Penjualan kotor
-              </Card.Title>
-              <Card.Description>{formatNumber(salesOverview?.orders)} transaksi</Card.Description>
+              <Card.Title className="text-sm font-medium text-stone-600">Sales total</Card.Title>
+              <Card.Description>{formatNumber(salesOverview?.orders)} sales</Card.Description>
             </div>
             <div className="rounded-full bg-emerald-50 p-2 text-emerald-700">
               <TrendUpIcon className="size-5" />
@@ -319,9 +385,9 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                HPP estimasi
+                Estimated item cost
               </Card.Title>
-              <Card.Description>Perkiraan modal barang terjual</Card.Description>
+              <Card.Description>Estimated cost of the items sold</Card.Description>
             </div>
             <div className="rounded-full bg-amber-50 p-2 text-amber-700">
               <ReceiptIcon className="size-5" />
@@ -336,9 +402,9 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Laba kotor
+                Estimated gross profit
               </Card.Title>
-              <Card.Description>Penjualan dikurangi HPP estimasi</Card.Description>
+              <Card.Description>Sales minus estimated item cost</Card.Description>
             </div>
             <div className="rounded-full bg-sky-50 p-2 text-sky-700">
               <ChartBarIcon className="size-5" />
@@ -352,10 +418,8 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <Card.Title className="text-sm font-medium text-stone-600">
-                Pengeluaran
-              </Card.Title>
-              <Card.Description>Biaya operasional dalam periode ini</Card.Description>
+              <Card.Title className="text-sm font-medium text-stone-600">Expenses</Card.Title>
+              <Card.Description>Everyday spending in this period</Card.Description>
             </div>
             <div className="rounded-full bg-rose-50 p-2 text-rose-700">
               <TrendDownIcon className="size-5" />
@@ -370,12 +434,12 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Laba bersih sederhana
+                Estimated money left
               </Card.Title>
-              <Card.Description>Laba kotor dikurangi pengeluaran</Card.Description>
+              <Card.Description>Gross profit minus expenses</Card.Description>
             </div>
             <Chip color={netProfit >= 0 ? "success" : "danger"}>
-              {netProfit >= 0 ? "Positif" : "Minus"}
+              {netProfit >= 0 ? "Positive" : "Negative"}
             </Chip>
           </Card.Header>
           <Card.Content>
@@ -387,9 +451,9 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Belanja stok
+                Stock purchases
               </Card.Title>
-              <Card.Description>Total pembelian stok</Card.Description>
+              <Card.Description>Total spent on buying stock</Card.Description>
             </div>
             <div className="rounded-full bg-violet-50 p-2 text-violet-700">
               <CoinsIcon className="size-5" />
@@ -404,26 +468,24 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
       <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title>Arus kas tercatat</Card.Title>
-            <Card.Description>
-              Berdasarkan modul kas. Cocok untuk melihat uang masuk dan keluar yang memang dicatat.
-            </Card.Description>
+            <Card.Title>Cash you recorded</Card.Title>
+            <Card.Description>Based on the cash entries saved during this period.</Card.Description>
           </Card.Header>
           <Card.Content className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Kas masuk</p>
+              <p className="text-sm text-stone-500">Money in</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
                 {formatRupiah(cashOverview?.cash_in)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Kas keluar</p>
+              <p className="text-sm text-stone-500">Money out</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
                 {formatRupiah(cashOverview?.cash_out)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Saldo tercatat</p>
+              <p className="text-sm text-stone-500">Recorded balance</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
                 {formatRupiah(cashOverview?.balance)}
               </p>
@@ -433,16 +495,18 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title>Kesimpulan cepat</Card.Title>
-            <Card.Description>Angka utama yang paling mudah dibaca tim toko.</Card.Description>
+            <Card.Title>Quick take</Card.Title>
+            <Card.Description>The main numbers your team can read fast.</Card.Description>
           </Card.Header>
           <Card.Content className="space-y-3">
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm text-stone-500">Rata-rata per transaksi</p>
+                <p className="text-sm text-stone-500">Average per sale</p>
                 <p className="text-base font-semibold text-stone-950">
                   {formatRupiah(
-                    (salesOverview?.orders ?? 0) > 0 ? grossSales / (salesOverview?.orders ?? 1) : 0,
+                    (salesOverview?.orders ?? 0) > 0
+                      ? grossSales / (salesOverview?.orders ?? 1)
+                      : 0,
                   )}
                 </p>
               </div>
@@ -450,9 +514,11 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm text-stone-500">Porsi pengeluaran</p>
+                <p className="text-sm text-stone-500">How much went to expenses</p>
                 <p className="text-base font-semibold text-stone-950">
-                  {grossSales > 0 ? `${Math.round((expenses / grossSales) * 100)}% dari penjualan` : "Belum ada penjualan"}
+                  {grossSales > 0
+                    ? `${Math.round((expenses / grossSales) * 100)}% of sales`
+                    : "No sales yet"}
                 </p>
               </div>
               <WalletIcon className="size-5 text-stone-400" />
@@ -464,30 +530,30 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
       <div className="grid gap-3 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Pembayaran</Card.Title>
-            <Card.Description>Metode bayar yang paling sering dipakai.</Card.Description>
+            <Card.Title>Payments</Card.Title>
+            <Card.Description>The payment methods used most often.</Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Ringkasan pembayaran">
+                <Table.Content aria-label="Payment summary">
                   <Table.Header>
-                    <Table.Column isRowHeader>Metode</Table.Column>
-                    <Table.Column>Transaksi</Table.Column>
-                    <Table.Column>Nilai</Table.Column>
+                    <Table.Column isRowHeader>Method</Table.Column>
+                    <Table.Column>Sales</Table.Column>
+                    <Table.Column>Total</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {paymentBreakdown.length > 0 ? (
                       paymentBreakdown.map((row) => (
-                        <Table.Row key={row.label ?? "lainnya"}>
-                          <Table.Cell>{row.label ?? "Lainnya"}</Table.Cell>
+                        <Table.Row key={row.label ?? "other"}>
+                          <Table.Cell>{paymentMethodLabel(row.label)}</Table.Cell>
                           <Table.Cell>{formatNumber(row.count)}</Table.Cell>
                           <Table.Cell>{formatRupiah(row.value)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>Belum ada penjualan pada periode ini.</Table.Cell>
+                        <Table.Cell colSpan={3}>No sales in this period yet.</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>
@@ -499,30 +565,30 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Pengeluaran per kategori</Card.Title>
-            <Card.Description>Biaya terbesar dalam periode yang dipilih.</Card.Description>
+            <Card.Title>Expenses by category</Card.Title>
+            <Card.Description>The biggest costs in the selected period.</Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Ringkasan pengeluaran per kategori">
+                <Table.Content aria-label="Expense summary by category">
                   <Table.Header>
-                    <Table.Column isRowHeader>Kategori</Table.Column>
-                    <Table.Column>Catatan</Table.Column>
-                    <Table.Column>Nilai</Table.Column>
+                    <Table.Column isRowHeader>Category</Table.Column>
+                    <Table.Column>Entries</Table.Column>
+                    <Table.Column>Total</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {expenseBreakdown.length > 0 ? (
                       expenseBreakdown.map((row) => (
-                        <Table.Row key={row.label ?? "lainnya"}>
-                          <Table.Cell>{row.label ?? "Lainnya"}</Table.Cell>
+                        <Table.Row key={row.label ?? "other"}>
+                          <Table.Cell>{expenseCategoryLabel(row.label)}</Table.Cell>
                           <Table.Cell>{formatNumber(row.count)}</Table.Cell>
                           <Table.Cell>{formatRupiah(row.value)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>Belum ada pengeluaran pada periode ini.</Table.Cell>
+                        <Table.Cell colSpan={3}>No expenses in this period yet.</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>
@@ -534,30 +600,30 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Barang terlaris</Card.Title>
-            <Card.Description>Barang yang paling sering terjual pada periode ini.</Card.Description>
+            <Card.Title>Best-selling items</Card.Title>
+            <Card.Description>The items sold most often in this period.</Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Barang terlaris">
+                <Table.Content aria-label="Best-selling items">
                   <Table.Header>
-                    <Table.Column isRowHeader>Barang</Table.Column>
+                    <Table.Column isRowHeader>Item</Table.Column>
                     <Table.Column>Qty</Table.Column>
-                    <Table.Column>Omzet</Table.Column>
+                    <Table.Column>Sales</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {topProducts.length > 0 ? (
                       topProducts.map((row) => (
-                        <Table.Row key={row.name ?? "barang"}>
-                          <Table.Cell>{row.name ?? "Barang tanpa nama"}</Table.Cell>
+                        <Table.Row key={row.name ?? "item"}>
+                          <Table.Cell>{row.name ?? "Unnamed item"}</Table.Cell>
                           <Table.Cell>{formatNumber(row.quantity)}</Table.Cell>
                           <Table.Cell>{formatRupiah(row.revenue)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>Belum ada barang terjual pada periode ini.</Table.Cell>
+                        <Table.Cell colSpan={3}>No items sold in this period yet.</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>

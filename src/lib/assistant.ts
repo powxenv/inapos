@@ -19,7 +19,7 @@ export async function initializeAiRuntime(
   if (!isTauriRuntime()) {
     return aiRuntimeStatusSchema.parse({
       ready: false,
-      reason: "Runtime AI hanya tersedia di desktop app.",
+      reason: "The assistant is only available in the desktop app.",
     });
   }
 
@@ -44,7 +44,7 @@ export function buildAiChatStreamUrl(input: {
   storeId: string;
 }) {
   if (!isTauriRuntime()) {
-    throw new Error("Streaming chat AI hanya tersedia di desktop app.");
+    throw new Error("Live assistant replies are only available in the desktop app.");
   }
 
   const model = z.string().min(1).parse(input.model);

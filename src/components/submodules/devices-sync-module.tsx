@@ -5,18 +5,18 @@ function getSyncMessage(status: ReturnType<typeof useStatus>) {
   const syncError = status.dataFlowStatus.downloadError ?? status.dataFlowStatus.uploadError;
 
   if (syncError) {
-    return syncError.message || syncError.name || "PowerSync gagal tersambung.";
+    return syncError.message || syncError.name || "We couldn't update this device right now.";
   }
 
   if (status.connected && status.hasSynced) {
-    return "Perangkat sudah tersambung dan sinkron dengan PowerSync.";
+    return "This device is up to date.";
   }
 
   if (status.connecting) {
-    return "PowerSync sedang mencoba membuat koneksi awal.";
+    return "Checking for the latest changes...";
   }
 
-  return "PowerSync belum tersambung.";
+  return "This device is not connected yet.";
 }
 
 export function DevicesSyncModule() {
@@ -26,22 +26,22 @@ export function DevicesSyncModule() {
   );
 
   const connectionLabel = hasSyncError
-    ? "Butuh perhatian"
+    ? "Needs attention"
     : status.connected && status.hasSynced
-      ? "Sinkron"
+      ? "Up to date"
       : status.connecting || status.connected
-        ? "Menghubungkan"
-        : "Belum tersambung";
+        ? "Checking"
+        : "Offline";
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Perangkat & Sinkronisasi</h3>
+      <h3 className="text-lg font-semibold">This device</h3>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
             <div className="flex items-center justify-between gap-3">
-              <Card.Title className="text-base">PowerSync</Card.Title>
+              <Card.Title className="text-base">Connection</Card.Title>
               <Chip
                 color={
                   hasSyncError
@@ -63,27 +63,25 @@ export function DevicesSyncModule() {
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title className="text-base">Tulis Balik</Card.Title>
+            <Card.Title className="text-base">Sending changes</Card.Title>
           </Card.Header>
           <Card.Content>
-            <p className="text-sm text-stone-600">
-              Pengiriman perubahan lokal ke backend belum diaktifkan di app ini.
-            </p>
+            <p className="text-sm text-stone-600">Changes made here stay on this device for now.</p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title className="text-base">Unduh Data</Card.Title>
+            <Card.Title className="text-base">Getting updates</Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-sm text-stone-600">
               {status.dataFlowStatus.downloading
-                ? "Perangkat sedang menerima perubahan terbaru dari PowerSync."
+                ? "This device is downloading the latest changes."
                 : status.dataFlowStatus.downloadError
                   ? status.dataFlowStatus.downloadError.message ||
                     status.dataFlowStatus.downloadError.name ||
-                    "Unduhan PowerSync gagal."
-                  : "Belum ada unduhan aktif saat ini."}
+                    "We couldn't download the latest changes."
+                  : "There is no update in progress right now."}
             </p>
           </Card.Content>
         </Card>
