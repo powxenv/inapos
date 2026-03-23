@@ -1,5 +1,9 @@
 # INAPOS
 
+Bahasa Indonesia: [README.id.md](README.id.md)
+
+Developer documentation: [docs/README.md](docs/README.md) | Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+
 INAPOS is a store operations app for small shops, kiosks, and warungs. It combines checkout, items, stock, customers, purchases, cash tracking, expenses, reporting, team access, device sync, and an optional AI assistant in one workspace.
 
 This README is written for people who use the product. It explains what each part of INAPOS does, what you can do in it today, and how the main day-to-day flows work.
