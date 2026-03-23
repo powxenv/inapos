@@ -1,4 +1,5 @@
 use aisdk::core::tools::{Tool, ToolExecute};
+#[cfg(not(target_os = "android"))]
 use http_client::native::NativeClient;
 use powersync::env::PowerSyncEnvironment;
 use powersync::schema::{Column, Schema, Table};
@@ -232,6 +233,28 @@ fn initialize_local_cache_schema(path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(any(target_vendor = "apple", target_os = "android")))]
+fn initialize_powersync_runtime(powersync_db_path: &PathBuf) -> Result<(), String> {
+    if ensure_powersync_extension().is_err() {
+        return Ok(());
+    }
+
+    let environment = PowerSyncEnvironment::custom(
+        Arc::new(NativeClient::new()),
+        ConnectionPool::open(powersync_db_path).map_err(|error| error.to_string())?,
+        Box::new(PowerSyncEnvironment::tokio_timer()),
+    );
+
+    let _ = PowerSyncDatabase::new(environment, build_powersync_schema());
+
+    Ok(())
+}
+
+#[cfg(any(target_vendor = "apple", target_os = "android"))]
+fn initialize_powersync_runtime(_powersync_db_path: &PathBuf) -> Result<(), String> {
+    Ok(())
+}
+
 pub fn initialize_runtime(
     app_handle: &tauri::AppHandle,
     session_token: &str,
@@ -263,16 +286,7 @@ pub fn initialize_runtime(
 
     let powersync_db_path = app_data_dir.join(AI_POWERSYNC_DB_NAME);
     initialize_local_cache_schema(&powersync_db_path)?;
-
-    if !cfg!(target_vendor = "apple") && ensure_powersync_extension().is_ok() {
-        let environment = PowerSyncEnvironment::custom(
-            Arc::new(NativeClient::new()),
-            ConnectionPool::open(&powersync_db_path).map_err(|error| error.to_string())?,
-            Box::new(PowerSyncEnvironment::tokio_timer()),
-        );
-
-        let _ = PowerSyncDatabase::new(environment, build_powersync_schema());
-    }
+    initialize_powersync_runtime(&powersync_db_path)?;
 
     let mut guard = data_runtime()
         .lock()
