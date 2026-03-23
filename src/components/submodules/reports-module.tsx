@@ -8,6 +8,7 @@ import { TrendDownIcon } from "@phosphor-icons/react/dist/csr/TrendDown";
 import { TrendUpIcon } from "@phosphor-icons/react/dist/csr/TrendUp";
 import { WalletIcon } from "@phosphor-icons/react/dist/csr/Wallet";
 import { useQueries } from "@powersync/tanstack-react-query";
+import { useI18n } from "../../lib/i18n";
 
 type ReportsModuleProps = {
   storeId: string;
@@ -42,100 +43,79 @@ type TopProductRow = {
   revenue: number | null;
 };
 
-const reportPeriods: readonly {
-  description: string;
-  id: ReportPeriodId;
-  label: string;
-}[] = [
-  {
-    description: "Best for checking today at a glance.",
-    id: "today",
-    label: "Today",
-  },
-  {
-    description: "A quick look at the past week.",
-    id: "7days",
-    label: "Last 7 days",
-  },
-  {
-    description: "See the bigger picture across the last month.",
-    id: "30days",
-    label: "Last 30 days",
-  },
-  {
-    description: "Shows the current calendar month.",
-    id: "month",
-    label: "This month",
-  },
-] as const;
-
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
+function formatRupiah(value: number | null | undefined, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: "IDR",
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
 }
 
-function formatNumber(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID").format(value ?? 0);
+function formatNumber(value: number | null | undefined, locale: string) {
+  return new Intl.NumberFormat(locale).format(value ?? 0);
 }
 
-function paymentMethodLabel(value: string | null | undefined) {
+function paymentMethodLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value || value === "other") {
-    return "Other";
+    return text.modules.expenses.categories.lainnya;
   }
 
   if (value === "cash") {
-    return "Cash";
+    return text.modules.orders.paymentMethods.cash;
   }
 
   if (value === "transfer") {
-    return "Bank transfer";
+    return text.modules.orders.paymentMethods.transfer;
   }
 
   if (value === "qris") {
-    return "QRIS";
+    return text.modules.orders.paymentMethods.qris;
   }
 
   if (value === "tempo") {
-    return "Pay later";
+    return text.modules.orders.paymentMethods.tempo;
   }
 
   return value;
 }
 
-function expenseCategoryLabel(value: string | null | undefined) {
+function expenseCategoryLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value || value === "other") {
-    return "Other";
+    return text.modules.expenses.categories.lainnya;
   }
 
   if (value === "listrik") {
-    return "Electricity";
+    return text.modules.expenses.categories.listrik;
   }
 
   if (value === "air") {
-    return "Water";
+    return text.modules.expenses.categories.air;
   }
 
   if (value === "transport") {
-    return "Transport";
+    return text.modules.expenses.categories.transport;
   }
 
   if (value === "kemasan") {
-    return "Packaging";
+    return text.modules.expenses.categories.kemasan;
   }
 
   if (value === "gaji") {
-    return "Wages";
+    return text.modules.expenses.categories.gaji;
   }
 
   if (value === "perawatan") {
-    return "Maintenance";
+    return text.modules.expenses.categories.perawatan;
   }
 
   if (value === "lainnya") {
-    return "Other";
+    return text.modules.expenses.categories.lainnya;
   }
 
   return value;
@@ -169,7 +149,30 @@ function getReportRange(period: ReportPeriodId) {
 }
 
 export function ReportsModule({ storeId }: ReportsModuleProps) {
+  const { locale, text } = useI18n();
   const [period, setPeriod] = useState<ReportPeriodId>("month");
+  const reportPeriods = [
+    {
+      description: text.modules.reports.periods.today.description,
+      id: "today" as const,
+      label: text.modules.reports.periods.today.label,
+    },
+    {
+      description: text.modules.reports.periods.days7.description,
+      id: "7days" as const,
+      label: text.modules.reports.periods.days7.label,
+    },
+    {
+      description: text.modules.reports.periods.days30.description,
+      id: "30days" as const,
+      label: text.modules.reports.periods.days30.label,
+    },
+    {
+      description: text.modules.reports.periods.month.description,
+      id: "month" as const,
+      label: text.modules.reports.periods.month.label,
+    },
+  ] as const;
   const range = useMemo(() => getReportRange(period), [period]);
   const selectedPeriod = reportPeriods.find((item) => item.id === period) ?? reportPeriods[3];
   const [
@@ -322,13 +325,11 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold">Reports</h3>
-          <p className="text-sm text-stone-500">
-            See sales, costs, and cash for the time you choose.
-          </p>
+          <h3 className="text-lg font-semibold">{text.modules.reports.title}</h3>
+          <p className="text-sm text-stone-500">{text.modules.reports.description}</p>
         </div>
         <Select
-          aria-label="Choose a report period"
+          aria-label={text.modules.reports.reportPeriod}
           className="w-full sm:w-[220px]"
           selectedKey={period}
           onSelectionChange={(key) => {
@@ -358,10 +359,7 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         <Alert.Indicator />
         <Alert.Content>
           <Alert.Title>{selectedPeriod.label}</Alert.Title>
-          <Alert.Description>
-            The profit numbers below are estimates. Item costs are based on the current cost saved
-            for each item.
-          </Alert.Description>
+          <Alert.Description>{text.modules.reports.periodWarningDescription}</Alert.Description>
         </Alert.Content>
       </Alert>
 
@@ -369,15 +367,21 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <Card.Title className="text-sm font-medium text-stone-600">Sales total</Card.Title>
-              <Card.Description>{formatNumber(salesOverview?.orders)} sales</Card.Description>
+              <Card.Title className="text-sm font-medium text-stone-600">
+                {text.modules.reports.salesTotal}
+              </Card.Title>
+              <Card.Description>
+                {text.common.prompts.salesCount(salesOverview?.orders ?? 0)}
+              </Card.Description>
             </div>
             <div className="rounded-full bg-emerald-50 p-2 text-emerald-700">
               <TrendUpIcon className="size-5" />
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(grossSales)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(grossSales, locale)}
+            </p>
           </Card.Content>
         </Card>
 
@@ -385,16 +389,20 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Estimated item cost
+                {text.modules.reports.estimatedItemCost}
               </Card.Title>
-              <Card.Description>Estimated cost of the items sold</Card.Description>
+              <Card.Description>
+                {text.modules.reports.estimatedItemCostDescription}
+              </Card.Description>
             </div>
             <div className="rounded-full bg-amber-50 p-2 text-amber-700">
               <ReceiptIcon className="size-5" />
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(estimatedCogs)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(estimatedCogs, locale)}
+            </p>
           </Card.Content>
         </Card>
 
@@ -402,31 +410,37 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Estimated gross profit
+                {text.modules.reports.estimatedGrossProfit}
               </Card.Title>
-              <Card.Description>Sales minus estimated item cost</Card.Description>
+              <Card.Description>
+                {text.modules.reports.estimatedGrossProfitDescription}
+              </Card.Description>
             </div>
             <div className="rounded-full bg-sky-50 p-2 text-sky-700">
               <ChartBarIcon className="size-5" />
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(grossProfit)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(grossProfit, locale)}
+            </p>
           </Card.Content>
         </Card>
 
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <Card.Title className="text-sm font-medium text-stone-600">Expenses</Card.Title>
-              <Card.Description>Everyday spending in this period</Card.Description>
+              <Card.Title className="text-sm font-medium text-stone-600">
+                {text.modules.reports.expenses}
+              </Card.Title>
+              <Card.Description>{text.modules.reports.expensesDescription}</Card.Description>
             </div>
             <div className="rounded-full bg-rose-50 p-2 text-rose-700">
               <TrendDownIcon className="size-5" />
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(expenses)}</p>
+            <p className="text-xl font-semibold text-stone-950">{formatRupiah(expenses, locale)}</p>
           </Card.Content>
         </Card>
 
@@ -434,16 +448,20 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Estimated money left
+                {text.modules.reports.estimatedMoneyLeft}
               </Card.Title>
-              <Card.Description>Gross profit minus expenses</Card.Description>
+              <Card.Description>
+                {text.modules.reports.estimatedMoneyLeftDescription}
+              </Card.Description>
             </div>
             <Chip color={netProfit >= 0 ? "success" : "danger"}>
-              {netProfit >= 0 ? "Positive" : "Negative"}
+              {netProfit >= 0 ? text.modules.reports.positive : text.modules.reports.negative}
             </Chip>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(netProfit)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(netProfit, locale)}
+            </p>
           </Card.Content>
         </Card>
 
@@ -451,16 +469,18 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
           <Card.Header className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <Card.Title className="text-sm font-medium text-stone-600">
-                Stock purchases
+                {text.modules.reports.stockPurchases}
               </Card.Title>
-              <Card.Description>Total spent on buying stock</Card.Description>
+              <Card.Description>{text.modules.reports.stockPurchasesDescription}</Card.Description>
             </div>
             <div className="rounded-full bg-violet-50 p-2 text-violet-700">
               <CoinsIcon className="size-5" />
             </div>
           </Card.Header>
           <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(purchases)}</p>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(purchases, locale)}
+            </p>
           </Card.Content>
         </Card>
       </div>
@@ -468,26 +488,26 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
       <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title>Cash you recorded</Card.Title>
-            <Card.Description>Based on the cash entries saved during this period.</Card.Description>
+            <Card.Title>{text.modules.reports.cashRecorded}</Card.Title>
+            <Card.Description>{text.modules.reports.cashRecordedDescription}</Card.Description>
           </Card.Header>
           <Card.Content className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Money in</p>
+              <p className="text-sm text-stone-500">{text.modules.reports.moneyIn}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.cash_in)}
+                {formatRupiah(cashOverview?.cash_in, locale)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Money out</p>
+              <p className="text-sm text-stone-500">{text.modules.reports.moneyOut}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.cash_out)}
+                {formatRupiah(cashOverview?.cash_out, locale)}
               </p>
             </div>
             <div className="rounded-2xl border border-stone-200 p-4">
-              <p className="text-sm text-stone-500">Recorded balance</p>
+              <p className="text-sm text-stone-500">{text.modules.reports.recordedBalance}</p>
               <p className="mt-2 text-lg font-semibold text-stone-950">
-                {formatRupiah(cashOverview?.balance)}
+                {formatRupiah(cashOverview?.balance, locale)}
               </p>
             </div>
           </Card.Content>
@@ -495,18 +515,19 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none">
           <Card.Header className="space-y-1">
-            <Card.Title>Quick take</Card.Title>
-            <Card.Description>The main numbers your team can read fast.</Card.Description>
+            <Card.Title>{text.modules.reports.quickTake}</Card.Title>
+            <Card.Description>{text.modules.reports.quickTakeDescription}</Card.Description>
           </Card.Header>
           <Card.Content className="space-y-3">
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm text-stone-500">Average per sale</p>
+                <p className="text-sm text-stone-500">{text.modules.reports.averagePerSale}</p>
                 <p className="text-base font-semibold text-stone-950">
                   {formatRupiah(
                     (salesOverview?.orders ?? 0) > 0
                       ? grossSales / (salesOverview?.orders ?? 1)
                       : 0,
+                    locale,
                   )}
                 </p>
               </div>
@@ -514,11 +535,13 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
             </div>
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm text-stone-500">How much went to expenses</p>
+                <p className="text-sm text-stone-500">
+                  {text.modules.reports.howMuchWentToExpenses}
+                </p>
                 <p className="text-base font-semibold text-stone-950">
                   {grossSales > 0
-                    ? `${Math.round((expenses / grossSales) * 100)}% of sales`
-                    : "No sales yet"}
+                    ? text.modules.reports.salesShare(Math.round((expenses / grossSales) * 100))
+                    : text.modules.reports.noSalesYet}
                 </p>
               </div>
               <WalletIcon className="size-5 text-stone-400" />
@@ -530,30 +553,30 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
       <div className="grid gap-3 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Payments</Card.Title>
-            <Card.Description>The payment methods used most often.</Card.Description>
+            <Card.Title>{text.modules.reports.payments}</Card.Title>
+            <Card.Description>{text.modules.reports.paymentsDescription}</Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Payment summary">
+                <Table.Content aria-label={text.modules.reports.tablePaymentAria}>
                   <Table.Header>
-                    <Table.Column isRowHeader>Method</Table.Column>
-                    <Table.Column>Sales</Table.Column>
-                    <Table.Column>Total</Table.Column>
+                    <Table.Column isRowHeader>{text.common.labels.method}</Table.Column>
+                    <Table.Column>{text.modules.reports.salesTotal}</Table.Column>
+                    <Table.Column>{text.common.labels.total}</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {paymentBreakdown.length > 0 ? (
                       paymentBreakdown.map((row) => (
                         <Table.Row key={row.label ?? "other"}>
-                          <Table.Cell>{paymentMethodLabel(row.label)}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.count)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.value)}</Table.Cell>
+                          <Table.Cell>{paymentMethodLabel(row.label, text)}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.count, locale)}</Table.Cell>
+                          <Table.Cell>{formatRupiah(row.value, locale)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>No sales in this period yet.</Table.Cell>
+                        <Table.Cell colSpan={3}>{text.modules.reports.emptySales}</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>
@@ -565,30 +588,32 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Expenses by category</Card.Title>
-            <Card.Description>The biggest costs in the selected period.</Card.Description>
+            <Card.Title>{text.modules.reports.expensesByCategory}</Card.Title>
+            <Card.Description>
+              {text.modules.reports.expensesByCategoryDescription}
+            </Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Expense summary by category">
+                <Table.Content aria-label={text.modules.reports.tableExpenseAria}>
                   <Table.Header>
-                    <Table.Column isRowHeader>Category</Table.Column>
-                    <Table.Column>Entries</Table.Column>
-                    <Table.Column>Total</Table.Column>
+                    <Table.Column isRowHeader>{text.common.labels.category}</Table.Column>
+                    <Table.Column>{text.common.labels.entries}</Table.Column>
+                    <Table.Column>{text.common.labels.total}</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {expenseBreakdown.length > 0 ? (
                       expenseBreakdown.map((row) => (
                         <Table.Row key={row.label ?? "other"}>
-                          <Table.Cell>{expenseCategoryLabel(row.label)}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.count)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.value)}</Table.Cell>
+                          <Table.Cell>{expenseCategoryLabel(row.label, text)}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.count, locale)}</Table.Cell>
+                          <Table.Cell>{formatRupiah(row.value, locale)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>No expenses in this period yet.</Table.Cell>
+                        <Table.Cell colSpan={3}>{text.modules.reports.emptyExpenses}</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>
@@ -600,30 +625,30 @@ export function ReportsModule({ storeId }: ReportsModuleProps) {
 
         <Card className="border border-stone-200 shadow-none xl:col-span-1">
           <Card.Header className="space-y-1">
-            <Card.Title>Best-selling items</Card.Title>
-            <Card.Description>The items sold most often in this period.</Card.Description>
+            <Card.Title>{text.modules.reports.bestSellingItems}</Card.Title>
+            <Card.Description>{text.modules.reports.bestSellingItemsDescription}</Card.Description>
           </Card.Header>
           <Card.Content>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Best-selling items">
+                <Table.Content aria-label={text.modules.reports.tableTopItemsAria}>
                   <Table.Header>
-                    <Table.Column isRowHeader>Item</Table.Column>
-                    <Table.Column>Qty</Table.Column>
-                    <Table.Column>Sales</Table.Column>
+                    <Table.Column isRowHeader>{text.common.labels.item}</Table.Column>
+                    <Table.Column>{text.common.labels.quantity}</Table.Column>
+                    <Table.Column>{text.modules.reports.salesTotal}</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {topProducts.length > 0 ? (
                       topProducts.map((row) => (
                         <Table.Row key={row.name ?? "item"}>
-                          <Table.Cell>{row.name ?? "Unnamed item"}</Table.Cell>
-                          <Table.Cell>{formatNumber(row.quantity)}</Table.Cell>
-                          <Table.Cell>{formatRupiah(row.revenue)}</Table.Cell>
+                          <Table.Cell>{row.name ?? text.common.states.unnamedItem}</Table.Cell>
+                          <Table.Cell>{formatNumber(row.quantity, locale)}</Table.Cell>
+                          <Table.Cell>{formatRupiah(row.revenue, locale)}</Table.Cell>
                         </Table.Row>
                       ))
                     ) : (
                       <Table.Row>
-                        <Table.Cell colSpan={3}>No items sold in this period yet.</Table.Cell>
+                        <Table.Cell colSpan={3}>{text.modules.reports.emptyItems}</Table.Cell>
                       </Table.Row>
                     )}
                   </Table.Body>

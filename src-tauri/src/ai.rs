@@ -32,7 +32,7 @@ use tower_http::cors::{Any, CorsLayer};
 pub const AI_HTTP_SERVER_PORT: u16 = 32456;
 const OPENROUTER_SECRET_KEY: &str = "openrouter_api_key";
 const SECRETS_DB_NAME: &str = "ai-secrets.sqlite";
-const AI_SYSTEM_PROMPT: &str = "Anda adalah asisten operasional toko untuk aplikasi POS desktop. Jawab dalam bahasa Indonesia yang sederhana. Jika pengguna meminta membaca data nyata toko atau mengubah data toko, wajib gunakan tool POS yang tersedia lebih dulu sebelum menyimpulkan jawaban. Jangan mengarang angka, stok, transaksi, atau perubahan data.";
+const AI_SYSTEM_PROMPT: &str = "You are the store operations assistant for a desktop POS app. Reply in clear, simple English. If the user asks to read real store data or change store data, you must use the available POS tools before drawing conclusions. Do not invent numbers, stock levels, transactions, or data changes.";
 
 static AI_RUNTIME: OnceLock<Arc<AiRuntime>> = OnceLock::new();
 
@@ -222,7 +222,7 @@ fn encrypt_secret(
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = cipher
         .encrypt(nonce, value.as_bytes())
-        .map_err(|_| "Gagal mengenkripsi API key.".to_string())?;
+        .map_err(|_| "Failed to encrypt the API key.".to_string())?;
 
     Ok((nonce_bytes.to_vec(), ciphertext))
 }
@@ -236,7 +236,7 @@ fn decrypt_secret(
     let cipher = Aes256GcmSiv::new_from_slice(&key).map_err(|error| error.to_string())?;
     let plaintext = cipher
         .decrypt(Nonce::from_slice(&nonce), ciphertext.as_ref())
-        .map_err(|_| "Gagal membuka API key terenkripsi.".to_string())?;
+        .map_err(|_| "Failed to decrypt the stored API key.".to_string())?;
 
     String::from_utf8(plaintext).map_err(|error| error.to_string())
 }
@@ -305,7 +305,7 @@ fn ensure_ollama_running() -> Result<(), String> {
 
     TcpStream::connect_timeout(&address, Duration::from_secs(2))
         .map(|_| ())
-        .map_err(|_| "Ollama belum aktif di 127.0.0.1:11434.".to_string())
+        .map_err(|_| "Ollama is not running at 127.0.0.1:11434.".to_string())
 }
 
 fn build_transcript(messages: &[AiChatMessageInput]) -> String {
@@ -325,7 +325,7 @@ fn build_transcript(messages: &[AiChatMessageInput]) -> String {
 }
 
 fn build_ai_system_prompt(store_id: &str) -> String {
-    format!("{AI_SYSTEM_PROMPT}\nKonteks toko aktif: {store_id}.")
+    format!("{AI_SYSTEM_PROMPT}\nActive store context: {store_id}.")
 }
 
 fn current_runtime_status(app_handle: &tauri::AppHandle) -> Result<AiRuntimeStatus, String> {
@@ -336,7 +336,7 @@ fn current_runtime_status(app_handle: &tauri::AppHandle) -> Result<AiRuntimeStat
         let mut guard = runtime()
             .ready
             .lock()
-            .map_err(|_| "Gagal menyimpan status runtime AI.".to_string())?;
+            .map_err(|_| "Failed to store AI runtime status.".to_string())?;
         *guard = ready;
     }
 
@@ -350,7 +350,7 @@ fn current_runtime_status(app_handle: &tauri::AppHandle) -> Result<AiRuntimeStat
         Ok(AiRuntimeStatus {
             openrouter_configured,
             ready: false,
-            reason: Some("Ollama belum aktif di desktop app ini.".to_string()),
+            reason: Some("Ollama is not running in this desktop app.".to_string()),
         })
     }
 }
@@ -368,7 +368,7 @@ fn save_openrouter_key(
     let trimmed = api_key.trim();
 
     if trimmed.is_empty() {
-        return Err("API key OpenRouter wajib diisi.".to_string());
+        return Err("OpenRouter API key is required.".to_string());
     }
 
     write_secret(app_handle, OPENROUTER_SECRET_KEY, trimmed)?;
@@ -394,7 +394,7 @@ async fn chat_response(
     let tools = ai_data::build_tools(&request.store_id);
 
     let prompt = format!(
-        "Konteks toko aktif: {}.\n{}\n\nJawab ringkas, jelas, dan dalam bahasa Indonesia.",
+        "Active store context: {}.\n{}\n\nReply briefly and clearly in English.",
         request.store_id,
         build_transcript(&request.messages)
     );
@@ -402,7 +402,7 @@ async fn chat_response(
     let response = match request.provider.as_str() {
         "openrouter" => {
             let api_key = read_secret(app_handle, OPENROUTER_SECRET_KEY)?
-                .ok_or_else(|| "API key OpenRouter belum disimpan.".to_string())?;
+                .ok_or_else(|| "OpenRouter API key is not saved yet.".to_string())?;
 
             let provider = Openrouter::<DynamicModel>::builder()
                 .api_key(api_key)
@@ -458,7 +458,7 @@ async fn chat_response(
     Ok(AiChatResponse {
         reply: response
             .text()
-            .unwrap_or_else(|| "Saya belum berhasil menghasilkan jawaban.".to_string()),
+            .unwrap_or_else(|| "I couldn't generate a reply yet.".to_string()),
     })
 }
 
@@ -475,7 +475,7 @@ async fn chat_stream(
     match query.provider.as_str() {
         "openrouter" => {
             let api_key = read_secret(app_handle, OPENROUTER_SECRET_KEY)?
-                .ok_or_else(|| "API key OpenRouter belum disimpan.".to_string())?;
+                .ok_or_else(|| "OpenRouter API key is not saved yet.".to_string())?;
 
             let provider = Openrouter::<DynamicModel>::builder()
                 .api_key(api_key)
@@ -538,7 +538,7 @@ fn into_http_error(error: String) -> (StatusCode, Json<AiHttpError>) {
 
 fn serialize_frontend_chunk(chunk: FrontendUiChunk) -> String {
     serde_json::to_string(&chunk).unwrap_or_else(|_| {
-        "{\"type\":\"error\",\"errorText\":\"Gagal menyiapkan stream AI.\"}".to_string()
+        "{\"type\":\"error\",\"errorText\":\"Failed to prepare the AI stream.\"}".to_string()
     })
 }
 

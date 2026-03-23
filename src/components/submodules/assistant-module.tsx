@@ -11,6 +11,7 @@ import { Streamdown } from "streamdown";
 import { authClient } from "../../auth";
 import { env } from "../../env";
 import { buildAiChatStreamUrl, initializeAiRuntime } from "../../lib/assistant";
+import { useI18n } from "../../lib/i18n";
 import {
   getAiProviderStatus,
   readPreferredAiProvider,
@@ -25,49 +26,57 @@ type AssistantModuleProps = {
   storeId: string;
 };
 
-const starterPrompts = [
-  "Summarize today’s sales",
-  "What should I restock tomorrow?",
-  "Show me how checkout works",
-  "What was my biggest expense this month?",
-  "Show the 5 best-selling items this week",
-  "Who shops here most often this month?",
-  "Which stock needs attention right now?",
-  "Suggest an offer for slow-moving items",
-] as const;
+type I18nText = ReturnType<typeof useI18n>["text"];
 
-const initialMessages: UIMessage[] = [
-  {
-    id: "assistant-welcome",
-    parts: [
-      {
-        text: "Hi. I can help you understand today’s numbers, spot low stock, and find your way around the store.",
-        type: "text",
-      },
-    ],
-    role: "assistant",
-  },
-];
+function localizeAssistantReason(reason: string | null | undefined, text: I18nText): string | null {
+  if (!reason) {
+    return null;
+  }
+
+  if (
+    reason === "The AI assistant is only available in the desktop app." ||
+    reason === "The assistant is only available in the desktop app."
+  ) {
+    return text.modules.assistant.notReadyDescription;
+  }
+
+  if (
+    reason === "Ollama is not installed or not available in the system PATH." ||
+    reason === "Ollama is not running in this desktop app." ||
+    reason === "Ollama is not running at 127.0.0.1:11434." ||
+    reason === "Ollama is installed, but the service is not running." ||
+    reason === "Ollama is running, but no models are installed yet."
+  ) {
+    return text.modules.assistant.runtimeNotReady;
+  }
+
+  if (reason === "OpenRouter API key is not saved yet.") {
+    return text.modules.assistant.openRouterNotConfigured;
+  }
+
+  return reason;
+}
 
 function describeUnavailableAssistant(
   provider: AiProvider,
   hasSelectedModel: boolean,
   providerStatus: AiProviderStatus | null,
   status: OllamaStatus | null,
+  text: I18nText,
 ): string {
   if (provider === "openrouter" && !providerStatus?.openrouterConfigured) {
-    return "Finish setting up the assistant in Store > Assistant setup.";
+    return text.modules.assistant.openRouterNotConfigured;
   }
 
   if (!hasSelectedModel) {
-    return "Choose an assistant option in Store > Assistant setup.";
+    return text.modules.assistant.setupModel;
   }
 
   if (provider === "ollama") {
-    return status?.reason ?? "The assistant on this device is not ready yet.";
+    return localizeAssistantReason(status?.reason, text) ?? text.modules.assistant.runtimeNotReady;
   }
 
-  return "The assistant is not ready yet. Check Store > Assistant setup.";
+  return text.modules.assistant.notReadyDescription;
 }
 
 function findDefaultModel(status: OllamaStatus): string {
@@ -120,6 +129,7 @@ function createAssistantTransport(
 }
 
 export function AssistantModule({ minimal = false, storeId }: AssistantModuleProps) {
+  const { text } = useI18n();
   const initialPreferences = readAssistantPreferences();
   const [inputValue, setInputValue] = useState("");
   const [assistantError, setAssistantError] = useState<string | null>(null);
@@ -134,6 +144,19 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
   const trimmedInput = inputValue.trim();
   const chatId = `${storeId}:${selectedProvider}:${selectedModel || "unconfigured"}`;
   const activeModel = selectedModel || "unconfigured";
+  const initialMessages: UIMessage[] = [
+    {
+      id: "assistant-welcome",
+      parts: [
+        {
+          text: text.modules.assistant.welcome,
+          type: "text",
+        },
+      ],
+      role: "assistant",
+    },
+  ];
+  const starterPrompts = text.modules.assistant.prompts;
   const {
     clearError,
     error: chatError,
@@ -180,7 +203,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
       setStatus(nextStatus);
       setProviderStatus(nextProviderStatus);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "We couldn't check the assistant.");
+      setStatusError(error instanceof Error ? error.message : text.modules.assistant.couldNotCheck);
       setStatus(null);
       setProviderStatus(null);
     } finally {
@@ -234,7 +257,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
       const sessionToken = session.data?.session?.token?.trim();
 
       if (!sessionToken) {
-        throw new Error("Please sign in again to use the assistant.");
+        throw new Error(text.modules.assistant.signInAgain);
       }
 
       const runtimeStatus = await initializeAiRuntime(
@@ -244,14 +267,16 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
       );
 
       if (selectedProvider === "ollama" && !runtimeStatus.ready) {
-        throw new Error(runtimeStatus.reason ?? "The assistant isn't ready yet.");
+        throw new Error(
+          localizeAssistantReason(runtimeStatus.reason, text) ?? text.modules.assistant.notReady,
+        );
       }
 
       setIsAssistantReady(true);
       return true;
     } catch (error) {
       setAssistantError(
-        error instanceof Error ? error.message : "We couldn't get the assistant ready.",
+        error instanceof Error ? error.message : text.modules.assistant.couldNotPrepare,
       );
       setIsAssistantReady(false);
       return false;
@@ -292,14 +317,16 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         text: value,
       });
     } catch (error) {
-      setAssistantError(error instanceof Error ? error.message : "We couldn't send your message.");
+      setAssistantError(
+        error instanceof Error ? error.message : text.modules.assistant.couldNotSend,
+      );
     }
   }
 
   if (isLoadingStatus) {
     return (
       <div className={`flex min-h-[320px] items-center justify-center ${minimal ? "px-4" : ""}`}>
-        <p className="text-sm text-stone-500">Getting the assistant ready...</p>
+        <p className="text-sm text-stone-500">{text.modules.assistant.gettingReady}</p>
       </div>
     );
   }
@@ -310,13 +337,13 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>The assistant isn’t ready yet</Alert.Title>
+            <Alert.Title>{text.modules.assistant.notReady}</Alert.Title>
             <Alert.Description>{statusError}</Alert.Description>
           </Alert.Content>
         </Alert>
         <Button onPress={() => void loadOllamaStatus()} variant="outline">
           <ArrowClockwiseIcon aria-hidden size={16} />
-          Try again
+          {text.modules.assistant.retry}
         </Button>
       </div>
     );
@@ -331,13 +358,14 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
           <Alert status="warning">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>The assistant isn’t available yet</Alert.Title>
+              <Alert.Title>{text.modules.assistant.notAvailable}</Alert.Title>
               <Alert.Description>
                 {describeUnavailableAssistant(
                   selectedProvider,
                   hasSelectedModel,
                   providerStatus,
                   status,
+                  text,
                 )}
               </Alert.Description>
             </Alert.Content>
@@ -345,7 +373,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
           {selectedProvider === "ollama" && status?.isDesktop && !status.ollamaInstalled ? (
             <Button onPress={() => void handleInstallOllama()}>
               <DownloadSimpleIcon aria-hidden size={16} />
-              Set up on this device
+              {text.common.actions.setUpOnThisDevice}
             </Button>
           ) : null}
         </div>
@@ -359,7 +387,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>The assistant can’t reply right now</Alert.Title>
+            <Alert.Title>{text.modules.assistant.cannotReply}</Alert.Title>
             <Alert.Description>{resolvedAssistantError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -370,15 +398,17 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
           className={`mx-auto flex w-full max-w-3xl flex-col items-center ${minimal ? "space-y-3" : "space-y-2"}`}
         >
           <div className="space-y-1 text-center">
-            <p className="text-sm font-medium text-stone-700">Start with a quick question</p>
+            <p className="text-sm font-medium text-stone-700">
+              {text.modules.assistant.pickQuickQuestion}
+            </p>
             <p className="text-sm text-stone-500">
               {minimal
-                ? "Pick the one that feels closest to what you need."
-                : "Use one of these to start faster."}
+                ? text.modules.assistant.minimalPrompt
+                : text.modules.assistant.starterPrompt}
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            {starterPrompts.map((prompt) => (
+            {starterPrompts.map((prompt: string) => (
               <Button
                 className={`${minimal ? "rounded-full px-4" : "rounded-full"}`}
                 isDisabled={!canSendMessage || isInitializingAssistant || isSendingMessage}
@@ -398,7 +428,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>The assistant can’t reply right now</Alert.Title>
+            <Alert.Title>{text.modules.assistant.cannotReply}</Alert.Title>
             <Alert.Description>{resolvedAssistantError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -443,7 +473,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
                       {isLatestAssistantMessage && chatStatus === "streaming" ? (
                         <div className="flex items-center gap-2 text-xs text-stone-500">
                           <Spinner color="current" size="sm" />
-                          <span>Writing a reply</span>
+                          <span>{text.modules.assistant.typing}</span>
                         </div>
                       ) : null}
                     </div>
@@ -461,12 +491,14 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
                   <Spinner color="accent" size="sm" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-stone-900">
-                      {isInitializingAssistant ? "Getting ready" : "Thinking"}
+                      {isInitializingAssistant
+                        ? text.modules.assistant.initializing
+                        : text.modules.assistant.thinking}
                     </p>
                     <p className="text-xs text-stone-500">
                       {isInitializingAssistant
-                        ? "Checking everything before your reply starts."
-                        : "The reply will appear here as soon as it starts."}
+                        ? text.modules.assistant.setupProgress
+                        : text.modules.assistant.sendingHint}
                     </p>
                   </div>
                 </div>
@@ -491,11 +523,11 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
                     void submitMessage(inputValue);
                   }
                 }}
-                placeholder="Ask anything about your store"
+                placeholder={text.modules.assistant.askPlaceholder}
                 value={inputValue}
               />
               <Button
-                aria-label="Send message"
+                aria-label={text.modules.assistant.sendAria}
                 className="mb-1 mr-1 size-10 rounded-full"
                 isDisabled={
                   !trimmedInput || !canSendMessage || isInitializingAssistant || isSendingMessage
@@ -509,7 +541,7 @@ export function AssistantModule({ minimal = false, storeId }: AssistantModulePro
 
           {minimal ? null : (
             <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500">
-              <p>Press Enter to send. Press Shift + Enter for a new line.</p>
+              <p>{text.modules.assistant.shortcutsHint}</p>
             </div>
           )}
         </div>

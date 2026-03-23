@@ -21,6 +21,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type ExpensesModuleProps = {
@@ -46,24 +47,12 @@ type EditingExpense = {
   title: string;
 };
 
-const expenseSchema = z.object({
-  amount: z
-    .string()
-    .trim()
-    .min(1, "Enter an amount.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: "Use an amount greater than 0.",
-    }),
-  category: z.string().trim().max(60, "Use 60 characters or fewer."),
-  paidAt: z.string().trim().min(1, "Choose a date."),
-  title: z
-    .string()
-    .trim()
-    .min(1, "Enter what this was for.")
-    .max(120, "Use 120 characters or fewer."),
-});
-
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
+type ExpenseFormValues = {
+  amount: string;
+  category: string;
+  paidAt: string;
+  title: string;
+};
 
 const defaultValues: ExpenseFormValues = {
   amount: "0",
@@ -87,33 +76,63 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
+function formatRupiah(value: number | null | undefined, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: "IDR",
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
 }
 
-function expenseCategoryLabel(value: string | null | undefined) {
+function expenseCategoryLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
-    return "-";
+    return text.common.states.noCategory;
   }
 
-  return expenseCategoryOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    {
+      air: text.modules.expenses.categories.air,
+      gaji: text.modules.expenses.categories.gaji,
+      kemasan: text.modules.expenses.categories.kemasan,
+      lainnya: text.modules.expenses.categories.lainnya,
+      listrik: text.modules.expenses.categories.listrik,
+      perawatan: text.modules.expenses.categories.perawatan,
+      transport: text.modules.expenses.categories.transport,
+    }[value] ?? value
+  );
 }
 
 export function ExpensesModule({ storeId }: ExpensesModuleProps) {
+  const { locale, text } = useI18n();
+  const expenseSchema = z.object({
+    amount: z
+      .string()
+      .trim()
+      .min(1, text.modules.expenses.validation.amount)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+        message: text.modules.expenses.validation.amountMin,
+      }),
+    category: z.string().trim().max(60, text.modules.expenses.validation.categoryMax),
+    paidAt: z.string().trim().min(1, text.modules.expenses.validation.date),
+    title: z
+      .string()
+      .trim()
+      .min(1, text.modules.expenses.validation.titleMin)
+      .max(120, text.modules.expenses.validation.titleMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingExpense, setEditingExpense] = useState<EditingExpense | null>(null);
@@ -183,7 +202,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
   function startEdit(expense: ExpenseRow) {
     setEditingExpense({
       id: expense.id,
-      title: expense.title ?? "Expense",
+      title: expense.title ?? text.modules.expenses.title,
     });
     setFormError(null);
     reset({
@@ -262,7 +281,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this expense.");
+      setFormError(error instanceof Error ? error.message : text.modules.expenses.saveError);
     }
   }
 
@@ -280,24 +299,22 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this expense.");
+      setFormError(error instanceof Error ? error.message : text.modules.expenses.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Expenses</h3>
-        <p className="text-sm text-stone-500">
-          Keep everyday costs in one place so spending is easy to follow.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.expenses.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.expenses.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.expenses.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -306,27 +323,33 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Today</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.expenses.today}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.today_total)}
+              {formatRupiah(summary?.today_total, locale)}
             </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">This month</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.expenses.thisMonth}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.month_total)}
+              {formatRupiah(summary?.month_total, locale)}
             </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Saved entries</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.expenses.savedEntries}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">{summary?.count ?? 0}</p>
@@ -341,26 +364,34 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search expenses"
+              aria-label={text.modules.expenses.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by purpose or category"
+              placeholder={text.modules.expenses.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add expense
+              {text.modules.expenses.addExpense}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingExpense ? "Edit expense" : "Add expense"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingExpense
+                      ? text.modules.expenses.headingEdit(editingExpense.title)
+                      : text.modules.expenses.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingExpense ? `Edit expense: ${editingExpense.title}` : "Add expense"}
+                          {editingExpense
+                            ? text.modules.expenses.headingEdit(editingExpense.title)
+                            : text.modules.expenses.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -375,7 +406,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="expense-title"
                             >
-                              What was it for?
+                              {text.modules.expenses.whatFor}
                             </label>
                             <Controller
                               control={control}
@@ -391,7 +422,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                     id="expense-title"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Electricity bill"
+                                    placeholder={text.modules.expenses.placeholderTitle}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -410,21 +441,21 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="expense-category"
                               >
-                                Category (optional)
+                                {text.modules.expenses.categoryOptional}
                               </label>
                               <Controller
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose an expense category"
+                                    aria-label={text.modules.expenses.placeholderCategory}
                                     className="w-full"
                                     id="expense-category"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Choose a category"
+                                    placeholder={text.modules.expenses.placeholderCategory}
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -433,10 +464,12 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">No category</ListBox.Item>
+                                        <ListBox.Item id="">
+                                          {text.common.states.noCategory}
+                                        </ListBox.Item>
                                         {expenseCategoryOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                            {expenseCategoryLabel(option.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -451,7 +484,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="expense-amount"
                               >
-                                Amount
+                                {text.common.labels.amount}
                               </label>
                               <Controller
                                 control={control}
@@ -482,7 +515,7 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="expense-date"
                               >
-                                Date
+                                {text.common.labels.date}
                               </label>
                               <Controller
                                 control={control}
@@ -516,10 +549,12 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingExpense ? "Save changes" : "Save expense"}
+                              {editingExpense
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveExpense}
                             </Button>
                           </div>
                         </form>
@@ -532,59 +567,66 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredExpenses.length} of {expenses.length} expenses
+          {text.common.prompts.ofTotal(
+            filteredExpenses.length,
+            expenses.length,
+            text.modules.expenses.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Expense list">
+          <Table.Content aria-label={text.modules.expenses.title}>
             <Table.Header>
-              <Table.Column isRowHeader>Date</Table.Column>
-              <Table.Column>Purpose</Table.Column>
-              <Table.Column>Category</Table.Column>
-              <Table.Column>Amount</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.date}</Table.Column>
+              <Table.Column>{text.modules.expenses.purpose}</Table.Column>
+              <Table.Column>{text.common.labels.category}</Table.Column>
+              <Table.Column>{text.common.labels.amount}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredExpenses.length > 0 ? (
                 filteredExpenses.map((expense) => (
                   <Table.Row key={expense.id}>
-                    <Table.Cell>{formatDate(expense.paid_at)}</Table.Cell>
-                    <Table.Cell>{expense.title ?? "-"}</Table.Cell>
-                    <Table.Cell>{expenseCategoryLabel(expense.category)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(expense.amount)}</Table.Cell>
+                    <Table.Cell>{formatDate(expense.paid_at, locale)}</Table.Cell>
+                    <Table.Cell>{expense.title ?? text.modules.expenses.title}</Table.Cell>
+                    <Table.Cell>{expenseCategoryLabel(expense.category, text)}</Table.Cell>
+                    <Table.Cell>{formatRupiah(expense.amount, locale)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(expense)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this expense?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.expenses.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {expense.title ?? "This expense"} will be removed from your
-                                  expense list.
+                                  {text.modules.expenses.deleteBody(
+                                    expense.title ?? text.modules.expenses.title,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === expense.id}
                                     onPress={() => void deleteExpense(expense.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -598,7 +640,9 @@ export function ExpensesModule({ storeId }: ExpensesModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {expensesQuery.isPending ? "Loading expenses..." : "No expenses yet."}
+                    {expensesQuery.isPending
+                      ? text.modules.expenses.loading
+                      : text.modules.expenses.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

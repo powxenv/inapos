@@ -24,6 +24,7 @@ import { WalletIcon } from "@phosphor-icons/react/dist/csr/Wallet";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type CashModuleProps = {
@@ -51,21 +52,13 @@ type EditingCashEntry = {
   title: string;
 };
 
-const cashEntrySchema = z.object({
-  amount: z
-    .string()
-    .trim()
-    .min(1, "Enter an amount.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
-      message: "Use an amount greater than 0.",
-    }),
-  entryType: z.enum(["in", "out"]),
-  happenedAt: z.string().trim().min(1, "Choose a date."),
-  note: z.string().trim().max(200, "Use 200 characters or fewer."),
-  title: z.string().trim().min(1, "Enter a short title.").max(120, "Use 120 characters or fewer."),
-});
-
-type CashEntryFormValues = z.infer<typeof cashEntrySchema>;
+type CashEntryFormValues = {
+  amount: string;
+  entryType: "in" | "out";
+  happenedAt: string;
+  note: string;
+  title: string;
+};
 
 const defaultValues: CashEntryFormValues = {
   amount: "0",
@@ -85,41 +78,59 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
+function formatRupiah(value: number | null | undefined, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: "IDR",
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
 }
 
-function cashTypeMeta(entryType: string | null) {
+function cashTypeMeta(entryType: string | null, text: ReturnType<typeof useI18n>["text"]) {
   if (entryType === "out") {
     return {
       color: "danger" as const,
       icon: ArrowUpIcon,
-      label: "Cash out",
+      label: text.modules.cash.cashOut,
     };
   }
 
   return {
     color: "success" as const,
     icon: ArrowDownIcon,
-    label: "Cash in",
+    label: text.modules.cash.cashIn,
   };
 }
 
 export function CashModule({ storeId }: CashModuleProps) {
+  const { locale, text } = useI18n();
+  const cashEntrySchema = z.object({
+    amount: z
+      .string()
+      .trim()
+      .min(1, text.modules.cash.validation.amount)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) > 0, {
+        message: text.modules.cash.validation.amountMin,
+      }),
+    entryType: z.enum(["in", "out"]),
+    happenedAt: z.string().trim().min(1, text.modules.cash.validation.date),
+    note: z.string().trim().max(200, text.modules.cash.validation.noteMax),
+    title: z
+      .string()
+      .trim()
+      .min(1, text.modules.cash.validation.titleMin)
+      .max(120, text.modules.cash.validation.titleMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingEntry, setEditingEntry] = useState<EditingCashEntry | null>(null);
@@ -190,7 +201,7 @@ export function CashModule({ storeId }: CashModuleProps) {
   function startEdit(entry: CashEntryRow) {
     setEditingEntry({
       id: entry.id,
-      title: entry.title ?? "Transaksi kas",
+      title: entry.title ?? text.modules.cash.title,
     });
     setFormError(null);
     reset({
@@ -275,7 +286,7 @@ export function CashModule({ storeId }: CashModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this cash entry.");
+      setFormError(error instanceof Error ? error.message : text.modules.cash.saveError);
     }
   }
 
@@ -293,24 +304,22 @@ export function CashModule({ storeId }: CashModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this cash entry.");
+      setFormError(error instanceof Error ? error.message : text.modules.cash.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Cash</h3>
-        <p className="text-sm text-stone-500">
-          Track money coming in and going out so your cash balance stays clear.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.cash.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.cash.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.cash.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -319,35 +328,45 @@ export function CashModule({ storeId }: CashModuleProps) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Cash balance</Card.Title>
-          </Card.Header>
-          <Card.Content>
-            <p className="text-xl font-semibold text-stone-950">{formatRupiah(summary?.balance)}</p>
-          </Card.Content>
-        </Card>
-        <Card className="border border-stone-200 shadow-none">
-          <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Money in today</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.cash.cashBalance}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.cash_in_today)}
+              {formatRupiah(summary?.balance, locale)}
             </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Money out today</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.cash.moneyInToday}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
-              {formatRupiah(summary?.cash_out_today)}
+              {formatRupiah(summary?.cash_in_today, locale)}
             </p>
           </Card.Content>
         </Card>
         <Card className="border border-stone-200 shadow-none">
           <Card.Header>
-            <Card.Title className="text-sm font-medium text-stone-600">Saved entries</Card.Title>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.cash.moneyOutToday}
+            </Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <p className="text-xl font-semibold text-stone-950">
+              {formatRupiah(summary?.cash_out_today, locale)}
+            </p>
+          </Card.Content>
+        </Card>
+        <Card className="border border-stone-200 shadow-none">
+          <Card.Header>
+            <Card.Title className="text-sm font-medium text-stone-600">
+              {text.modules.cash.savedEntries}
+            </Card.Title>
           </Card.Header>
           <Card.Content>
             <p className="text-xl font-semibold text-stone-950">
@@ -364,26 +383,34 @@ export function CashModule({ storeId }: CashModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search cash entries"
+              aria-label={text.modules.cash.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by title or note"
+              placeholder={text.modules.cash.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add entry
+              {text.modules.cash.addEntry}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingEntry ? "Edit cash entry" : "Add cash entry"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingEntry
+                      ? text.modules.cash.headingEdit(editingEntry.title)
+                      : text.modules.cash.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingEntry ? `Edit entry: ${editingEntry.title}` : "Add cash entry"}
+                          {editingEntry
+                            ? text.modules.cash.headingEdit(editingEntry.title)
+                            : text.modules.cash.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -398,7 +425,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="cash-title"
                             >
-                              Title
+                              {text.common.labels.title}
                             </label>
                             <Controller
                               control={control}
@@ -414,7 +441,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                                     id="cash-title"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Cash sale"
+                                    placeholder={text.modules.cash.placeholderTitle}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -433,21 +460,21 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="cash-type"
                               >
-                                Entry type
+                                {text.modules.cash.entryType}
                               </label>
                               <Controller
                                 control={control}
                                 name="entryType"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose an entry type"
+                                    aria-label={text.modules.cash.entryType}
                                     className="w-full"
                                     id="cash-type"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "in")
                                     }
-                                    placeholder="Choose a type"
+                                    placeholder={text.common.labels.type}
                                     selectedKey={field.value}
                                   >
                                     <Select.Trigger className="w-full">
@@ -458,7 +485,9 @@ export function CashModule({ storeId }: CashModuleProps) {
                                       <ListBox>
                                         {cashTypeOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                            {option.id === "out"
+                                              ? text.modules.cash.cashOut
+                                              : text.modules.cash.cashIn}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -473,7 +502,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="cash-amount"
                               >
-                                Amount
+                                {text.common.labels.amount}
                               </label>
                               <Controller
                                 control={control}
@@ -504,7 +533,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="cash-date"
                               >
-                                Date
+                                {text.common.labels.date}
                               </label>
                               <Controller
                                 control={control}
@@ -533,7 +562,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="cash-note"
                               >
-                                Note (optional)
+                                {text.modules.cash.noteOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -544,7 +573,7 @@ export function CashModule({ storeId }: CashModuleProps) {
                                     id="cash-note"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Paid by wholesale customer"
+                                    placeholder={text.modules.cash.placeholderNote}
                                     value={field.value}
                                   />
                                 )}
@@ -566,10 +595,12 @@ export function CashModule({ storeId }: CashModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingEntry ? "Save changes" : "Save entry"}
+                              {editingEntry
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveEntry}
                             </Button>
                           </div>
                         </form>
@@ -582,70 +613,77 @@ export function CashModule({ storeId }: CashModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredEntries.length} of {entries.length} entries
+          {text.common.prompts.ofTotal(
+            filteredEntries.length,
+            entries.length,
+            text.modules.cash.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Cash entries">
+          <Table.Content aria-label={text.modules.cash.tableAria}>
             <Table.Header>
-              <Table.Column isRowHeader>Date</Table.Column>
-              <Table.Column>Title</Table.Column>
-              <Table.Column>Type</Table.Column>
-              <Table.Column>Note</Table.Column>
-              <Table.Column>Amount</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.date}</Table.Column>
+              <Table.Column>{text.common.labels.title}</Table.Column>
+              <Table.Column>{text.common.labels.type}</Table.Column>
+              <Table.Column>{text.common.labels.note}</Table.Column>
+              <Table.Column>{text.common.labels.amount}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredEntries.length > 0 ? (
                 filteredEntries.map((entry) => {
-                  const meta = cashTypeMeta(entry.entry_type);
+                  const meta = cashTypeMeta(entry.entry_type, text);
                   const Icon = meta.icon;
 
                   return (
                     <Table.Row key={entry.id}>
-                      <Table.Cell>{formatDate(entry.happened_at)}</Table.Cell>
-                      <Table.Cell>{entry.title ?? "-"}</Table.Cell>
+                      <Table.Cell>{formatDate(entry.happened_at, locale)}</Table.Cell>
+                      <Table.Cell>{entry.title ?? text.modules.cash.title}</Table.Cell>
                       <Table.Cell>
                         <Chip color={meta.color}>
                           <Icon aria-hidden size={14} />
                           {meta.label}
                         </Chip>
                       </Table.Cell>
-                      <Table.Cell>{entry.note ?? "-"}</Table.Cell>
-                      <Table.Cell>{formatRupiah(entry.amount)}</Table.Cell>
+                      <Table.Cell>{entry.note ?? text.common.states.notAdded}</Table.Cell>
+                      <Table.Cell>{formatRupiah(entry.amount, locale)}</Table.Cell>
                       <Table.Cell>
                         <div className="flex items-center gap-2">
                           <Button onPress={() => startEdit(entry)} size="sm" variant="outline">
                             <PencilSimpleIcon aria-hidden size={16} />
-                            Edit
+                            {text.common.actions.edit}
                           </Button>
                           <AlertDialog>
                             <Button size="sm" variant="tertiary">
                               <TrashIcon aria-hidden size={16} />
-                              Delete
+                              {text.common.actions.delete}
                             </Button>
                             <AlertDialog.Backdrop>
                               <AlertDialog.Container placement="center" size="sm">
                                 <AlertDialog.Dialog>
                                   <AlertDialog.Header>
-                                    <AlertDialog.Heading>Delete this entry?</AlertDialog.Heading>
+                                    <AlertDialog.Heading>
+                                      {text.modules.cash.deleteTitle}
+                                    </AlertDialog.Heading>
                                   </AlertDialog.Header>
                                   <AlertDialog.Body>
-                                    {entry.title ?? "This entry"} will be removed from your cash
-                                    list.
+                                    {text.modules.cash.deleteBody(
+                                      entry.title ?? text.modules.cash.title,
+                                    )}
                                   </AlertDialog.Body>
                                   <AlertDialog.Footer>
                                     <Button slot="close" variant="tertiary">
-                                      Cancel
+                                      {text.common.actions.cancel}
                                     </Button>
                                     <Button
                                       isPending={pendingDeleteId === entry.id}
                                       onPress={() => void deleteEntry(entry.id)}
                                       variant="danger"
                                     >
-                                      Delete
+                                      {text.common.actions.delete}
                                     </Button>
                                   </AlertDialog.Footer>
                                 </AlertDialog.Dialog>
@@ -660,7 +698,7 @@ export function CashModule({ storeId }: CashModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={6}>
-                    {entriesQuery.isPending ? "Loading cash entries..." : "No cash entries yet."}
+                    {entriesQuery.isPending ? text.modules.cash.loading : text.modules.cash.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

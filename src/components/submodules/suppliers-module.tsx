@@ -20,6 +20,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type SuppliersModuleProps = {
@@ -39,18 +40,12 @@ type EditingSupplier = {
   name: string;
 };
 
-const supplierSchema = z.object({
-  city: z.string().trim().max(60, "Use 60 characters or fewer."),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Enter the supplier name.")
-    .max(120, "Use 120 characters or fewer."),
-  paymentTerm: z.string().trim().max(30, "Use 30 characters or fewer."),
-  phone: z.string().trim().max(30, "Use 30 characters or fewer."),
-});
-
-type SupplierFormValues = z.infer<typeof supplierSchema>;
+type SupplierFormValues = {
+  city: string;
+  name: string;
+  paymentTerm: string;
+  phone: string;
+};
 
 const defaultValues: SupplierFormValues = {
   city: "",
@@ -71,15 +66,36 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function paymentTermLabel(value: string | null | undefined) {
+function paymentTermLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
-    return "-";
+    return text.common.states.notAdded;
   }
 
-  return paymentTermOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    {
+      cash: text.modules.suppliers.termsOptions.cash,
+      "14-hari": text.modules.suppliers.termsOptions.day14,
+      "30-hari": text.modules.suppliers.termsOptions.day30,
+      "7-hari": text.modules.suppliers.termsOptions.day7,
+    }[value] ?? value
+  );
 }
 
 export function SuppliersModule({ storeId }: SuppliersModuleProps) {
+  const { text } = useI18n();
+  const supplierSchema = z.object({
+    city: z.string().trim().max(60, text.modules.suppliers.validation.cityMax),
+    name: z
+      .string()
+      .trim()
+      .min(1, text.modules.suppliers.validation.nameMin)
+      .max(120, text.modules.suppliers.validation.nameMax),
+    paymentTerm: z.string().trim().max(30, text.modules.suppliers.validation.paymentTermMax),
+    phone: z.string().trim().max(30, text.modules.suppliers.validation.phoneMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingSupplier, setEditingSupplier] = useState<EditingSupplier | null>(null);
@@ -133,7 +149,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
   function startEdit(supplier: SupplierRow) {
     setEditingSupplier({
       id: supplier.id,
-      name: supplier.name ?? "Supplier",
+      name: supplier.name ?? text.modules.suppliers.title,
     });
     setFormError(null);
     reset({
@@ -207,7 +223,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this supplier.");
+      setFormError(error instanceof Error ? error.message : text.modules.suppliers.saveError);
     }
   }
 
@@ -225,24 +241,22 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this supplier.");
+      setFormError(error instanceof Error ? error.message : text.modules.suppliers.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Suppliers</h3>
-        <p className="text-sm text-stone-500">
-          Keep your main suppliers here so reordering stays simple.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.suppliers.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.suppliers.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.suppliers.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -255,28 +269,34 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search suppliers"
+              aria-label={text.modules.suppliers.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, phone number, city, or payment terms"
+              placeholder={text.modules.suppliers.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add supplier
+              {text.modules.suppliers.addSupplier}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingSupplier ? "Edit supplier" : "Add supplier"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingSupplier
+                      ? text.modules.suppliers.headingEdit(editingSupplier.name)
+                      : text.modules.suppliers.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
                           {editingSupplier
-                            ? `Edit supplier: ${editingSupplier.name}`
-                            : "Add supplier"}
+                            ? text.modules.suppliers.headingEdit(editingSupplier.name)
+                            : text.modules.suppliers.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -291,7 +311,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="supplier-name"
                             >
-                              Supplier name
+                              {text.modules.suppliers.supplierName}
                             </label>
                             <Controller
                               control={control}
@@ -307,7 +327,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     id="supplier-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Sumber Jaya"
+                                    placeholder={text.modules.suppliers.placeholderName}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -326,7 +346,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-phone"
                               >
-                                Phone number (optional)
+                                {text.modules.suppliers.phoneOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -337,7 +357,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     id="supplier-phone"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="+62..."
+                                    placeholder={text.modules.suppliers.placeholderPhone}
                                     value={field.value}
                                   />
                                 )}
@@ -354,7 +374,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-city"
                               >
-                                City (optional)
+                                {text.modules.suppliers.cityOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -365,7 +385,7 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     id="supplier-city"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="Bandung"
+                                    placeholder={text.modules.suppliers.placeholderCity}
                                     value={field.value}
                                   />
                                 )}
@@ -382,21 +402,21 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="supplier-payment-term"
                               >
-                                Payment terms (optional)
+                                {text.modules.suppliers.paymentTermsOptional}
                               </label>
                               <Controller
                                 control={control}
                                 name="paymentTerm"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose payment terms"
+                                    aria-label={text.modules.suppliers.placeholderPaymentTerms}
                                     className="w-full"
                                     id="supplier-payment-term"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Choose payment terms"
+                                    placeholder={text.modules.suppliers.placeholderPaymentTerms}
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -405,10 +425,12 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">No payment terms</ListBox.Item>
+                                        <ListBox.Item id="">
+                                          {text.common.states.notAdded}
+                                        </ListBox.Item>
                                         {paymentTermOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                            {paymentTermLabel(option.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -433,10 +455,12 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingSupplier ? "Save changes" : "Save supplier"}
+                              {editingSupplier
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveSupplier}
                             </Button>
                           </div>
                         </form>
@@ -449,59 +473,66 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredSuppliers.length} of {suppliers.length} suppliers
+          {text.common.prompts.ofTotal(
+            filteredSuppliers.length,
+            suppliers.length,
+            text.modules.suppliers.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Supplier list">
+          <Table.Content aria-label={text.modules.suppliers.supplierList}>
             <Table.Header>
-              <Table.Column isRowHeader>Name</Table.Column>
-              <Table.Column>Phone</Table.Column>
-              <Table.Column>City</Table.Column>
-              <Table.Column>Terms</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.name}</Table.Column>
+              <Table.Column>{text.common.labels.phone}</Table.Column>
+              <Table.Column>{text.common.labels.city}</Table.Column>
+              <Table.Column>{text.common.labels.terms}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredSuppliers.length > 0 ? (
                 filteredSuppliers.map((supplier) => (
                   <Table.Row key={supplier.id}>
-                    <Table.Cell>{supplier.name ?? "-"}</Table.Cell>
-                    <Table.Cell>{supplier.phone ?? "-"}</Table.Cell>
-                    <Table.Cell>{supplier.city ?? "-"}</Table.Cell>
-                    <Table.Cell>{paymentTermLabel(supplier.payment_term)}</Table.Cell>
+                    <Table.Cell>{supplier.name ?? text.common.states.unnamedSupplier}</Table.Cell>
+                    <Table.Cell>{supplier.phone ?? text.common.states.notAdded}</Table.Cell>
+                    <Table.Cell>{supplier.city ?? text.common.states.notAdded}</Table.Cell>
+                    <Table.Cell>{paymentTermLabel(supplier.payment_term, text)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(supplier)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this supplier?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.suppliers.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {supplier.name ?? "This supplier"} will be removed from your
-                                  supplier list.
+                                  {text.modules.suppliers.deleteBody(
+                                    supplier.name ?? text.common.states.unnamedSupplier,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === supplier.id}
                                     onPress={() => void deleteSupplier(supplier.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -515,7 +546,9 @@ export function SuppliersModule({ storeId }: SuppliersModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={5}>
-                    {suppliersQuery.isPending ? "Loading suppliers..." : "No suppliers yet."}
+                    {suppliersQuery.isPending
+                      ? text.modules.suppliers.loading
+                      : text.modules.suppliers.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

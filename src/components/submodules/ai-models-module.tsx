@@ -9,6 +9,7 @@ import { KeyIcon } from "@phosphor-icons/react/dist/csr/Key";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import {
   clearOpenRouterApiKey,
   getAiProviderStatus,
@@ -32,11 +33,9 @@ import {
   type OllamaStatus,
 } from "../../lib/ollama";
 
-const openRouterApiKeySchema = z.object({
-  apiKey: z.string().trim().min(1, "Enter your sign-in key."),
-});
-
-type OpenRouterApiKeyFormValues = z.infer<typeof openRouterApiKeySchema>;
+type OpenRouterApiKeyFormValues = {
+  apiKey: string;
+};
 
 function formatBytes(value: number | null | undefined) {
   if (!value) {
@@ -71,29 +70,68 @@ function savePreferredOpenRouterModel(value: string) {
   savePreferredModel("openrouter", value);
 }
 
+type I18nText = ReturnType<typeof useI18n>["text"];
+
+function localizeAiReason(reason: string | null | undefined, text: I18nText): string | null {
+  if (!reason) {
+    return null;
+  }
+
+  if (
+    reason === "The AI assistant is only available in the desktop app." ||
+    reason === "The assistant is only available in the desktop app."
+  ) {
+    return text.modules.assistant.notReadyDescription;
+  }
+
+  if (
+    reason === "Ollama is not installed or not available in the system PATH." ||
+    reason === "Ollama is installed, but the service is not running." ||
+    reason === "Ollama is not running at 127.0.0.1:11434." ||
+    reason === "Ollama is not running in this desktop app."
+  ) {
+    return text.modules.aiModels.statusNotReady;
+  }
+
+  if (reason === "Ollama is running, but no models are installed yet.") {
+    return text.modules.aiModels.statusNoModels;
+  }
+
+  if (reason === "OpenRouter API key is not saved yet.") {
+    return text.modules.aiModels.statusDescriptionMissing;
+  }
+
+  return reason;
+}
+
 function buildStatusMessage(
   provider: AiProvider,
   status: OllamaStatus | null,
   providerStatus: AiProviderStatus | null,
+  text: I18nText,
 ) {
   if (provider === "openrouter") {
     return providerStatus?.openrouterConfigured
-      ? "Your sign-in key is saved on this device."
-      : "Add your sign-in key to use the online assistant.";
+      ? text.modules.aiModels.statusDescriptionConfigured
+      : text.modules.aiModels.statusDescriptionMissing;
   }
 
   if (!status) {
-    return "This device is not ready yet.";
+    return text.modules.aiModels.statusNotReady;
   }
 
   if (status.ollamaRunning) {
-    return "The assistant on this device is ready.";
+    return text.modules.aiModels.statusReady;
   }
 
-  return status.reason ?? "The assistant on this device is not ready yet.";
+  return localizeAiReason(status.reason, text) ?? text.modules.aiModels.statusNotReady;
 }
 
 export function AiModelsModule() {
+  const { text } = useI18n();
+  const openRouterApiKeySchema = z.object({
+    apiKey: z.string().trim().min(1, text.modules.aiModels.validation.apiKey),
+  });
   const [status, setStatus] = useState<OllamaStatus | null>(null);
   const [providerStatus, setProviderStatus] = useState<AiProviderStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -121,7 +159,7 @@ export function AiModelsModule() {
     pullProgress?.completed && pullProgress.total
       ? Math.min(100, Math.round((pullProgress.completed / pullProgress.total) * 100))
       : null;
-  const currentStatusMessage = buildStatusMessage(selectedProvider, status, providerStatus);
+  const currentStatusMessage = buildStatusMessage(selectedProvider, status, providerStatus, text);
   const {
     control,
     handleSubmit,
@@ -148,9 +186,7 @@ export function AiModelsModule() {
       setStatus(nextStatus);
       setProviderStatus(nextProviderStatus);
     } catch (error) {
-      setStatusError(
-        error instanceof Error ? error.message : "We couldn't check the assistant setup.",
-      );
+      setStatusError(error instanceof Error ? error.message : text.modules.aiModels.couldNotCheck);
       setStatus(null);
       setProviderStatus(null);
     } finally {
@@ -168,7 +204,7 @@ export function AiModelsModule() {
     } catch (error) {
       setOpenRouterModels([]);
       setOpenRouterModelsError(
-        error instanceof Error ? error.message : "We couldn't load the available options.",
+        error instanceof Error ? error.message : text.modules.aiModels.couldNotLoadOptions,
       );
     } finally {
       setIsLoadingOpenRouterModels(false);
@@ -199,7 +235,7 @@ export function AiModelsModule() {
         }
       } catch (error) {
         setPullError(
-          error instanceof Error ? error.message : "We couldn't check the download progress.",
+          error instanceof Error ? error.message : text.modules.aiModels.couldNotTrackDownload,
         );
         if (intervalId !== null) {
           window.clearInterval(intervalId);
@@ -281,11 +317,13 @@ export function AiModelsModule() {
         done: false,
         error: null,
         model: modelName,
-        status: "Starting your download...",
+        status: text.modules.aiModels.downloading,
         total: null,
       });
     } catch (error) {
-      setPullError(error instanceof Error ? error.message : "We couldn't start the download.");
+      setPullError(
+        error instanceof Error ? error.message : text.modules.aiModels.couldNotStartDownload,
+      );
     }
   }
 
@@ -315,12 +353,13 @@ export function AiModelsModule() {
     try {
       const nextStatus = await saveOpenRouterApiKey(apiKey);
       setProviderStatus(nextStatus);
-      setProviderMessage("Your sign-in key has been saved on this device.");
+      setProviderMessage(text.modules.aiModels.saveKeySuccess);
       reset({
         apiKey: "",
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "We couldn't save your sign-in key.";
+      const message =
+        error instanceof Error ? error.message : text.modules.aiModels.couldNotSaveKey;
       setError("root", {
         type: "server",
         message,
@@ -338,13 +377,13 @@ export function AiModelsModule() {
     try {
       const nextStatus = await clearOpenRouterApiKey();
       setProviderStatus(nextStatus);
-      setProviderMessage("Your sign-in key has been removed from this device.");
+      setProviderMessage(text.modules.aiModels.removeKeySuccess);
       reset({
         apiKey: "",
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "We couldn't remove your sign-in key.";
+        error instanceof Error ? error.message : text.modules.aiModels.couldNotRemoveKey;
       setProviderError(message);
     } finally {
       setIsClearingApiKey(false);
@@ -354,10 +393,8 @@ export function AiModelsModule() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Assistant setup</h3>
-        <p className="text-sm text-stone-500">
-          Choose how the assistant should work for this store.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.aiModels.heading}</h3>
+        <p className="text-sm text-stone-500">{text.modules.aiModels.description}</p>
       </div>
 
       <Card className="border border-stone-200 shadow-none">
@@ -371,11 +408,11 @@ export function AiModelsModule() {
                 <div>
                   <p className="font-medium text-stone-950">
                     {selectedProvider === "openrouter"
-                      ? "Online assistant is on"
-                      : "This device is on"}
+                      ? text.modules.aiModels.cloudOn
+                      : text.modules.aiModels.cloudOff}
                   </p>
                   <p className="text-sm text-stone-500">
-                    Turn this on to use the online assistant. Turn it off to use this device.
+                    {text.modules.aiModels.switchDescription}
                   </p>
                 </div>
               </Switch.Content>
@@ -388,7 +425,7 @@ export function AiModelsModule() {
           <div className="flex flex-wrap gap-2">
             <Button onPress={() => void loadStatus()} variant="outline">
               <ArrowClockwiseIcon aria-hidden size={16} />
-              Check again
+              {text.common.actions.checkAgain}
             </Button>
             {selectedProvider === "openrouter" ? (
               <Button
@@ -397,7 +434,7 @@ export function AiModelsModule() {
                 variant="outline"
               >
                 <ArrowClockwiseIcon aria-hidden size={16} />
-                Refresh options
+                {text.common.actions.refreshOptions}
               </Button>
             ) : null}
           </div>
@@ -405,14 +442,14 @@ export function AiModelsModule() {
       </Card>
 
       {isLoading ? (
-        <p className="text-sm text-stone-500">Checking your assistant setup...</p>
+        <p className="text-sm text-stone-500">{text.modules.aiModels.checkingSetup}</p>
       ) : null}
 
       {statusError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>We couldn’t check the setup</Alert.Title>
+            <Alert.Title>{text.modules.aiModels.couldNotCheckTitle}</Alert.Title>
             <Alert.Description>{statusError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -422,11 +459,11 @@ export function AiModelsModule() {
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Assistant option</Card.Title>
+              <Card.Title>{text.modules.aiModels.assistantOption}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Available options</span>
+                <span className="text-sm text-stone-500">{text.modules.aiModels.optionCount}</span>
                 <span className="text-sm font-medium text-stone-950">
                   {openRouterModels.length}
                 </span>
@@ -437,10 +474,10 @@ export function AiModelsModule() {
                   className="block text-sm font-medium text-stone-700"
                   htmlFor="openrouter-model"
                 >
-                  Default option
+                  {text.modules.aiModels.defaultOption}
                 </label>
                 <Select
-                  aria-label="Choose a default online assistant option"
+                  aria-label={text.modules.aiModels.openRouterPlaceholder}
                   className="w-full"
                   id="openrouter-model"
                   isDisabled={!openRouterModels.length}
@@ -482,7 +519,7 @@ export function AiModelsModule() {
                 <Alert status="danger">
                   <Alert.Indicator />
                   <Alert.Content>
-                    <Alert.Title>We couldn’t load the options</Alert.Title>
+                    <Alert.Title>{text.modules.aiModels.couldNotLoadOptionsTitle}</Alert.Title>
                     <Alert.Description>{openRouterModelsError}</Alert.Description>
                   </Alert.Content>
                 </Alert>
@@ -492,13 +529,15 @@ export function AiModelsModule() {
 
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Sign-in key</Card.Title>
+              <Card.Title>{text.modules.aiModels.signInKey}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Status</span>
+                <span className="text-sm text-stone-500">{text.modules.aiModels.status}</span>
                 <span className="text-sm font-medium text-stone-950">
-                  {providerStatus?.openrouterConfigured ? "Saved" : "Not added"}
+                  {providerStatus?.openrouterConfigured
+                    ? text.modules.aiModels.statusConfigured
+                    : text.common.states.notAdded}
                 </span>
               </div>
 
@@ -508,7 +547,7 @@ export function AiModelsModule() {
                     className="block text-sm font-medium text-stone-700"
                     htmlFor="openrouter-api-key"
                   >
-                    Sign-in key
+                    {text.modules.aiModels.signInKey}
                   </label>
                   <Controller
                     control={control}
@@ -520,7 +559,7 @@ export function AiModelsModule() {
                         </InputGroup.Prefix>
                         <InputGroup.Input
                           aria-invalid={fieldState.invalid}
-                          aria-label="Assistant sign-in key"
+                          aria-label={text.modules.aiModels.signInKey}
                           autoComplete="off"
                           className="w-full"
                           id="openrouter-api-key"
@@ -532,7 +571,11 @@ export function AiModelsModule() {
                         />
                         <InputGroup.Suffix className="pr-0">
                           <Button
-                            aria-label={isApiKeyVisible ? "Hide sign-in key" : "Show sign-in key"}
+                            aria-label={
+                              isApiKeyVisible
+                                ? text.modules.aiModels.keyHidden
+                                : text.modules.aiModels.keyShown
+                            }
                             className="min-w-0 px-2 text-stone-500 hover:text-stone-900"
                             onPress={() => setIsApiKeyVisible((value) => !value)}
                             size="sm"
@@ -558,7 +601,7 @@ export function AiModelsModule() {
                   <Alert status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>We couldn’t save the key</Alert.Title>
+                      <Alert.Title>{text.modules.aiModels.couldNotSaveKeyTitle}</Alert.Title>
                       <Alert.Description>{errors.root.message}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -568,7 +611,7 @@ export function AiModelsModule() {
                   <Alert status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>That didn’t work</Alert.Title>
+                      <Alert.Title>{text.modules.aiModels.thatDidNotWork}</Alert.Title>
                       <Alert.Description>{providerError}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -578,7 +621,7 @@ export function AiModelsModule() {
                   <Alert status="success">
                     <Alert.Indicator />
                     <Alert.Content>
-                      <Alert.Title>Saved</Alert.Title>
+                      <Alert.Title>{text.modules.aiModels.saveSuccessTitle}</Alert.Title>
                       <Alert.Description>{providerMessage}</Alert.Description>
                     </Alert.Content>
                   </Alert>
@@ -586,7 +629,7 @@ export function AiModelsModule() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button isPending={isSubmitting} type="submit">
-                    Save key
+                    {text.common.actions.saveKey}
                   </Button>
                   <Button
                     isDisabled={!providerStatus?.openrouterConfigured}
@@ -595,7 +638,7 @@ export function AiModelsModule() {
                     type="button"
                     variant="outline"
                   >
-                    Remove key
+                    {text.common.actions.removeKey}
                   </Button>
                 </div>
               </form>
@@ -608,7 +651,7 @@ export function AiModelsModule() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Download failed</Alert.Title>
+            <Alert.Title>{text.modules.aiModels.downloadFailed}</Alert.Title>
             <Alert.Description>{pullError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -620,17 +663,17 @@ export function AiModelsModule() {
           <Alert.Content>
             <Alert.Title>
               {pullProgress.active
-                ? "Downloading your option"
+                ? text.modules.aiModels.downloading
                 : pullProgress.error
-                  ? "Download failed"
-                  : "Download complete"}
+                  ? text.modules.aiModels.downloadFailed
+                  : text.modules.aiModels.downloadComplete}
             </Alert.Title>
             <Alert.Description>
               {pullProgress.error ??
                 pullProgress.status ??
                 (progressPercent !== null
                   ? `Progress ${progressPercent}%`
-                  : "Waiting for progress...")}
+                  : text.modules.aiModels.progressWaiting)}
               {progressPercent !== null && pullProgress.active ? ` (${progressPercent}%)` : ""}
             </Alert.Description>
           </Alert.Content>
@@ -641,32 +684,34 @@ export function AiModelsModule() {
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>This device</Card.Title>
+              <Card.Title>{text.modules.aiModels.thisDevice}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Platform</span>
+                <span className="text-sm text-stone-500">{text.modules.aiModels.platform}</span>
                 <span className="text-sm font-medium text-stone-950">{status.platform}</span>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">On-device helper</span>
+                <span className="text-sm text-stone-500">
+                  {text.modules.aiModels.onDeviceHelper}
+                </span>
                 <span className="text-sm font-medium text-stone-950">
                   {status.ollamaInstalled
                     ? status.ollamaRunning
-                      ? "Ready"
-                      : "Installed"
-                    : "Not set up"}
+                      ? text.common.states.ready
+                      : text.modules.aiModels.helperInstalled
+                    : text.modules.aiModels.helperNotSetUp}
                 </span>
               </div>
               {status.reason ? (
                 <div className="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-500">
-                  {status.reason}
+                  {localizeAiReason(status.reason, text)}
                 </div>
               ) : null}
               {!status.ollamaInstalled && status.isDesktop ? (
                 <Button onPress={() => void handleInstallOllama()}>
                   <DownloadSimpleIcon aria-hidden size={16} />
-                  Set up on this device
+                  {text.common.actions.setUpOnThisDevice}
                 </Button>
               ) : null}
             </Card.Content>
@@ -674,22 +719,22 @@ export function AiModelsModule() {
 
           <Card className="border border-stone-200 shadow-none">
             <Card.Header>
-              <Card.Title>Assistant option</Card.Title>
+              <Card.Title>{text.modules.aiModels.assistantOption}</Card.Title>
             </Card.Header>
             <Card.Content className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-stone-200 px-4 py-3">
-                <span className="text-sm text-stone-500">Default</span>
+                <span className="text-sm text-stone-500">{text.modules.aiModels.default}</span>
                 <span className="text-sm font-medium text-stone-950">
-                  {selectedOllamaModel || "Not chosen yet"}
+                  {selectedOllamaModel || text.common.states.notChosenYet}
                 </span>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-stone-700" htmlFor="ollama-model">
-                  On-device option
+                  {text.modules.aiModels.onDeviceOption}
                 </label>
                 <Select
-                  aria-label="Choose an assistant option for this device"
+                  aria-label={text.modules.aiModels.modelPlaceholder}
                   className="w-full"
                   id="ollama-model"
                   isDisabled={!installedModels.length}
@@ -734,8 +779,8 @@ export function AiModelsModule() {
                 >
                   <DownloadSimpleIcon aria-hidden size={16} />
                   {installedNames.has(recommendedOllamaModels[0].name)
-                    ? "Download again"
-                    : "Download recommended option"}
+                    ? text.common.actions.downloadAgain
+                    : text.common.actions.downloadRecommendedOption}
                 </Button>
                 {installedNames.has(recommendedOllamaModels[0].name) ? (
                   <Button
@@ -746,7 +791,7 @@ export function AiModelsModule() {
                         : "outline"
                     }
                   >
-                    Set as default
+                    {text.common.actions.setAsDefault}
                   </Button>
                 ) : null}
               </div>

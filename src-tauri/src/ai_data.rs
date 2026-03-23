@@ -170,10 +170,10 @@ fn data_runtime() -> &'static Mutex<Option<AiDataRuntimeState>> {
 fn runtime_state() -> Result<AiDataRuntimeState, String> {
     let guard = data_runtime()
         .lock()
-        .map_err(|_| "Runtime data AI sedang terkunci.".to_string())?;
+        .map_err(|_| "AI data runtime is locked.".to_string())?;
     guard
         .clone()
-        .ok_or_else(|| "Runtime data AI belum diinisialisasi.".to_string())
+        .ok_or_else(|| "AI data runtime has not been initialized yet.".to_string())
 }
 
 fn ensure_powersync_extension() -> Result<(), String> {
@@ -243,15 +243,15 @@ pub fn initialize_runtime(
     let trimmed_neon_data_api_url = neon_data_api_url.trim();
 
     if trimmed_token.is_empty() {
-        return Err("Session token Neon wajib tersedia.".to_string());
+        return Err("Neon session token is required.".to_string());
     }
 
     if trimmed_powersync_url.is_empty() {
-        return Err("URL PowerSync wajib tersedia.".to_string());
+        return Err("PowerSync URL is required.".to_string());
     }
 
     if trimmed_neon_data_api_url.is_empty() {
-        return Err("URL Neon Data API wajib tersedia.".to_string());
+        return Err("Neon Data API URL is required.".to_string());
     }
 
     let app_data_dir = app_handle
@@ -276,7 +276,7 @@ pub fn initialize_runtime(
 
     let mut guard = data_runtime()
         .lock()
-        .map_err(|_| "Runtime data AI sedang terkunci.".to_string())?;
+        .map_err(|_| "AI data runtime is locked.".to_string())?;
 
     *guard = Some(AiDataRuntimeState {
         neon_data_api_url: trimmed_neon_data_api_url.to_string(),
@@ -302,58 +302,58 @@ pub fn build_tools(store_id: &str) -> Vec<Tool> {
 
 fn describe_tables_tool() -> Tool {
     Tool {
-        description: "Menjelaskan tabel data POS yang bisa dibaca atau diubah lewat chat.".to_string(),
+        description: "Describes the POS data tables that can be read or changed through chat.".to_string(),
         execute: ToolExecute::new(Box::new(|_| {
             Ok(json!({
                 "tables": [
                     {
                         "name": "products",
-                        "purpose": "Master barang",
+                        "purpose": "Product catalog",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "customers",
-                        "purpose": "Pelanggan dan total belanja",
+                        "purpose": "Customers and lifetime spend",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "suppliers",
-                        "purpose": "Pemasok",
+                        "purpose": "Suppliers",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "expenses",
-                        "purpose": "Pengeluaran",
+                        "purpose": "Expenses",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "cash_entries",
-                        "purpose": "Kas masuk dan keluar",
+                        "purpose": "Cash in and cash out entries",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "promotions",
-                        "purpose": "Promo dan diskon",
+                        "purpose": "Promotions and discounts",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "inventory_items",
-                        "purpose": "Stok per barang",
+                        "purpose": "Stock by product",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "purchases",
-                        "purpose": "Pembelian dari supplier",
+                        "purpose": "Purchases from suppliers",
                         "writes": ["create_record", "update_record", "delete_record"]
                     },
                     {
                         "name": "sales",
-                        "purpose": "Header transaksi penjualan",
+                        "purpose": "Sale header records",
                         "writes": ["create_sale", "delete_sale"]
                     },
                     {
                         "name": "sale_items",
-                        "purpose": "Detail item transaksi",
+                        "purpose": "Sale line items",
                         "writes": ["create_sale", "delete_sale"]
                     }
                 ]
@@ -369,7 +369,7 @@ fn list_records_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Membaca daftar data dari tabel POS aktif. Gunakan saat pengguna meminta daftar, ringkasan, pencarian, atau pengecekan data nyata di toko aktif.".to_string(),
+        description: "Reads a list of records from the active POS table. Use this when the user asks for lists, summaries, searches, or checks against real data in the active store.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: ListRecordsInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -384,7 +384,7 @@ fn get_record_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Membaca satu data spesifik berdasarkan id dari tabel POS aktif.".to_string(),
+        description: "Reads one specific record by id from the active POS table.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: GetRecordInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -399,7 +399,7 @@ fn create_record_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Membuat data baru pada tabel POS aktif yang aman untuk CRUD langsung. Jangan gunakan untuk sales atau sale_items.".to_string(),
+        description: "Creates a new record in an active POS table that is safe for direct CRUD. Do not use this for sales or sale_items.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: CreateRecordInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -414,7 +414,7 @@ fn update_record_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Mengubah data pada tabel POS aktif yang aman untuk CRUD langsung. Jangan gunakan untuk sales atau sale_items.".to_string(),
+        description: "Updates a record in an active POS table that is safe for direct CRUD. Do not use this for sales or sale_items.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: UpdateRecordInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -429,7 +429,7 @@ fn delete_record_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Menghapus data pada tabel POS aktif yang aman untuk CRUD langsung. Jangan gunakan untuk sales atau sale_items.".to_string(),
+        description: "Deletes a record in an active POS table that is safe for direct CRUD. Do not use this for sales or sale_items.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: DeleteRecordInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -444,7 +444,7 @@ fn create_sale_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Menyimpan transaksi penjualan lengkap seperti modul kasir. Tool ini membuat sales, sale_items, mengurangi stok inventory_items, dan menambah total_spent customer bila ada.".to_string(),
+        description: "Saves a full sale transaction like the cashier module. This tool creates sales and sale_items records, reduces inventory_items stock, and increases customer total_spent when applicable.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: CreateSaleInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -459,7 +459,7 @@ fn delete_sale_tool(store_id: &str) -> Tool {
     let store_id = store_id.to_string();
 
     Tool {
-        description: "Menghapus transaksi penjualan dan membalikkan stok serta total belanja pelanggan seperti pembatalan transaksi.".to_string(),
+        description: "Deletes a sale transaction and restores stock and customer total spend like a cancellation.".to_string(),
         execute: ToolExecute::new(Box::new(move |params| {
             let input: DeleteSaleInput =
                 serde_json::from_value(params).map_err(|error| error.to_string())?;
@@ -513,7 +513,7 @@ fn get_record(store_id: &str, input: GetRecordInput) -> Result<String, String> {
     let runtime = runtime_state()?;
 
     if input.id.trim().is_empty() {
-        return Err("ID data wajib diisi.".to_string());
+        return Err("Record id is required.".to_string());
     }
 
     let mut url = table_url(&runtime.neon_data_api_url, input.table)?;
@@ -523,7 +523,7 @@ fn get_record(store_id: &str, input: GetRecordInput) -> Result<String, String> {
         query.append_pair("select", "*");
         query.append_pair("id", &format!("eq.{}", input.id.trim()));
         if input.table == AiTable::SaleItems {
-            return Err("Gunakan list_records untuk sale_items dengan filter sale_id.".to_string());
+            return Err("Use list_records for sale_items with a sale_id filter.".to_string());
         }
     }
 
@@ -545,7 +545,7 @@ fn create_record(store_id: &str, input: CreateRecordInput) -> Result<String, Str
     let runtime = runtime_state()?;
 
     if !is_generic_write_table(input.table) {
-        return Err("Tabel ini harus diubah lewat tool transaksi khusus.".to_string());
+        return Err("This table must be changed through a dedicated transaction tool.".to_string());
     }
 
     let record = sanitize_create_values(input.table, store_id, input.values)?;
@@ -573,16 +573,16 @@ fn update_record(store_id: &str, input: UpdateRecordInput) -> Result<String, Str
     let runtime = runtime_state()?;
 
     if input.id.trim().is_empty() {
-        return Err("ID data wajib diisi.".to_string());
+        return Err("Record id is required.".to_string());
     }
 
     if !is_generic_write_table(input.table) {
-        return Err("Tabel ini harus diubah lewat tool transaksi khusus.".to_string());
+        return Err("This table must be changed through a dedicated transaction tool.".to_string());
     }
 
     let changes = sanitize_update_values(input.table, store_id, input.values)?;
     if changes.is_empty() {
-        return Err("Perubahan data tidak boleh kosong.".to_string());
+        return Err("Record changes cannot be empty.".to_string());
     }
 
     let mut url = table_url(&runtime.neon_data_api_url, input.table)?;
@@ -614,11 +614,11 @@ fn delete_record(store_id: &str, input: DeleteRecordInput) -> Result<String, Str
     let runtime = runtime_state()?;
 
     if input.id.trim().is_empty() {
-        return Err("ID data wajib diisi.".to_string());
+        return Err("Record id is required.".to_string());
     }
 
     if !is_generic_write_table(input.table) {
-        return Err("Tabel ini harus dihapus lewat tool transaksi khusus.".to_string());
+        return Err("This table must be deleted through a dedicated transaction tool.".to_string());
     }
 
     let mut url = table_url(&runtime.neon_data_api_url, input.table)?;
@@ -648,7 +648,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
     let runtime = runtime_state()?;
 
     if input.items.is_empty() {
-        return Err("Minimal satu item penjualan wajib diisi.".to_string());
+        return Err("At least one sale item is required.".to_string());
     }
 
     let now = now_iso_string();
@@ -660,7 +660,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
         .to_string();
 
     if receipt_number.is_empty() {
-        return Err("Nomor struk wajib tersedia.".to_string());
+        return Err("Receipt number is required.".to_string());
     }
 
     let customer = match input.customer_id.as_deref().map(str::trim) {
@@ -672,11 +672,11 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
 
     for item in &input.items {
         if item.product_id.trim().is_empty() {
-            return Err("Setiap item penjualan wajib punya product_id.".to_string());
+            return Err("Each sale item must include a product_id.".to_string());
         }
 
         if item.quantity <= 0.0 {
-            return Err("Jumlah item penjualan harus lebih dari 0.".to_string());
+            return Err("Each sale item quantity must be greater than 0.".to_string());
         }
 
         let product = fetch_product(&runtime, store_id, item.product_id.trim())?;
@@ -685,7 +685,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
 
         if inventory.on_hand < item.quantity {
             return Err(format!(
-                "Stok {} tidak cukup. Tersedia {}, diminta {}.",
+                "Not enough stock for {}. Available: {}, requested: {}.",
                 product.name.clone().unwrap_or_else(|| product.id.clone()),
                 inventory.on_hand,
                 item.quantity
@@ -721,7 +721,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
 
     let created_sale = match create_remote_record(&runtime, AiTable::Sales, sale_record)? {
         Some(record) => record,
-        None => return Err("Gagal membuat transaksi penjualan.".to_string()),
+        None => return Err("Failed to create the sale transaction.".to_string()),
     };
 
     let result = (|| -> Result<(), String> {
@@ -741,7 +741,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
 
             let created = match create_remote_record(&runtime, AiTable::SaleItems, sale_item)? {
                 Some(record) => record,
-                None => return Err("Gagal membuat item penjualan.".to_string()),
+                None => return Err("Failed to create the sale item.".to_string()),
             };
 
             created_sale_items.push(created);
@@ -756,7 +756,7 @@ fn create_sale(store_id: &str, input: CreateSaleInput) -> Result<String, String>
                     "updated_at": now
                 }),
             )?
-            .ok_or_else(|| "Gagal memperbarui stok barang.".to_string())?;
+            .ok_or_else(|| "Failed to update product stock.".to_string())?;
 
             patched_inventory.push(patched);
         }
@@ -815,7 +815,7 @@ fn delete_sale(store_id: &str, input: DeleteSaleInput) -> Result<String, String>
     let sale_id = input.sale_id.trim();
 
     if sale_id.is_empty() {
-        return Err("ID transaksi wajib diisi.".to_string());
+        return Err("Sale id is required.".to_string());
     }
 
     let sale = fetch_sale(&runtime, store_id, sale_id)?;
@@ -845,7 +845,7 @@ fn delete_sale(store_id: &str, input: DeleteSaleInput) -> Result<String, String>
     }
 
     let deleted_sale = delete_remote_record(&runtime, AiTable::Sales, sale_id, Some(store_id))?
-        .ok_or_else(|| "Transaksi penjualan tidak ditemukan.".to_string())?;
+        .ok_or_else(|| "Sale transaction not found.".to_string())?;
 
     let mut patched_inventory = Vec::new();
     for (sale_item, inventory) in sale_items.iter().zip(inventory_snapshots.iter()) {
@@ -860,7 +860,7 @@ fn delete_sale(store_id: &str, input: DeleteSaleInput) -> Result<String, String>
                 "updated_at": now_iso_string()
             }),
         )?
-        .ok_or_else(|| "Gagal mengembalikan stok barang.".to_string())?;
+        .ok_or_else(|| "Failed to restore product stock.".to_string())?;
         patched_inventory.push(patched);
     }
 
@@ -1186,7 +1186,7 @@ fn read_neon_error(status: u16, text: &str) -> String {
     }
 
     if text.trim().is_empty() {
-        return format!("Neon Data API merespons status {}.", status);
+        return format!("Neon Data API responded with status {}.", status);
     }
 
     format!("Neon Data API {status}: {text}")
@@ -1198,10 +1198,10 @@ fn parse_array_response(response: Value) -> Result<Vec<Map<String, Value>>, Stri
             .into_iter()
             .map(|item| match item {
                 Value::Object(record) => Ok(record),
-                _ => Err("Respons Data API tidak berbentuk object.".to_string()),
+                _ => Err("Data API response item is not an object.".to_string()),
             })
             .collect(),
-        _ => Err("Respons Data API tidak berbentuk array.".to_string()),
+        _ => Err("Data API response is not an array.".to_string()),
     }
 }
 
@@ -1211,18 +1211,18 @@ fn parse_array_or_single_record(response: Value) -> Result<Vec<Map<String, Value
             .into_iter()
             .map(|item| match item {
                 Value::Object(record) => Ok(record),
-                _ => Err("Respons Data API tidak berbentuk object.".to_string()),
+                _ => Err("Data API response item is not an object.".to_string()),
             })
             .collect(),
         Value::Object(record) => Ok(vec![record]),
-        _ => Err("Respons Data API tidak bisa diproses.".to_string()),
+        _ => Err("Data API response could not be processed.".to_string()),
     }
 }
 
 fn first_record_or_error(rows: Vec<Map<String, Value>>) -> Result<Map<String, Value>, String> {
     rows.into_iter()
         .next()
-        .ok_or_else(|| "Data yang diminta tidak ditemukan.".to_string())
+        .ok_or_else(|| "The requested record was not found.".to_string())
 }
 
 fn table_url(base_url: &str, table: AiTable) -> Result<Url, String> {
@@ -1244,7 +1244,7 @@ fn append_store_scope(
         let has_sale_scope = filters.iter().any(|filter| filter.field == "sale_id");
 
         if !has_sale_scope {
-            return Err("sale_items wajib difilter dengan sale_id.".to_string());
+            return Err("sale_items must be filtered with sale_id.".to_string());
         }
 
         return Ok(());
@@ -1286,13 +1286,13 @@ fn validate_filters(table: AiTable, filters: &[RecordFilterInput]) -> Result<(),
 
     for filter in filters {
         if filter.field.trim().is_empty() {
-            return Err("Nama field filter wajib diisi.".to_string());
+            return Err("Filter field name is required.".to_string());
         }
 
         validate_field_name(table, filter.field.trim())?;
 
         if !seen.insert(filter.field.trim().to_string()) {
-            return Err(format!("Filter {} duplikat.", filter.field.trim()));
+            return Err(format!("Duplicate filter {}.", filter.field.trim()));
         }
     }
 
@@ -1309,7 +1309,7 @@ fn validate_field_name(table: AiTable, field: &str) -> Result<(), String> {
     }
 
     Err(format!(
-        "Field {} tidak tersedia pada tabel {}.",
+        "Field {} is not available on table {}.",
         field,
         table_name(table)
     ))
@@ -1325,7 +1325,7 @@ fn sanitize_create_values(
     for (key, value) in values {
         if key == "id" {
             if !value.is_string() {
-                return Err("Field id harus berupa string.".to_string());
+                return Err("Field id must be a string.".to_string());
             }
             record.insert(key, value);
             continue;
@@ -1348,7 +1348,7 @@ fn sanitize_create_values(
     }
 
     if table == AiTable::Sales || table == AiTable::SaleItems {
-        return Err("Tabel ini wajib memakai tool transaksi khusus.".to_string());
+        return Err("This table must use a dedicated transaction tool.".to_string());
     }
 
     Ok(record)
@@ -1363,7 +1363,7 @@ fn sanitize_update_values(
 
     for (key, value) in values {
         if key == "id" {
-            return Err("Field id tidak boleh diubah.".to_string());
+            return Err("Field id cannot be changed.".to_string());
         }
 
         if key == "store_id" && has_store_id(table) {
@@ -1426,7 +1426,7 @@ fn mirror_upsert_record(
     let mut values = vec![to_sql_value(
         record
             .get("id")
-            .ok_or_else(|| "Record lokal tidak memiliki id.".to_string())?,
+            .ok_or_else(|| "Local record does not have an id.".to_string())?,
     )?];
 
     for spec in table_fields(table) {
@@ -1498,10 +1498,10 @@ fn to_sql_value(value: &Value) -> Result<SqlValue, String> {
                 return Ok(SqlValue::Real(float));
             }
 
-            Err("Angka tidak valid untuk cache lokal.".to_string())
+            Err("Invalid number for local cache.".to_string())
         }
         Value::String(text) => Ok(SqlValue::Text(text.clone())),
-        _ => Err("Nilai kompleks tidak didukung untuk cache lokal.".to_string()),
+        _ => Err("Complex values are not supported for local cache.".to_string()),
     }
 }
 
@@ -1510,7 +1510,7 @@ fn field_spec(table: AiTable, name: &str) -> Result<FieldSpec, String> {
         .iter()
         .copied()
         .find(|spec| spec.name == name)
-        .ok_or_else(|| format!("Field {} tidak tersedia pada tabel {}.", name, table_name(table)))
+        .ok_or_else(|| format!("Field {} is not available on table {}.", name, table_name(table)))
 }
 
 fn default_order_field(table: AiTable) -> &'static str {
@@ -1685,11 +1685,11 @@ fn get_string_field(record: &Map<String, Value>, key: &str) -> Result<String, St
         .get(key)
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or_else(|| format!("Field {} tidak tersedia.", key))
+        .ok_or_else(|| format!("Field {} is not available.", key))
 }
 
 fn get_f64_field(record: &Map<String, Value>, key: &str) -> Result<f64, String> {
-    get_optional_f64_field(record, key).ok_or_else(|| format!("Field {} tidak tersedia.", key))
+    get_optional_f64_field(record, key).ok_or_else(|| format!("Field {} is not available.", key))
 }
 
 fn get_optional_f64_field(record: &Map<String, Value>, key: &str) -> Option<f64> {

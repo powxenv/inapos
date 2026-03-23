@@ -77,7 +77,7 @@ fn fetch_ollama_tags() -> Result<OllamaTagsResponse, String> {
         .parse()
         .map_err(|error: std::net::AddrParseError| error.to_string())?;
     let mut stream = TcpStream::connect_timeout(&address, Duration::from_secs(2))
-        .map_err(|_| "Ollama terpasang tetapi servicenya belum aktif.".to_string())?;
+        .map_err(|_| "Ollama is installed, but the service is not running.".to_string())?;
 
     stream
         .set_read_timeout(Some(Duration::from_secs(2)))
@@ -92,13 +92,13 @@ fn fetch_ollama_tags() -> Result<OllamaTagsResponse, String> {
     let response = read_http_response(&mut stream)?;
 
     if !response.starts_with("HTTP/1.1 200") && !response.starts_with("HTTP/1.0 200") {
-        return Err("Ollama belum merespons dengan benar di port 11434.".to_string());
+        return Err("Ollama did not respond correctly on port 11434.".to_string());
     }
 
     let body = response
         .split("\r\n\r\n")
         .nth(1)
-        .ok_or_else(|| "Respons Ollama tidak lengkap.".to_string())?;
+        .ok_or_else(|| "Ollama returned an incomplete response.".to_string())?;
 
     serde_json::from_str::<OllamaTagsResponse>(body).map_err(|error| error.to_string())
 }
@@ -150,7 +150,7 @@ fn read_headers(reader: &mut BufReader<TcpStream>) -> Result<(bool, u16), String
     let status_code = status_line
         .split_whitespace()
         .nth(1)
-        .ok_or_else(|| "Status HTTP Ollama tidak valid.".to_string())?
+        .ok_or_else(|| "Ollama returned an invalid HTTP status.".to_string())?
         .parse::<u16>()
         .map_err(|error| error.to_string())?;
 
@@ -231,7 +231,7 @@ fn pull_model(model: String, progress: Arc<Mutex<OllamaPullProgress>>) -> Result
         .parse()
         .map_err(|error: std::net::AddrParseError| error.to_string())?;
     let mut stream = TcpStream::connect_timeout(&address, Duration::from_secs(2))
-        .map_err(|_| "Ollama belum aktif, jadi model belum bisa diunduh.".to_string())?;
+        .map_err(|_| "Ollama is not running, so the model cannot be downloaded yet.".to_string())?;
 
     stream
         .set_read_timeout(Some(Duration::from_secs(60)))
@@ -259,7 +259,7 @@ fn pull_model(model: String, progress: Arc<Mutex<OllamaPullProgress>>) -> Result
     let (is_chunked, status_code) = read_headers(&mut reader)?;
 
     if status_code != 200 {
-        return Err("Ollama menolak permintaan download model.".to_string());
+        return Err("Ollama rejected the model download request.".to_string());
     }
 
     if is_chunked {
@@ -299,7 +299,7 @@ fn get_ollama_status() -> Result<OllamaStatus, String> {
             ollama_installed: false,
             ollama_running: false,
             platform,
-            reason: Some("Asisten AI hanya tersedia di desktop app.".to_string()),
+            reason: Some("The AI assistant is only available in the desktop app.".to_string()),
         });
     }
 
@@ -317,7 +317,7 @@ fn get_ollama_status() -> Result<OllamaStatus, String> {
             ollama_installed,
             ollama_running: false,
             platform,
-            reason: Some("Ollama belum terpasang atau tidak ada di PATH sistem.".to_string()),
+            reason: Some("Ollama is not installed or not available in the system PATH.".to_string()),
         });
     }
 
@@ -347,7 +347,7 @@ fn get_ollama_status() -> Result<OllamaStatus, String> {
         reason: if has_models {
             None
         } else {
-            Some("Ollama aktif, tetapi belum ada model yang terpasang.".to_string())
+            Some("Ollama is running, but no models are installed yet.".to_string())
         },
     })
 }
@@ -360,7 +360,7 @@ fn get_ollama_pull_progress(
         .pull_progress
         .lock()
         .map(|progress| progress.clone())
-        .map_err(|_| "Gagal membaca progress download model.".to_string())
+        .map_err(|_| "Failed to read model download progress.".to_string())
 }
 
 #[tauri::command]
@@ -369,7 +369,7 @@ fn start_ollama_pull(model: String, state: tauri::State<'_, OllamaState>) -> Res
         let mut current = state
             .pull_progress
             .lock()
-            .map_err(|_| "Gagal menyiapkan progress download model.".to_string())?;
+            .map_err(|_| "Failed to prepare model download progress.".to_string())?;
 
         if current.active {
             return Err("Masih ada download model yang sedang berjalan.".to_string());

@@ -20,6 +20,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type PromoModuleProps = {
@@ -42,23 +43,15 @@ type EditingPromo = {
   title: string;
 };
 
-const promoSchema = z.object({
-  description: z.string().trim().max(200, "Use 200 characters or fewer."),
-  discountType: z.enum(["nominal", "percent"]),
-  discountValue: z
-    .string()
-    .trim()
-    .min(1, "Enter a discount value.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Use 0 or more.",
-    }),
-  endAt: z.string().trim(),
-  startAt: z.string().trim(),
-  status: z.enum(["draft", "active", "scheduled", "expired"]),
-  title: z.string().trim().min(1, "Enter an offer name.").max(120, "Use 120 characters or fewer."),
-});
-
-type PromoFormValues = z.infer<typeof promoSchema>;
+type PromoFormValues = {
+  description: string;
+  discountType: "nominal" | "percent";
+  discountValue: string;
+  endAt: string;
+  startAt: string;
+  status: "draft" | "active" | "scheduled" | "expired";
+  title: string;
+};
 
 const defaultValues: PromoFormValues = {
   description: "",
@@ -87,34 +80,68 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDateRange(startAt: string | null | undefined, endAt: string | null | undefined) {
-  const formatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" });
+function formatDateRange(
+  startAt: string | null | undefined,
+  endAt: string | null | undefined,
+  locale: string,
+) {
+  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   const start = startAt ? formatter.format(new Date(startAt)) : "-";
   const end = endAt ? formatter.format(new Date(endAt)) : "-";
   return `${start} - ${end}`;
 }
 
-function formatDiscount(type: string | null, value: number | null | undefined) {
+function formatDiscount(type: string | null, value: number | null | undefined, locale: string) {
   if (type === "percent") {
     return `${value ?? 0}%`;
   }
 
-  return new Intl.NumberFormat("id-ID", {
+  return new Intl.NumberFormat(locale, {
     currency: "IDR",
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
 }
 
-function promoStatusLabel(value: string | null | undefined) {
+function promoStatusLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
-    return "-";
+    return text.common.states.notAdded;
   }
 
-  return promoStatusOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    {
+      active: text.modules.promo.statusOptions.active,
+      draft: text.modules.promo.statusOptions.draft,
+      expired: text.modules.promo.statusOptions.expired,
+      scheduled: text.modules.promo.statusOptions.scheduled,
+    }[value] ?? value
+  );
 }
 
 export function PromoModule({ storeId }: PromoModuleProps) {
+  const { locale, text } = useI18n();
+  const promoSchema = z.object({
+    description: z.string().trim().max(200, text.modules.promo.validation.descriptionMax),
+    discountType: z.enum(["nominal", "percent"]),
+    discountValue: z
+      .string()
+      .trim()
+      .min(1, text.modules.promo.validation.discountValue)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
+        message: text.modules.promo.validation.discountValueMin,
+      }),
+    endAt: z.string().trim(),
+    startAt: z.string().trim(),
+    status: z.enum(["draft", "active", "scheduled", "expired"]),
+    title: z
+      .string()
+      .trim()
+      .min(1, text.modules.promo.validation.titleMin)
+      .max(120, text.modules.promo.validation.titleMax),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingPromo, setEditingPromo] = useState<EditingPromo | null>(null);
@@ -168,7 +195,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
   function startEdit(promo: PromoRow) {
     setEditingPromo({
       id: promo.id,
-      title: promo.title ?? "Offer",
+      title: promo.title ?? text.modules.promo.title,
     });
     setFormError(null);
     reset({
@@ -268,7 +295,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this offer.");
+      setFormError(error instanceof Error ? error.message : text.modules.promo.saveError);
     }
   }
 
@@ -286,24 +313,22 @@ export function PromoModule({ storeId }: PromoModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this offer.");
+      setFormError(error instanceof Error ? error.message : text.modules.promo.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Offers</h3>
-        <p className="text-sm text-stone-500">
-          Keep your active offers in one place so everyone can check them quickly.
-        </p>
+        <h3 className="text-lg font-semibold">{text.modules.promo.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.promo.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.promo.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -316,26 +341,34 @@ export function PromoModule({ storeId }: PromoModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search offers"
+              aria-label={text.modules.promo.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, status, or description"
+              placeholder={text.modules.promo.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              New offer
+              {text.common.actions.newOffer}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingPromo ? "Edit offer" : "New offer"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingPromo
+                      ? text.modules.promo.headingEdit(editingPromo.title)
+                      : text.modules.promo.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingPromo ? `Edit offer: ${editingPromo.title}` : "New offer"}
+                          {editingPromo
+                            ? text.modules.promo.headingEdit(editingPromo.title)
+                            : text.modules.promo.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -350,7 +383,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="promo-title"
                             >
-                              Offer name
+                              {text.modules.promo.offerName}
                             </label>
                             <Controller
                               control={control}
@@ -366,7 +399,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                     id="promo-title"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Coffee discount"
+                                    placeholder={text.modules.promo.placeholderTitle}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -385,14 +418,14 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-status"
                               >
-                                Status
+                                {text.common.labels.status}
                               </label>
                               <Controller
                                 control={control}
                                 name="status"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose an offer status"
+                                    aria-label={text.common.labels.status}
                                     className="w-full"
                                     id="promo-status"
                                     onBlur={field.onBlur}
@@ -409,7 +442,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                       <ListBox>
                                         {promoStatusOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                            {promoStatusLabel(option.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -424,14 +457,14 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-type"
                               >
-                                Discount type
+                                {text.modules.promo.discountType}
                               </label>
                               <Controller
                                 control={control}
                                 name="discountType"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a discount type"
+                                    aria-label={text.modules.promo.discountType}
                                     className="w-full"
                                     id="promo-type"
                                     onBlur={field.onBlur}
@@ -448,7 +481,9 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                       <ListBox>
                                         {promoDiscountOptions.map((option) => (
                                           <ListBox.Item id={option.id} key={option.id}>
-                                            {option.label}
+                                            {option.id === "percent"
+                                              ? text.modules.promo.discountTypes.percent
+                                              : text.modules.promo.discountTypes.nominal}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -463,7 +498,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-value"
                               >
-                                Discount value
+                                {text.modules.promo.discountValue}
                               </label>
                               <Controller
                                 control={control}
@@ -494,7 +529,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-start"
                               >
-                                Starts on (optional)
+                                {text.modules.promo.startsOnOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -517,7 +552,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-end"
                               >
-                                Ends on (optional)
+                                {text.modules.promo.endsOnOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -540,7 +575,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="promo-description"
                               >
-                                Details (optional)
+                                {text.modules.promo.detailsOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -551,7 +586,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                                     id="promo-description"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: for selected sachet coffee only"
+                                    placeholder={text.modules.promo.placeholderDescription}
                                     value={field.value}
                                   />
                                 )}
@@ -568,10 +603,12 @@ export function PromoModule({ storeId }: PromoModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingPromo ? "Save changes" : "Save offer"}
+                              {editingPromo
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveOffer}
                             </Button>
                           </div>
                         </form>
@@ -584,63 +621,70 @@ export function PromoModule({ storeId }: PromoModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredPromos.length} of {promos.length} offers
+          {text.common.prompts.ofTotal(
+            filteredPromos.length,
+            promos.length,
+            text.modules.promo.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Offer list">
+          <Table.Content aria-label={text.modules.promo.offerList}>
             <Table.Header>
-              <Table.Column isRowHeader>Offer</Table.Column>
-              <Table.Column>Status</Table.Column>
-              <Table.Column>Discount</Table.Column>
-              <Table.Column>Dates</Table.Column>
-              <Table.Column>Details</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.modules.promo.offerName}</Table.Column>
+              <Table.Column>{text.common.labels.status}</Table.Column>
+              <Table.Column>{text.common.labels.discount}</Table.Column>
+              <Table.Column>{text.common.labels.date}</Table.Column>
+              <Table.Column>{text.common.labels.details}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredPromos.length > 0 ? (
                 filteredPromos.map((promo) => (
                   <Table.Row key={promo.id}>
-                    <Table.Cell>{promo.title ?? "-"}</Table.Cell>
-                    <Table.Cell>{promoStatusLabel(promo.status)}</Table.Cell>
+                    <Table.Cell>{promo.title ?? text.modules.promo.title}</Table.Cell>
+                    <Table.Cell>{promoStatusLabel(promo.status, text)}</Table.Cell>
                     <Table.Cell>
-                      {formatDiscount(promo.discount_type, promo.discount_value)}
+                      {formatDiscount(promo.discount_type, promo.discount_value, locale)}
                     </Table.Cell>
-                    <Table.Cell>{formatDateRange(promo.start_at, promo.end_at)}</Table.Cell>
-                    <Table.Cell>{promo.description ?? "-"}</Table.Cell>
+                    <Table.Cell>{formatDateRange(promo.start_at, promo.end_at, locale)}</Table.Cell>
+                    <Table.Cell>{promo.description ?? text.common.states.notAdded}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(promo)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this offer?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.promo.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {promo.title ?? "This offer"} will be removed from your offer
-                                  list.
+                                  {text.modules.promo.deleteBody(
+                                    promo.title ?? text.modules.promo.title,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === promo.id}
                                     onPress={() => void deletePromo(promo.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -654,7 +698,7 @@ export function PromoModule({ storeId }: PromoModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={6}>
-                    {promosQuery.isPending ? "Loading offers..." : "No offers yet."}
+                    {promosQuery.isPending ? text.modules.promo.loading : text.modules.promo.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

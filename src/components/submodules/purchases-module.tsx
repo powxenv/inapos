@@ -20,6 +20,7 @@ import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
 import { z } from "zod";
+import { useI18n } from "../../lib/i18n";
 import { powerSync } from "../../lib/powersync";
 
 type PurchasesModuleProps = {
@@ -46,21 +47,13 @@ type EditingPurchase = {
   label: string;
 };
 
-const purchaseSchema = z.object({
-  invoiceNumber: z.string().trim().max(80, "Use 80 characters or fewer."),
-  purchasedAt: z.string().trim().min(1, "Choose a date."),
-  status: z.enum(["draft", "ordered", "received"]),
-  supplierId: z.string().trim().max(100, "Choose a valid supplier."),
-  totalAmount: z
-    .string()
-    .trim()
-    .min(1, "Enter a total.")
-    .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
-      message: "Use 0 or more.",
-    }),
-});
-
-type PurchaseFormValues = z.infer<typeof purchaseSchema>;
+type PurchaseFormValues = {
+  invoiceNumber: string;
+  purchasedAt: string;
+  status: "draft" | "ordered" | "received";
+  supplierId: string;
+  totalAmount: string;
+};
 
 const defaultValues: PurchaseFormValues = {
   invoiceNumber: "",
@@ -81,33 +74,56 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDate(value: string | null | undefined) {
+function formatDate(value: string | null | undefined, locale: string) {
   if (!value) {
     return "-";
   }
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(new Date(value));
 }
 
-function formatRupiah(value: number | null | undefined) {
-  return new Intl.NumberFormat("id-ID", {
+function formatRupiah(value: number | null | undefined, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: "IDR",
     maximumFractionDigits: 0,
     style: "currency",
   }).format(value ?? 0);
 }
 
-function purchaseStatusLabel(value: string | null | undefined) {
+function purchaseStatusLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
-    return "-";
+    return text.common.states.notAdded;
   }
 
-  return purchaseStatusOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    {
+      draft: text.modules.purchases.statusOptions.draft,
+      ordered: text.modules.purchases.statusOptions.ordered,
+      received: text.modules.purchases.statusOptions.received,
+    }[value] ?? value
+  );
 }
 
 export function PurchasesModule({ storeId }: PurchasesModuleProps) {
+  const { locale, text } = useI18n();
+  const purchaseSchema = z.object({
+    invoiceNumber: z.string().trim().max(80, text.modules.purchases.validation.invoiceMax),
+    purchasedAt: z.string().trim().min(1, text.modules.purchases.validation.purchasedAt),
+    status: z.enum(["draft", "ordered", "received"]),
+    supplierId: z.string().trim().max(100, text.modules.purchases.validation.supplierId),
+    totalAmount: z
+      .string()
+      .trim()
+      .min(1, text.modules.purchases.validation.totalAmount)
+      .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
+        message: text.modules.purchases.validation.totalAmountMin,
+      }),
+  });
   const modalState = useOverlayState();
   const [search, setSearch] = useState("");
   const [editingPurchase, setEditingPurchase] = useState<EditingPurchase | null>(null);
@@ -183,7 +199,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
   function startEdit(purchase: PurchaseRow) {
     setEditingPurchase({
       id: purchase.id,
-      label: purchase.invoice_number ?? purchase.supplier_name ?? "Purchase",
+      label: purchase.invoice_number ?? purchase.supplier_name ?? text.modules.purchases.title,
     });
     setFormError(null);
     reset({
@@ -273,7 +289,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
       resetForm();
     } catch (error) {
       setIsSaving(false);
-      setFormError(error instanceof Error ? error.message : "We couldn't save this purchase.");
+      setFormError(error instanceof Error ? error.message : text.modules.purchases.saveError);
     }
   }
 
@@ -291,22 +307,22 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : "We couldn't delete this purchase.");
+      setFormError(error instanceof Error ? error.message : text.modules.purchases.deleteError);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Purchases</h3>
-        <p className="text-sm text-stone-500">Keep a clear record of stock purchases.</p>
+        <h3 className="text-lg font-semibold">{text.modules.purchases.title}</h3>
+        <p className="text-sm text-stone-500">{text.modules.purchases.description}</p>
       </div>
 
       {formError ? (
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>That didn’t work</Alert.Title>
+            <Alert.Title>{text.modules.purchases.thatDidNotWork}</Alert.Title>
             <Alert.Description>{formError}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -319,28 +335,34 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search purchases"
+              aria-label={text.modules.purchases.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by invoice, supplier, or status"
+              placeholder={text.modules.purchases.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add purchase
+              {text.modules.purchases.addPurchase}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingPurchase ? "Edit purchase" : "Add purchase"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingPurchase
+                      ? text.modules.purchases.headingEdit(editingPurchase.label)
+                      : text.modules.purchases.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
                           {editingPurchase
-                            ? `Edit purchase: ${editingPurchase.label}`
-                            : "Add purchase"}
+                            ? text.modules.purchases.headingEdit(editingPurchase.label)
+                            : text.modules.purchases.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -355,7 +377,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="purchase-invoice-number"
                             >
-                              Invoice number (optional)
+                              {text.modules.purchases.invoiceOptional}
                             </label>
                             <Controller
                               control={control}
@@ -371,7 +393,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                     id="purchase-invoice-number"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="INV-001"
+                                    placeholder={text.modules.purchases.placeholderInvoice}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -390,21 +412,21 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-supplier"
                               >
-                                Supplier (optional)
+                                {text.modules.purchases.supplierOptional}
                               </label>
                               <Controller
                                 control={control}
                                 name="supplierId"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a supplier"
+                                    aria-label={text.modules.purchases.placeholderSupplier}
                                     className="w-full"
                                     id="purchase-supplier"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Choose a supplier"
+                                    placeholder={text.modules.purchases.placeholderSupplier}
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -413,10 +435,12 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">No supplier</ListBox.Item>
+                                        <ListBox.Item id="">
+                                          {text.common.states.noSupplier}
+                                        </ListBox.Item>
                                         {supplierOptions.map((supplier) => (
                                           <ListBox.Item id={supplier.id} key={supplier.id}>
-                                            {supplier.name ?? "Unnamed supplier"}
+                                            {supplier.name ?? text.common.states.unnamedSupplier}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -431,21 +455,21 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-status"
                               >
-                                Status
+                                {text.common.labels.status}
                               </label>
                               <Controller
                                 control={control}
                                 name="status"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a purchase status"
+                                    aria-label={text.modules.purchases.placeholderStatus}
                                     className="w-full"
                                     id="purchase-status"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "draft")
                                     }
-                                    placeholder="Choose a status"
+                                    placeholder={text.modules.purchases.placeholderStatus}
                                     selectedKey={field.value}
                                   >
                                     <Select.Trigger className="w-full">
@@ -456,7 +480,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                       <ListBox>
                                         {purchaseStatusOptions.map((status) => (
                                           <ListBox.Item id={status.id} key={status.id}>
-                                            {status.label}
+                                            {purchaseStatusLabel(status.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -471,7 +495,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-total-amount"
                               >
-                                Total
+                                {text.common.labels.total}
                               </label>
                               <Controller
                                 control={control}
@@ -502,7 +526,7 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="purchase-date"
                               >
-                                Date
+                                {text.common.labels.date}
                               </label>
                               <Controller
                                 control={control}
@@ -536,10 +560,12 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingPurchase ? "Save changes" : "Save purchase"}
+                              {editingPurchase
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.savePurchase}
                             </Button>
                           </div>
                         </form>
@@ -552,63 +578,74 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredPurchases.length} of {purchases.length} purchases
+          {text.common.prompts.ofTotal(
+            filteredPurchases.length,
+            purchases.length,
+            text.modules.purchases.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Purchase list">
+          <Table.Content aria-label={text.modules.purchases.purchaseList}>
             <Table.Header>
-              <Table.Column isRowHeader>Date</Table.Column>
-              <Table.Column>Invoice</Table.Column>
-              <Table.Column>Supplier</Table.Column>
-              <Table.Column>Status</Table.Column>
-              <Table.Column>Total</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.date}</Table.Column>
+              <Table.Column>{text.common.labels.invoice}</Table.Column>
+              <Table.Column>{text.common.labels.supplier}</Table.Column>
+              <Table.Column>{text.common.labels.status}</Table.Column>
+              <Table.Column>{text.common.labels.total}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredPurchases.length > 0 ? (
                 filteredPurchases.map((purchase) => (
                   <Table.Row key={purchase.id}>
-                    <Table.Cell>{formatDate(purchase.purchased_at)}</Table.Cell>
-                    <Table.Cell>{purchase.invoice_number ?? "-"}</Table.Cell>
-                    <Table.Cell>{purchase.supplier_name ?? "-"}</Table.Cell>
-                    <Table.Cell>{purchaseStatusLabel(purchase.status)}</Table.Cell>
-                    <Table.Cell>{formatRupiah(purchase.total_amount)}</Table.Cell>
+                    <Table.Cell>{formatDate(purchase.purchased_at, locale)}</Table.Cell>
+                    <Table.Cell>
+                      {purchase.invoice_number ?? text.common.states.notAdded}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {purchase.supplier_name ?? text.common.states.noSupplier}
+                    </Table.Cell>
+                    <Table.Cell>{purchaseStatusLabel(purchase.status, text)}</Table.Cell>
+                    <Table.Cell>{formatRupiah(purchase.total_amount, locale)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(purchase)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this purchase?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.purchases.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {purchase.invoice_number ??
-                                    purchase.supplier_name ??
-                                    "This purchase"}{" "}
-                                  will be removed from your purchase list.
+                                  {text.modules.purchases.deleteBody(
+                                    purchase.invoice_number ??
+                                      purchase.supplier_name ??
+                                      text.modules.purchases.title,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === purchase.id}
                                     onPress={() => void deletePurchase(purchase.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -622,7 +659,9 @@ export function PurchasesModule({ storeId }: PurchasesModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={6}>
-                    {purchasesQuery.isPending ? "Loading purchases..." : "No purchases yet."}
+                    {purchasesQuery.isPending
+                      ? text.modules.purchases.loading
+                      : text.modules.purchases.empty}
                   </Table.Cell>
                 </Table.Row>
               )}

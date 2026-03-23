@@ -90,12 +90,47 @@ function normalizeText(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function productCategoryLabel(value: string | null | undefined) {
+function productCategoryLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
   if (!value) {
-    return "-";
+    return text.common.states.noCategory;
   }
 
-  return productCategoryOptions.find((option) => option.id === value)?.label ?? value;
+  return (
+    {
+      kebersihan: text.modules.productList.categories.kebersihan,
+      lainnya: text.modules.productList.categories.lainnya,
+      "makanan-ringan": text.modules.productList.categories.makananRingan,
+      minuman: text.modules.productList.categories.minuman,
+      "perawatan-rumah": text.modules.productList.categories.perawatanRumah,
+      sembako: text.modules.productList.categories.sembako,
+    }[value] ?? value
+  );
+}
+
+function productUnitLabel(
+  value: string | null | undefined,
+  text: ReturnType<typeof useI18n>["text"],
+) {
+  if (!value) {
+    return text.common.states.noUnit;
+  }
+
+  return (
+    {
+      botol: text.modules.productList.units.botol,
+      dus: text.modules.productList.units.dus,
+      gram: text.modules.productList.units.gram,
+      kg: text.modules.productList.units.kg,
+      liter: text.modules.productList.units.liter,
+      ml: text.modules.productList.units.ml,
+      pack: text.modules.productList.units.pack,
+      pcs: text.modules.productList.units.pcs,
+      sachet: text.modules.productList.units.sachet,
+    }[value] ?? value
+  );
 }
 
 export function ProductListModule({ storeId }: ProductListModuleProps) {
@@ -307,7 +342,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
       setPendingDeleteId(null);
     } catch (error) {
       setPendingDeleteId(null);
-      setFormError(error instanceof Error ? error.message : text.common.actions.delete);
+      setFormError(error instanceof Error ? error.message : text.modules.productList.deleteError);
     }
   }
 
@@ -325,26 +360,34 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
               <MagnifyingGlassIcon aria-hidden size={18} />
             </InputGroup.Prefix>
             <InputGroup.Input
-              aria-label="Search items"
+              aria-label={text.modules.productList.searchLabel}
               className="w-full"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, code, barcode, or category"
+              placeholder={text.modules.productList.placeholderSearch}
               value={search}
             />
           </InputGroup>
           <Modal state={modalState}>
             <Button onPress={openCreateModal}>
               <PlusIcon aria-hidden size={16} />
-              Add item
+              {text.modules.productList.addItem}
             </Button>
             <Modal.Backdrop>
               <Modal.Container placement="center" size="lg">
-                <Modal.Dialog aria-label={editingProduct ? "Edit item" : "Add item"}>
+                <Modal.Dialog
+                  aria-label={
+                    editingProduct
+                      ? text.modules.productList.headingEdit(editingProduct.name)
+                      : text.modules.productList.headingNew
+                  }
+                >
                   {({ close }) => (
                     <>
                       <Modal.Header>
                         <Modal.Heading>
-                          {editingProduct ? `Edit item: ${editingProduct.name}` : "Add item"}
+                          {editingProduct
+                            ? text.modules.productList.headingEdit(editingProduct.name)
+                            : text.modules.productList.headingNew}
                         </Modal.Heading>
                       </Modal.Header>
                       <Modal.Body>
@@ -359,7 +402,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                               className="block text-sm font-medium text-stone-700"
                               htmlFor="product-name"
                             >
-                              Item name
+                              {text.modules.productList.itemName}
                             </label>
                             <Controller
                               control={control}
@@ -375,7 +418,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     id="product-name"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="For example: Rice 5 kg"
+                                    placeholder={text.modules.productList.placeholderName}
                                     value={field.value}
                                   />
                                 </InputGroup>
@@ -394,7 +437,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-selling-price"
                               >
-                                Selling price
+                                {text.modules.productList.sellingPrice}
                               </label>
                               <Controller
                                 control={control}
@@ -425,7 +468,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-cost-price"
                               >
-                                Cost price
+                                {text.modules.productList.costPrice}
                               </label>
                               <Controller
                                 control={control}
@@ -456,21 +499,21 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-unit"
                               >
-                                Unit (optional)
+                                {text.modules.productList.unitOptional}
                               </label>
                               <Controller
                                 control={control}
                                 name="unit"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a unit"
+                                    aria-label={text.modules.productList.unitOptional}
                                     className="w-full"
                                     id="product-unit"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Choose a unit"
+                                    placeholder={text.modules.productList.placeholderUnit}
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -479,10 +522,12 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">No unit</ListBox.Item>
+                                        <ListBox.Item id="">
+                                          {text.common.states.noUnit}
+                                        </ListBox.Item>
                                         {productUnitOptions.map((unit) => (
                                           <ListBox.Item id={unit.id} key={unit.id}>
-                                            {unit.label}
+                                            {productUnitLabel(unit.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -502,7 +547,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-sku"
                               >
-                                SKU (optional)
+                                {text.modules.productList.skuOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -513,7 +558,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     id="product-sku"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="SKU-001"
+                                    placeholder={text.modules.productList.placeholderSku}
                                     value={field.value}
                                   />
                                 )}
@@ -530,7 +575,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-barcode"
                               >
-                                Barcode (optional)
+                                {text.modules.productList.barcodeOptional}
                               </label>
                               <Controller
                                 control={control}
@@ -541,7 +586,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     id="product-barcode"
                                     onBlur={field.onBlur}
                                     onChange={field.onChange}
-                                    placeholder="899..."
+                                    placeholder={text.modules.productList.placeholderBarcode}
                                     value={field.value}
                                   />
                                 )}
@@ -558,21 +603,21 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                 className="block text-sm font-medium text-stone-700"
                                 htmlFor="product-category"
                               >
-                                Category (optional)
+                                {text.modules.productList.categoryOptional}
                               </label>
                               <Controller
                                 control={control}
                                 name="category"
                                 render={({ field }) => (
                                   <Select
-                                    aria-label="Choose a category"
+                                    aria-label={text.modules.productList.categoryOptional}
                                     className="w-full"
                                     id="product-category"
                                     onBlur={field.onBlur}
                                     onSelectionChange={(key) =>
                                       field.onChange(typeof key === "string" ? key : "")
                                     }
-                                    placeholder="Choose a category"
+                                    placeholder={text.modules.productList.placeholderCategory}
                                     selectedKey={field.value || null}
                                   >
                                     <Select.Trigger className="w-full">
@@ -581,10 +626,12 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                                     </Select.Trigger>
                                     <Select.Popover>
                                       <ListBox>
-                                        <ListBox.Item id="">No category</ListBox.Item>
+                                        <ListBox.Item id="">
+                                          {text.common.states.noCategory}
+                                        </ListBox.Item>
                                         {productCategoryOptions.map((category) => (
                                           <ListBox.Item id={category.id} key={category.id}>
-                                            {category.label}
+                                            {productCategoryLabel(category.id, text)}
                                           </ListBox.Item>
                                         ))}
                                       </ListBox>
@@ -604,7 +651,7 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                             <Alert status="danger">
                               <Alert.Indicator />
                               <Alert.Content>
-                                <Alert.Title>That didn’t work</Alert.Title>
+                                <Alert.Title>{text.modules.productList.thatDidNotWork}</Alert.Title>
                                 <Alert.Description>{formError}</Alert.Description>
                               </Alert.Content>
                             </Alert>
@@ -619,10 +666,12 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                               type="button"
                               variant="tertiary"
                             >
-                              Cancel
+                              {text.common.actions.cancel}
                             </Button>
                             <Button isPending={isSaving} type="submit">
-                              {editingProduct ? "Save changes" : "Save item"}
+                              {editingProduct
+                                ? text.common.actions.saveChanges
+                                : text.common.actions.saveItem}
                             </Button>
                           </div>
                         </form>
@@ -635,22 +684,26 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
           </Modal>
         </div>
         <p className="text-sm text-stone-500">
-          {filteredProducts.length} of {products.length} items
+          {text.common.prompts.ofTotal(
+            filteredProducts.length,
+            products.length,
+            text.modules.productList.tableCountLabel,
+          )}
         </p>
       </div>
 
       <Table>
         <Table.ScrollContainer>
-          <Table.Content aria-label="Item list">
+          <Table.Content aria-label={text.modules.productList.itemList}>
             <Table.Header>
-              <Table.Column isRowHeader>Name</Table.Column>
-              <Table.Column>SKU</Table.Column>
-              <Table.Column>Category</Table.Column>
-              <Table.Column>Unit</Table.Column>
-              <Table.Column>Cost price</Table.Column>
-              <Table.Column>Selling price</Table.Column>
-              <Table.Column>Status</Table.Column>
-              <Table.Column className="w-[160px]">Actions</Table.Column>
+              <Table.Column isRowHeader>{text.common.labels.name}</Table.Column>
+              <Table.Column>{text.common.labels.sku}</Table.Column>
+              <Table.Column>{text.common.labels.category}</Table.Column>
+              <Table.Column>{text.common.labels.unit}</Table.Column>
+              <Table.Column>{text.modules.productList.costPrice}</Table.Column>
+              <Table.Column>{text.modules.productList.sellingPrice}</Table.Column>
+              <Table.Column>{text.common.labels.status}</Table.Column>
+              <Table.Column className="w-[160px]">{text.common.labels.actions}</Table.Column>
             </Table.Header>
             <Table.Body>
               {filteredProducts.length > 0 ? (
@@ -658,48 +711,58 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
                   <Table.Row key={product.id}>
                     <Table.Cell>
                       <div className="space-y-1">
-                        <p className="font-medium text-stone-900">{product.name ?? "-"}</p>
+                        <p className="font-medium text-stone-900">
+                          {product.name ?? text.common.states.unnamedItem}
+                        </p>
                         {product.barcode ? (
                           <p className="text-xs text-stone-500">{product.barcode}</p>
                         ) : null}
                       </div>
                     </Table.Cell>
-                    <Table.Cell>{product.sku ?? "-"}</Table.Cell>
-                    <Table.Cell>{productCategoryLabel(product.category)}</Table.Cell>
-                    <Table.Cell>{product.unit ?? "-"}</Table.Cell>
+                    <Table.Cell>{product.sku ?? text.common.states.notAdded}</Table.Cell>
+                    <Table.Cell>{productCategoryLabel(product.category, text)}</Table.Cell>
+                    <Table.Cell>{productUnitLabel(product.unit, text)}</Table.Cell>
                     <Table.Cell>{formatCurrency(product.cost_price)}</Table.Cell>
                     <Table.Cell>{formatCurrency(product.selling_price)}</Table.Cell>
-                    <Table.Cell>{product.is_active === 0 ? "Hidden" : "Active"}</Table.Cell>
+                    <Table.Cell>
+                      {product.is_active === 0
+                        ? text.modules.productList.statusHidden
+                        : text.modules.productList.statusActive}
+                    </Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button onPress={() => startEdit(product)} size="sm" variant="outline">
                           <PencilSimpleIcon aria-hidden size={16} />
-                          Edit
+                          {text.common.actions.edit}
                         </Button>
                         <AlertDialog>
                           <Button size="sm" variant="tertiary">
                             <TrashIcon aria-hidden size={16} />
-                            Delete
+                            {text.common.actions.delete}
                           </Button>
                           <AlertDialog.Backdrop>
                             <AlertDialog.Container placement="center" size="sm">
                               <AlertDialog.Dialog>
                                 <AlertDialog.Header>
-                                  <AlertDialog.Heading>Delete this item?</AlertDialog.Heading>
+                                  <AlertDialog.Heading>
+                                    {text.modules.productList.deleteTitle}
+                                  </AlertDialog.Heading>
                                 </AlertDialog.Header>
                                 <AlertDialog.Body>
-                                  {product.name ?? "This item"} will be removed from your item list.
+                                  {text.modules.productList.deleteBody(
+                                    product.name ?? text.common.states.unnamedItem,
+                                  )}
                                 </AlertDialog.Body>
                                 <AlertDialog.Footer>
                                   <Button slot="close" variant="tertiary">
-                                    Cancel
+                                    {text.common.actions.cancel}
                                   </Button>
                                   <Button
                                     isPending={pendingDeleteId === product.id}
                                     onPress={() => void deleteProduct(product.id)}
                                     variant="danger"
                                   >
-                                    Delete
+                                    {text.common.actions.delete}
                                   </Button>
                                 </AlertDialog.Footer>
                               </AlertDialog.Dialog>
@@ -713,7 +776,9 @@ export function ProductListModule({ storeId }: ProductListModuleProps) {
               ) : (
                 <Table.Row>
                   <Table.Cell colSpan={8}>
-                    {productsQuery.isPending ? "Loading items..." : "No items yet."}
+                    {productsQuery.isPending
+                      ? text.modules.productList.loading
+                      : text.modules.productList.empty}
                   </Table.Cell>
                 </Table.Row>
               )}
