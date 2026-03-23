@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, CloseButton, Input, ListBox, Select, TextArea } from "@heroui/react";
+import { Alert, Button, CloseButton, Input, ListBox, Select, TextArea } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { useQueries } from "@powersync/tanstack-react-query";
@@ -205,163 +205,157 @@ export function StoreSettingsModule({ storeId, storeName }: StoreSettingsModuleP
         </Alert>
       ) : null}
 
-      <Card className="border border-stone-200 bg-stone-50 shadow-none">
-        <Card.Content className="p-4">
-          <form className="space-y-4" onSubmit={handleSubmit(saveStoreDetails)}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold">{text.modules.storeSettings.title}</h3>
-              <Button isPending={isSaving} type="submit">
-                {text.common.actions.save}
-              </Button>
+      <form className="space-y-4" onSubmit={handleSubmit(saveStoreDetails)}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold">{text.modules.storeSettings.title}</h3>
+          <Button isPending={isSaving} type="submit">
+            {text.common.actions.save}
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
+            <p className="pt-2 text-sm font-medium text-stone-700">
+              {text.modules.storeSettings.storeName}
+            </p>
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="storeName"
+                render={({ field }) => (
+                  <Input
+                    className="w-full"
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    value={field.value}
+                  />
+                )}
+              />
+              {formState.errors.storeName?.message ? (
+                <p className="text-sm text-red-600">{formState.errors.storeName.message}</p>
+              ) : null}
             </div>
+          </div>
 
-            <div className="space-y-3">
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
-                <p className="pt-2 text-sm font-medium text-stone-700">
-                  {text.modules.storeSettings.storeName}
-                </p>
-                <div className="space-y-2">
-                  <Controller
-                    control={control}
-                    name="storeName"
-                    render={({ field }) => (
-                      <Input
-                        className="w-full"
-                        onBlur={field.onBlur}
-                        onChange={field.onChange}
-                        value={field.value}
-                      />
-                    )}
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
+            <p className="pt-2 text-sm font-medium text-stone-700">
+              {text.modules.storeSettings.phone}
+            </p>
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <Input
+                    className="w-full"
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    placeholder={text.modules.storeSettings.defaults.phone}
+                    value={field.value}
                   />
-                  {formState.errors.storeName?.message ? (
-                    <p className="text-sm text-red-600">{formState.errors.storeName.message}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
-                <p className="pt-2 text-sm font-medium text-stone-700">
-                  {text.modules.storeSettings.phone}
-                </p>
-                <div className="space-y-2">
-                  <Controller
-                    control={control}
-                    name="phone"
-                    render={({ field }) => (
-                      <Input
-                        className="w-full"
-                        onBlur={field.onBlur}
-                        onChange={field.onChange}
-                        placeholder={text.modules.storeSettings.defaults.phone}
-                        value={field.value}
-                      />
-                    )}
-                  />
-                  {formState.errors.phone?.message ? (
-                    <p className="text-sm text-red-600">{formState.errors.phone.message}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
-                <p className="pt-2 text-sm font-medium text-stone-700">
-                  {text.modules.storeSettings.currency}
-                </p>
-                <div className="space-y-2">
-                  <Controller
-                    control={control}
-                    name="currencyCode"
-                    render={({ field }) => (
-                      <Select
-                        aria-label={text.modules.storeSettings.currency}
-                        className="w-full"
-                        selectedKey={field.value}
-                        onSelectionChange={(key) => {
-                          if (typeof key === "string" && isCurrency(key)) {
-                            field.onChange(key);
-                          }
-                        }}
-                      >
-                        <Select.Trigger className="w-full">
-                          <Select.Value />
-                          <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                          <ListBox>
-                            {SUPPORTED_CURRENCIES.map((currencyCode) => (
-                              <ListBox.Item
-                                id={currencyCode}
-                                key={currencyCode}
-                                textValue={text.common.currencyNames[currencyCode]}
-                              >
-                                {text.common.currencyNames[currencyCode]}
-                                <ListBox.ItemIndicator />
-                              </ListBox.Item>
-                            ))}
-                          </ListBox>
-                        </Select.Popover>
-                      </Select>
-                    )}
-                  />
-                  {formState.errors.currencyCode?.message ? (
-                    <p className="text-sm text-red-600">{formState.errors.currencyCode.message}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
-                <p className="pt-2 text-sm font-medium text-stone-700">
-                  {text.modules.storeSettings.address}
-                </p>
-                <div className="space-y-2">
-                  <Controller
-                    control={control}
-                    name="address"
-                    render={({ field }) => (
-                      <TextArea
-                        className="w-full"
-                        onBlur={field.onBlur}
-                        onChange={field.onChange}
-                        rows={3}
-                        value={field.value}
-                        variant="secondary"
-                      />
-                    )}
-                  />
-                  {formState.errors.address?.message ? (
-                    <p className="text-sm text-red-600">{formState.errors.address.message}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
-                <p className="pt-2 text-sm font-medium text-stone-700">
-                  {text.modules.storeSettings.receiptNote}
-                </p>
-                <div className="space-y-2">
-                  <Controller
-                    control={control}
-                    name="receiptNote"
-                    render={({ field }) => (
-                      <TextArea
-                        className="w-full"
-                        onBlur={field.onBlur}
-                        onChange={field.onChange}
-                        rows={3}
-                        value={field.value}
-                        variant="secondary"
-                      />
-                    )}
-                  />
-                  {formState.errors.receiptNote?.message ? (
-                    <p className="text-sm text-red-600">{formState.errors.receiptNote.message}</p>
-                  ) : null}
-                </div>
-              </div>
+                )}
+              />
+              {formState.errors.phone?.message ? (
+                <p className="text-sm text-red-600">{formState.errors.phone.message}</p>
+              ) : null}
             </div>
-          </form>
-        </Card.Content>
-      </Card>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
+            <p className="pt-2 text-sm font-medium text-stone-700">
+              {text.modules.storeSettings.currency}
+            </p>
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="currencyCode"
+                render={({ field }) => (
+                  <Select
+                    aria-label={text.modules.storeSettings.currency}
+                    className="w-full"
+                    selectedKey={field.value}
+                    onSelectionChange={(key) => {
+                      if (typeof key === "string" && isCurrency(key)) {
+                        field.onChange(key);
+                      }
+                    }}
+                  >
+                    <Select.Trigger className="w-full">
+                      <Select.Value />
+                      <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        {SUPPORTED_CURRENCIES.map((currencyCode) => (
+                          <ListBox.Item
+                            id={currencyCode}
+                            key={currencyCode}
+                            textValue={text.common.currencyNames[currencyCode]}
+                          >
+                            {text.common.currencyNames[currencyCode]}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select>
+                )}
+              />
+              {formState.errors.currencyCode?.message ? (
+                <p className="text-sm text-red-600">{formState.errors.currencyCode.message}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
+            <p className="pt-2 text-sm font-medium text-stone-700">
+              {text.modules.storeSettings.address}
+            </p>
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="address"
+                render={({ field }) => (
+                  <TextArea
+                    className="w-full"
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    rows={3}
+                    value={field.value}
+                  />
+                )}
+              />
+              {formState.errors.address?.message ? (
+                <p className="text-sm text-red-600">{formState.errors.address.message}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-[180px_1fr] sm:items-start">
+            <p className="pt-2 text-sm font-medium text-stone-700">
+              {text.modules.storeSettings.receiptNote}
+            </p>
+            <div className="space-y-2">
+              <Controller
+                control={control}
+                name="receiptNote"
+                render={({ field }) => (
+                  <TextArea
+                    className="w-full"
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    rows={3}
+                    value={field.value}
+                  />
+                )}
+              />
+              {formState.errors.receiptNote?.message ? (
+                <p className="text-sm text-red-600">{formState.errors.receiptNote.message}</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
