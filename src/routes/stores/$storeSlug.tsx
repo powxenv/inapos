@@ -259,6 +259,41 @@ function RouteComponent() {
     },
     resolver: zodResolver(preferencesSchema),
   });
+  const activeOrganizationId = gate.status === "ready" ? gate.organization.id : "";
+  const [storeSettingsQuery] = useQueries<
+    [
+      {
+        currency_code: string | null;
+      },
+    ]
+  >({
+    queries: [
+      {
+        parameters: [activeOrganizationId],
+        query: `
+          SELECT currency_code
+          FROM stores
+          WHERE store_id = ?
+          LIMIT 1
+        `,
+        queryKey: ["store-currency", activeOrganizationId || "pending"],
+      },
+    ],
+  });
+
+  useEffect(() => {
+    if (gate.status !== "ready") {
+      return;
+    }
+
+    const nextCurrency = isCurrency(storeSettingsQuery.data?.[0]?.currency_code)
+      ? storeSettingsQuery.data[0].currency_code
+      : DEFAULT_CURRENCY;
+
+    if (nextCurrency !== currency) {
+      setCurrency(nextCurrency);
+    }
+  }, [currency, gate.status, setCurrency, storeSettingsQuery.data]);
 
   if (gate.status === "loading" || gate.status === "activating") {
     return (
@@ -303,22 +338,6 @@ function RouteComponent() {
   }
 
   const { organization, organizations, user } = gate;
-  const [storeSettingsQuery] = useQueries<[{
-    currency_code: string | null;
-  }]>({
-    queries: [
-      {
-        parameters: [organization.id],
-        query: `
-          SELECT currency_code
-          FROM stores
-          WHERE store_id = ?
-          LIMIT 1
-        `,
-        queryKey: ["store-currency", organization.id],
-      },
-    ],
-  });
   const currentMember = getOrganizationMember(organization, user.id);
   const currentRole = currentMember?.role ?? "member";
   const canManageOrganization = isOrganizationAdmin(currentRole);
@@ -395,16 +414,6 @@ function RouteComponent() {
   ];
   const currentLanguageOption =
     languageOptions.find((option) => option.id === language) ?? languageOptions[0];
-
-  useEffect(() => {
-    const nextCurrency = isCurrency(storeSettingsQuery.data?.[0]?.currency_code)
-      ? storeSettingsQuery.data[0].currency_code
-      : DEFAULT_CURRENCY;
-
-    if (nextCurrency !== currency) {
-      setCurrency(nextCurrency);
-    }
-  }, [currency, setCurrency, storeSettingsQuery.data]);
 
   function openProfileModal() {
     setProfileError(null);
@@ -543,11 +552,9 @@ function RouteComponent() {
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <Dropdown>
-              <Dropdown.Trigger>
-                <div className="flex min-w-[240px] items-center justify-between rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-sm font-medium text-stone-900 shadow-sm">
-                  <span className="truncate">{organization.name}</span>
-                  <CaretDownIcon aria-hidden className="text-stone-500" size={16} />
-                </div>
+              <Dropdown.Trigger className="button button--md button--outline min-w-[240px] justify-between text-left">
+                <span className="truncate">{organization.name}</span>
+                <CaretDownIcon aria-hidden className="text-stone-500" size={16} />
               </Dropdown.Trigger>
               <Dropdown.Popover>
                 <Dropdown.Menu
@@ -669,12 +676,10 @@ function RouteComponent() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Dropdown>
-              <Dropdown.Trigger>
-                <Button variant="outline">
-                  <WrenchIcon aria-hidden size={16} />
-                  {currentAppMode.label}
-                  <CaretDownIcon aria-hidden size={16} />
-                </Button>
+              <Dropdown.Trigger className="button button--md button--outline">
+                <WrenchIcon aria-hidden size={16} />
+                {currentAppMode.label}
+                <CaretDownIcon aria-hidden size={16} />
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[260px]">
                 <Dropdown.Menu
@@ -706,12 +711,10 @@ function RouteComponent() {
             </Dropdown>
 
             <Dropdown>
-              <Dropdown.Trigger>
-                <Button variant="outline">
-                  <UserCircleIcon aria-hidden size={16} />
-                  <span className="max-w-[160px] truncate">{user.name ?? user.email}</span>
-                  <CaretDownIcon aria-hidden size={16} />
-                </Button>
+              <Dropdown.Trigger className="button button--md button--outline">
+                <UserCircleIcon aria-hidden size={16} />
+                <span className="max-w-[160px] truncate">{user.name ?? user.email}</span>
+                <CaretDownIcon aria-hidden size={16} />
               </Dropdown.Trigger>
               <Dropdown.Popover className="min-w-[240px]">
                 <Dropdown.Menu
