@@ -4,7 +4,7 @@ English: [README.md](README.md)
 
 Dokumentasi developer: [docs/README.md](docs/README.md) | Panduan kontribusi: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-INAPOS adalah aplikasi operasional toko untuk toko kecil, kios, dan warung. Aplikasi ini menggabungkan kasir, barang, stok, pelanggan, pembelian, pencatatan kas, pengeluaran, laporan, akses tim, sinkronisasi perangkat, dan asisten AI opsional dalam satu workspace.
+INAPOS adalah aplikasi operasional toko untuk toko kecil, kios, dan warung. Aplikasi ini menggabungkan kasir, barang, stok, pelanggan, pembelian, pencatatan kas, pengeluaran, laporan, akses tim, sinkronisasi perangkat, dan alur kerja AI-first dalam satu workspace. Di aplikasi desktop, staf juga bisa menjalankan bagian operasional toko yang didukung langsung lewat chat dengan memakai data toko nyata, bukan tebakan.
 
 README ini ditulis untuk pengguna produk. Isinya menjelaskan fungsi setiap bagian INAPOS, hal-hal yang bisa dilakukan saat ini, dan alur kerja harian yang paling penting.
 
@@ -23,7 +23,7 @@ README ini ditulis untuk pengguna produk. Isinya menjelaskan fungsi setiap bagia
 - Mencatat arus kas dan pengeluaran harian
 - Meninjau aktivitas harian, peringatan, dan laporan usaha sederhana
 - Berpindah antar toko jika Anda tergabung di lebih dari satu toko
-- Menggunakan asisten toko opsional untuk pertanyaan, ringkasan, dan beberapa aksi data
+- Menggunakan alur kerja chat AI-first untuk pertanyaan, ringkasan, dan aksi toko yang didukung
 
 ## Mulai Dari Sini
 
@@ -33,6 +33,7 @@ README ini ditulis untuk pengguna produk. Isinya menjelaskan fungsi setiap bagia
 4. Isi jumlah stok dan reorder point di `Stock`.
 5. Gunakan `Checkout` untuk menyimpan penjualan.
 6. Pantau `Orders`, `Alerts`, dan `Reports` sepanjang hari.
+7. Di aplikasi desktop, gunakan `Assistant` atau `Chat view` saat ingin bekerja lewat chat tanpa membuka layar modul satu per satu.
 
 ## Susunan Aplikasi
 
@@ -40,7 +41,7 @@ INAPOS memiliki tiga mode tampilan:
 
 - `Full view`: workspace toko lengkap dengan semua modul
 - `Checkout view`: tampilan kasir yang lebih fokus, hanya `Checkout` dan `Orders`
-- `Chat view`: tampilan khusus asisten untuk bantuan cepat
+- `Chat view`: tampilan khusus asisten untuk kerja toko berbasis AI-first
 
 Mode yang dipilih disimpan di perangkat saat ini.
 
@@ -227,11 +228,11 @@ Mata uang toko yang dipilih digunakan di seluruh aplikasi saat toko tersebut dib
 - Unduh model rekomendasi untuk perangkat
 - Simpan atau hapus sign-in key untuk AI online
 
-Setup asisten bersifat opsional. INAPOS tetap bisa dipakai normal tanpa fitur ini.
+Setup asisten bersifat opsional. INAPOS tetap bisa dipakai normal tanpa fitur ini, tetapi aplikasi desktop membuka alur kerja AI-first.
 
 ### Assistant
 
-Assistant adalah workspace terpisah untuk pertanyaan toko dan bantuan terpandu.
+Assistant adalah workspace terpisah untuk pertanyaan toko, bantuan terpandu, dan operasional toko berbasis AI-first.
 
 Assistant dapat membantu untuk hal-hal seperti:
 
@@ -241,8 +242,20 @@ Assistant dapat membantu untuk hal-hal seperti:
 - meninjau pengeluaran terbesar
 - menjelaskan cara kerja suatu alur
 - memberi ide penawaran
+- memeriksa produk, stok, pelanggan, pemasok, kas, pengeluaran, promosi, dan pembelian dari data toko yang aktif
 
-Assistant juga punya tool data toko bawaan, sehingga dirancang untuk memakai data toko yang nyata, bukan menebak. Pada versi saat ini, assistant dapat membaca data toko dan juga menjalankan beberapa aksi data terpandu, termasuk membuat atau menghapus penjualan lewat tool transaksi khusus.
+Assistant juga punya tool data toko bawaan, sehingga dirancang untuk memakai data toko yang nyata, bukan menebak. Pada versi saat ini, assistant dapat membaca data toko dan menjalankan aksi toko yang didukung langsung lewat chat, termasuk:
+
+- menambah, mengubah, dan menghapus produk
+- menyesuaikan data stok
+- menambah, mengubah, dan menghapus pelanggan
+- menambah, mengubah, dan menghapus pemasok
+- menambah, mengubah, dan menghapus entri kas
+- menambah, mengubah, dan menghapus pengeluaran
+- menambah, mengubah, dan menghapus promosi
+- menambah, mengubah, dan menghapus pembelian
+- membuat penjualan lengkap
+- menghapus penjualan sambil memulihkan stok dan total belanja pelanggan yang terkait
 
 Fitur chat assistant meliputi:
 
@@ -255,6 +268,8 @@ Fitur chat assistant meliputi:
 Penting:
 
 - Assistant bersifat spesifik per toko, jadi selalu bekerja dalam toko yang sedang Anda buka.
+- Assistant adalah jalur utama untuk alur kerja AI-first pada produk saat ini.
+- Banyak tugas toko yang didukung bisa diselesaikan sepenuhnya lewat chat tanpa membuka layar modul utama.
 - Balasan assistant saat ini ditulis dalam bahasa Inggris sederhana.
 
 ## Alur Kerja Utama
@@ -299,6 +314,15 @@ Penting: mencatat pembelian tidak otomatis menambah stok, jadi stok tetap harus 
 - Buat toko baru dari menu header yang sama
 - Kelola setiap toko secara terpisah dalam workspace masing-masing
 
+### 6. Alur Kerja AI-First
+
+1. Buka `Assistant` atau pindah ke `Chat view` di aplikasi desktop.
+2. Ajukan pertanyaan berbasis data toko nyata atau beri instruksi tindakan yang diinginkan.
+3. Biarkan assistant memeriksa data, merangkum kondisi usaha, atau menjalankan aksi toko yang didukung.
+4. Tetap di chat jika ingin terus bekerja tanpa membuka layar modul utama.
+
+Alur ini paling cocok untuk pengguna yang ingin mengelola produk, stok, penjualan, dan operasional harian toko dengan bahasa alami, bukan lewat navigasi UI.
+
 ## Preferensi dan Personalisasi
 
 ### Profil
@@ -323,9 +347,9 @@ Penting: mencatat pembelian tidak otomatis menambah stok, jadi stok tetap harus 
 - Berpindah antara `Full view`, `Checkout view`, dan `Chat view`
 - Pilihan ini disimpan di perangkat saat ini
 
-## Opsi Assistant AI
+## Opsi Alur Kerja AI
 
-INAPOS mendukung dua mode assistant:
+INAPOS mendukung dua mode alur kerja AI:
 
 - `On-device AI` dengan Ollama
 - `Online AI` dengan OpenRouter
@@ -345,8 +369,9 @@ INAPOS mendukung dua mode assistant:
 
 ### Hal yang Perlu Diketahui
 
-- Assistant bersifat opsional.
-- Assistant hanya bekerja di aplikasi desktop.
+- Alur kerja AI-first bersifat opsional.
+- Runtime AI saat ini hanya bekerja di aplikasi desktop.
+- Sisa workspace toko tetap berjalan sebagai aplikasi local-first dengan sinkronisasi perangkat.
 - On-device AI membutuhkan Ollama yang terpasang dan berjalan, dengan minimal satu model tersedia.
 - Online AI membutuhkan OpenRouter key yang tersimpan.
 
@@ -378,7 +403,7 @@ INAPOS mendukung dua mode assistant:
 - Status sinkronisasi bisa menampilkan `Offline`, `Checking`, `Up to date`, atau `Needs attention`
 - Sinkronisasi latar belakang berjalan otomatis pada versi saat ini
 
-Assistant secara khusus hanya tersedia di desktop. Sisa workspace disusun sebagai aplikasi toko local-first dengan sinkronisasi perangkat dan perpindahan antar toko.
+Runtime AI secara khusus hanya tersedia di desktop. Sisa workspace disusun sebagai aplikasi toko local-first dengan sinkronisasi perangkat dan perpindahan antar toko pada bagian produk lainnya.
 
 ## Catatan Batasan Penting
 
@@ -394,4 +419,4 @@ Hal-hal ini penting diketahui sebelum Anda mengandalkan suatu alur:
 
 ## Ringkasnya
 
-INAPOS adalah workspace toko ringan untuk berjualan, memantau stok, mengelola operasional harian, dan melihat kesehatan usaha retail kecil. Kekuatan utamanya ada pada penggunaan harian sebagai alat all-in-one untuk checkout, pemantauan stok, pencatatan keuangan sederhana, dan visibilitas toko, dengan assistant AI sebagai lapisan bantuan opsional untuk pertanyaan dan analisis toko.
+INAPOS adalah workspace toko ringan untuk berjualan, memantau stok, mengelola operasional harian, dan melihat kesehatan usaha retail kecil. Kekuatan utamanya ada pada penggunaan harian sebagai alat local-first all-in-one untuk checkout, pemantauan stok, pencatatan keuangan sederhana, dan visibilitas toko, dengan alur kerja AI-first di aplikasi desktop untuk pengguna yang ingin menjalankan operasional toko yang didukung langsung lewat chat.

@@ -4,7 +4,7 @@ Bahasa Indonesia: [README.id.md](README.id.md)
 
 Developer documentation: [docs/README.md](docs/README.md) | Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-INAPOS is a store operations app for small shops, kiosks, and warungs. It combines checkout, items, stock, customers, purchases, cash tracking, expenses, reporting, team access, device sync, and an optional AI assistant in one workspace.
+INAPOS is a store operations app for small shops, kiosks, and warungs. It combines checkout, items, stock, customers, purchases, cash tracking, expenses, reporting, team access, device sync, and an AI-first workflow in one workspace. In the desktop app, staff can also operate supported parts of the store through chat by using real store data instead of guesses.
 
 This README is written for people who use the product. It explains what each part of INAPOS does, what you can do in it today, and how the main day-to-day flows work.
 
@@ -23,7 +23,7 @@ This README is written for people who use the product. It explains what each par
 - Record cash movements and everyday expenses
 - Review daily activity, alerts, and simple business reports
 - Switch between multiple stores if you belong to more than one
-- Use an optional store assistant for questions, summaries, and some data actions
+- Use AI-first chat workflows for questions, summaries, and supported store actions
 
 ## Start Here
 
@@ -33,6 +33,7 @@ This README is written for people who use the product. It explains what each par
 4. Set quantities and reorder points in `Stock`.
 5. Use `Checkout` to save sales.
 6. Review `Orders`, `Alerts`, and `Reports` as the day goes on.
+7. In the desktop app, use `Assistant` or `Chat view` when you want to work through chat instead of opening module screens.
 
 ## How the App Is Organized
 
@@ -40,7 +41,7 @@ INAPOS has three app modes:
 
 - `Full view`: the full store workspace with all modules
 - `Checkout view`: a focused front-counter view with only `Checkout` and `Orders`
-- `Chat view`: an assistant-only view for quick help
+- `Chat view`: an assistant-only view for AI-first store work
 
 The selected app mode is saved on the current device.
 
@@ -227,11 +228,11 @@ The selected store currency is used across the app for totals and prices when th
 - Download a recommended on-device model
 - Save or remove an online assistant key
 
-The assistant setup is optional. INAPOS can still be used normally without it.
+The assistant setup is optional. INAPOS can still be used normally without it, but the desktop app unlocks the AI-first workflow.
 
 ### Assistant
 
-The assistant is a separate workspace for store questions and guided help.
+The assistant is a separate workspace for store questions, guided help, and AI-first store operations.
 
 It can help with things like:
 
@@ -241,8 +242,20 @@ It can help with things like:
 - reviewing big expenses
 - explaining how a workflow works
 - suggesting offer ideas
+- checking products, stock, customers, suppliers, cash, expenses, promotions, and purchases against live store data
 
-It also has built-in store data tools, so it is designed to use real store information instead of guessing. In the current product, it can read store records and also perform some guided data actions, including creating or deleting sales through its dedicated store tools.
+It also has built-in store data tools, so it is designed to use real store information instead of guessing. In the current product, it can read store records and perform supported store actions through chat, including:
+
+- adding, updating, and deleting products
+- adjusting stock records
+- adding, updating, and deleting customers
+- adding, updating, and deleting suppliers
+- adding, updating, and deleting cash entries
+- adding, updating, and deleting expenses
+- adding, updating, and deleting promotions
+- adding, updating, and deleting purchases
+- creating full sales
+- deleting sales and restoring related stock and customer totals
 
 Assistant chat includes:
 
@@ -255,6 +268,8 @@ Assistant chat includes:
 Important:
 
 - The assistant is store-specific, so it works inside the store you currently have open.
+- The assistant is the main path for AI-first workflow in the current product.
+- Many supported store tasks can be completed entirely through chat without opening the main module screens.
 - Assistant replies are currently written in simple English.
 
 ## Key User Flows
@@ -299,6 +314,15 @@ Important: recording a purchase does not add stock automatically, so stock must 
 - Create another store from the same header menu
 - Keep each store separate inside its own workspace
 
+### 6. AI-First Workflow
+
+1. Open `Assistant` or switch to `Chat view` in the desktop app.
+2. Ask a question against real store data or tell the assistant what to do.
+3. Let the assistant check records, summarize business state, or run a supported store action.
+4. Stay in chat if you want to keep operating without opening the main module screens.
+
+This flow is best for users who want to manage products, stock, sales, and daily store operations with natural language instead of UI navigation.
+
 ## Preferences and Personalization
 
 ### Profile
@@ -323,9 +347,9 @@ Important: recording a purchase does not add stock automatically, so stock must 
 - Switch between `Full view`, `Checkout view`, and `Chat view`
 - This is saved on the current device
 
-## AI Assistant Options
+## AI Workflow Options
 
-INAPOS supports two assistant modes:
+INAPOS supports two AI workflow modes:
 
 - `On-device AI` with Ollama
 - `Online AI` with OpenRouter
@@ -345,8 +369,9 @@ INAPOS supports two assistant modes:
 
 ### What You Need to Know
 
-- The assistant is optional.
-- The assistant works only in the desktop app.
+- The AI-first workflow is optional.
+- The AI runtime works only in the desktop app in the current product.
+- The rest of the store workspace still works as a local-first app with device sync.
 - On-device AI requires Ollama to be installed and running, with at least one model available.
 - Online AI requires a saved OpenRouter key.
 
@@ -378,7 +403,7 @@ INAPOS supports two assistant modes:
 - Sync status can show `Offline`, `Checking`, `Up to date`, or `Needs attention`
 - Background sync is automatic in the current product
 
-The assistant is explicitly desktop-only. The rest of the workspace is organized as a local-first store app with device sync and store switching.
+The AI runtime is explicitly desktop-only. The rest of the workspace is organized as a local-first store app with device sync and store switching across the rest of the product.
 
 ## Important Scope Notes
 
@@ -394,4 +419,4 @@ These are useful to know before you rely on a flow:
 
 ## In Short
 
-INAPOS is a lightweight store workspace for selling, tracking stock, managing daily operations, and checking the health of a small retail business. It is strongest when used as an all-in-one daily tool for checkout, stock awareness, simple finance tracking, and store-level visibility, with the AI assistant available as an optional extra layer for help and store questions.
+INAPOS is a lightweight store workspace for selling, tracking stock, managing daily operations, and checking the health of a small retail business. It is strongest when used as an all-in-one local-first tool for checkout, stock awareness, simple finance tracking, and store-level visibility, with an AI-first workflow in the desktop app for users who want to run supported store operations directly through chat.
