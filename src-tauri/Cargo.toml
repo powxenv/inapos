@@ -1,6 +1,6 @@
 [package]
 name = "inapos"
-version = "0.1.0"
+version = "0.1.6"
 description = "INAPOS desktop application"
 authors = ["you"]
 edition = "2021"
